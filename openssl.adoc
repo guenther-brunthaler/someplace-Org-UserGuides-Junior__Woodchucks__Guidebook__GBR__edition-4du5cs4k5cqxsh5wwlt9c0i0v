@@ -1,0 +1,385 @@
+OpenSSL Usage
+=============
+Guenther Brunthaler
+v2023.95
+
+Copyright (C) 2023 Guenther Brunthaler.
+
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+
+A copy of the license is included in the separate document link:GFDL-1.3[entitled "GNU Free Documentation License"].
+
+
+S/MIME
+------
+
+This uses S/MIME and X.509 certificates for combined RSA/TripleDES asymmetric+symmetric encryption.
+
+
+Create private/public key pair
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This generates a 4096 bit RSA key pair and saves them in text format.
+
+The private key will be saved as private.pem and the certfificate containing the public key will be saved as pubcert.pem.
+
+----
+$ openssl req -x509 -nodes -days 100000 -newkey rsa:4096 -keyout private.pem -out pubcert.pem
+----
+
+You will be prompted for and need to be ready to provide the following information:
+
+* Country Name (2 letter code), e. g. "AT"
+
+* State or Province Name (full name), e. g. "." (keeps the field empty)
+
+* Locality Name (eg, city), e. g. "Vienna"
+
+* Organization Name (eg, company), e. g. "." (keeps the field empty)
+
+* Organizational Unit Name (eg, section), e. g. "." (keeps the field empty)
+
+* Common Name (e.g. server FQDN or YOUR name), e. g. "John Doe"
+
+* Email Address, e. g. "john.doe@example.com"
+
+After creation, you optionally might examine the certificate:
+
+----
+$ openssl x509 -noout -text -in pubcert.pem | less
+----
+
+
+Encryption
+~~~~~~~~~~
+
+TripeDES-encrypt unencrypted.txt into file encrypted.txt using receiver's public key file receiver_pubcert.pem (generated as explained above for pubcert.pem by the receiver).
+
+----
+$ openssl smime -encrypt -des-ede3-cbc -in unencrypted.txt -out encrypted.txt receiver_pubcert.pem
+----
+
+
+Encrypt+Sign
+~~~~~~~~~~~~
+
+Sign text file unencrypted.txt using sender's private key private.pem and TripeDES-encrypt it into file encrypted.txt using receiver's public key file receiver_pubcert.pem (generated as explained above for pubcert.pem by the receiver).
+
+DOES NOT WORK YET.
+
+----
+$ openssl smime -sign -signer private.pem -in unencrypted.txt -text
+----
+
+
+Decryption
+~~~~~~~~~~
+
+Decrypt file encrypted.txt into file decrypted.txt using receiver's private key private.pem.
+
+----
+$ openssl smime -decrypt -inkey private.pem -in encrypted.txt -out decrypted.txt
+----
+
+
+Using Low-Level Operations
+--------------------------
+
+This requires that symmetric and asymmetric operations need to be performed as separate steps and that the receiver needs to take corresponding steps. The overall operation is no more covered by any standard. The advantage is that there is full freedom which algorithms to use and how to combine them.
+
+
+Generate PKI key pair
+~~~~~~~~~~~~~~~~~~~~~
+
+Generate an RSA-4096 key pair, saving the private key as private.pem and the public key as public.pem.
+
+----
+$ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out private.pem
+$ openssl pkey -in private.pem -pubout -out public.pem
+----
+
+Because the public key file is not a certificate, no questions will be asked about further fields such as e-mail-address or LDAP-items.
+
+
+Public Key Encryption
+~~~~~~~~~~~~~~~~~~~~~
+
+This encrypts the binary file unencrypted.bin with the text-format RSA key receiver_public.pem into file encrypted.bin.
+
+Note that this is a low-level-operation and expected unencrypted.bin to represent a binary value smaller that the modulus of the key, and the resulting file will also have the same size as the modulus of the key.
+
+This means you will normally only encrypt symmetric binary random session keys or binary hash digiests with this operation.
+
+----
+$ openssl pkeyutl -encrypt -pubin -inkey receiver_public.pem -in unencrypted.bin -out encrypted.bin
+----
+
+This low-level operation can be used to implement 2 different things:
+
+* By encrypting a binary random key, the actual data of the message can then be encrypted using that random key using symmetric encryption, such as TripleDES-CBC or TripleDES-CTR.
+
+* By encrypting a message-digest such as RIPEMD-160 of the message, a digital signature can be formed.
+
+When doing both encryption and signing, usually the message is first signed, and then signature and plain text are concatenated and encrypted as a whole.
+
+However, it might be better to first encrypt the text symmetrically prefixed by a random IV, calculate a HMAC over the IV + encrypted text, and finally append the RSA-encrypted HMAC for every receiver at the end (normally there will be 2 receivers, the sender itself and the actual receiver).
+
+It might also be a good idea to compress the data to be encrypted first, because after encryption no compression should be possible.
+
+
+Public Key Decryption
+~~~~~~~~~~~~~~~~~~~~~
+
+This decrypts RSA-encrypted binary file encrypted.bin using private key private.pem into binary file decrypted.bin.
+
+File encrypted.bin must represent a binary string shorter than the RSA modulus of private.pem, and decrypted.bin will have the same byte size as the modulus value minus 1, rounded up to an integral number of octets.
+
+----
+$ openssl pkeyutl -decrypt -inkey private.pem -in encrypted.bin -out dencrypted.bin
+----
+
+
+Access to mail-servers via TLS
+------------------------------
+
+Unencrypted::
++
+----
+$ telnet imap-server.example.com 143
+----
+
+TLS-encrypted with client certificate::
++
+----
+$ openssl s_client -key key.pem -cert cert.pem -connect imap-server.example.com:993
+----
+
+TLS-encrypted without client certificate::
++
+----
+$ openssl s_client -connect imap-server.example.com:993
+----
+
+STARTTLS without client-certfificate::
++
+----
+$ openssl s_client -starttls imap -connect imap-server.example.com:143
+----
+
+STARTTLS with client-certfificate::
++
+----
+$ openssl s_client -key key.pem -cert cert.pem -starttls imap -connect imap-server.example.com:143
+----
+
+
+View/examine certificates
+-------------------------
+
+
+GUI-Application
+~~~~~~~~~~~~~~~
+
+Install the following package (Debian instructions):
+
+----
+$ command -v pcr-viewer || sudo apt-get install gcr
+----
+
+The `pcr-viewer` GUI application will then be automatically invoked by your file manager when trying to open certificate files in several supported formats.
+
+This application is also able to display multiple certificates in a single PEM file (containing the concatenation of individual certificates in PEM format).
+
+This is handy for viewing aa a complete certificate chain storted within a single PEM file.
+
+Limitations: `pcr-viewer` can only display MD5- and SHA-1 fingerprints which provide limited security, but not SHA2-256 fingerprints which are considered secure.
+
+
+Command line
+~~~~~~~~~~~~
+
+
+PEM-Format
+^^^^^^^^^^
+
+Use the following command for certificates stored as text files (starting with a "`-----BEGIN CERTIFICATE-----`"-header):
+
+----
+$ openssl x509 -noout -fingerprint -text -in pubcert.pem | less
+----
+
+DER-Format
+^^^^^^^^^^
+
+Use the following command for certificates stored as binary files (not starting with a "`-----BEGIN CERTIFICATE-----`"-header):
+
+----
+$ openssl x509 -noout -fingerprint -text -inform DER -in pubcert.crt
+----
+
+This will also display the certificates, including the fingerprints. Unfortunately, only SHA-1 hashes are used for fingerprints. SHA-256 hashes are not available using this utility.
+
+
+Fingerprints only
+^^^^^^^^^^^^^^^^^
+
+If you only want to see the certificate fingerprints and are not interested in the remaining details:
+
+PEM-Format::
++
+----
+$ openssl x509 -noout -fingerprint -in pubcert.pem
+----
+
+If multiple certificates are stored in a PEM file to be examined, only the fingerprint of the first certificate will be displayed. In case of a certificate chain stored in a file, this will typically be the leaf-level fingerprint you are actually interested in, rather than the fingerprint of one of the CAs (root or tree nodes).
+
+
+DER-Format::
++
+----
+$ openssl x509 -noout -fingerprint -inform DER -in pubcert.crt
+----
+
+
+Verify X.509 certificate chain
+------------------------------
+
+The commands for displaying certificate information or converting certificate formats do not verify the validity of certificates at all. Here are instructions how to do it.
+
+
+Stand-alone verification
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+This needs no special preparation such as setting up certificate directories and works right away.
+
+But first you need a "certificate chain" - the certificat to check plus all CA certificates certifying its validity up to some trusted self-signed top-level CA. The latter can usually be found preinstalled in your web browser. Export it from there and save it locally.
+
+Certificate chains come in 2 varieties:
+
+* A bunch of binary DER-Encoded *.crt files which were just put into the same directory.
+
+* Or a single file which contains the same certificates converted into PEM format and then all concatenated together.
+
+The validation needs the chain in the latter format. You can use
+
+----
+$ openssl x509 -inform DER -in file.crt -out file.pem
+----
+
+in order to convert the first variety into a couple of *.pem files, and then combine them into a single certificate chain file:
+
+----
+$ cat *.pem > chain.pem
+----
+
+(Be sure the "*" wildcard only matches the certificates which are part of the chain, otherwise specify them explicitly as the `cat` command arguments.)
+
+But most of the time this won't be necessary because your browser will most likely provide you with a means of saving a certificate chain. which will alreade use the single-file PEM format described above.
+
+Once you have the PEM chain file, verification of a certificate against this chain is easy:
+
+----
+$ openssl verify -x509_strict -no-CApath -untrusted chain.pem -CAfile root.pem subject.pem 
+----
+
+where `subject.pem` contains the certificate which shall be checked for validity, `chain.pem` contains the CA chain as explained above, and `root.pem` is the only certificate which you need to trust.
+
+The above command does not only verify `subject.pem` alone, but also the validity of all the intermediate CAs in `chain.pem`.
+
+It is not required that `root.pem` is also present in `chain.pem`, but it might be more safe: In this case the self-signature of `root.pem` will certainly be verified - which I am not so sure would also happen if `root.pem` was not also part of `chain.pem`.
+
+The above command checks for strict compliance with X.509 certificate rules. It seems not all certificates care about them. If verification fails, leave the `-x509_strict` and see it it validates then. In this case you have a valid but not completely standards-compliant certificate, i. e. one of lower quality.
+
+If you already verified a CA chain before and know it is valid, the command can be shortened to
+
+----
+$ openssl verify -x509_strict -no-CApath -CAfile chain.pem subject.pem 
+----
+
+Also note that different than `chain.pem`, `subject.pem` can only contain a single certificat. (Actually, it can also contain multiple certificates concatenated together. But then only the first of them will be verified and the others will be ignored.)
+
+Another option would be to leave out the `-no-CApath` option. In this case `openssl` will look into predefined or globally configured directories when searching for missing CAs. This is only a good idea if you trust this configuration.
+
+
+Using a trusted CA certificates directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you verify certificates frequently, creating `chain.pem` and `root.pem` might become an annoyance if many of those validations require the same intermediate or root CAs.
+
+It is possible to create directory containing a set of (single, not chains) CA certificates in individual files, which will then be used for verification and the `-CAfile chain.pem` option can be left out entirely.
+
+Let's say you have already created a local subdirectory `./trusted/` for this purpose. The verification command then simplifies to this:
+
+----
+$ openssl verify -x509_strict -CApath trusted subject.pem 
+----
+
+No more `chain.pem`. However, then all the needed CA certificates must already be in "`./trusted/*`". In order to put them there, do the following:
+
+* First get the `chain.pem` as in the standalone case.
+
+* Split the PEM-encoded (text format) certificates in `chain.pem` into DER-format (binary format) individual CA files. (They can also be PEM-format but this format is less efficient for loading and also occupies more space.)
+
+* Create or update symlinks based on content hashes for all the files in the `trusted` directory:
++
+----
+$ openssl rehash -v trusted
+----
+
+If some but not all required intermediate CA certificates from a full chain can be found in `trusted`, it is possible to create a file `partial_chain.pem` containing a stripped-down version of the certificate chain and use it as follows:
+
+----
+$ openssl verify -x509_strict -CApath trusted -CAfile partial_chain.pem subject.pem 
+----
+
+In this case, all certificates which can already be found in `trusted` can be left out from `partial_chain`.
+
+
+Including checks for revoked certificates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The above commands assume all the certificates which once were valid are still valid and have not been revoked since then.
+
+In order to be completely sure the certificates are still valid, certificate revocation lists need to be consulted also.
+
+This can either happen by first downloading `*.crl` files and then check them locally.
+
+Or the OCSP online protocol (RFC 6990) can be used for the same purpose.
+
+If you use your web browser to obtain the certificate chains, you probably won't need to worry about revocation as the browser will most likely already have done OCSP.
+
+NOTE: Firefox has an option to disable OCSP checks. This speeds up connections, reduces traffic, and leaves less traces while surfing. Some people might therefore disable OCSP checks in their browsers. If this is the case, the validity of CA certificates previously downloaded by the browser might not be certain. Additional manual CRL/OCSP checks might therefore be a good idea.
+
+However, it is actually *always* possible that CA certificates which were valid at the time of downloading get revoked later.
+
+So theoretically, one always should check for revocations every single time immediately before using a certificate. But who does that.
+
+I don't care. Certificates rarely get revoked. But if you are uncertain about the current validity of a certificate, follow the instructions in https://www.misterpki.com/openssl-verify/ how to extract the CRL distribution points from a certificate, fetch the revocation list from there, and include it in the verification checks.
+
+Alternatively, read the `man` page of the `openssl ocsp` command in order to use OCSP. It does not seem simpler to me than the CRL downloading technique, though.
+
+But in my opinion, serious usage of CRL and OCSP checks is futile.
+
+It's like constantly checking the sky for inbound meteors which might hit you. It's basically nonsense-security.
+
+Certificates should not get compromised, and if they are, then this is just bad luck.
+
+This hasn't been a practical problem with PGP so far (where typically no-one cares to check for revoked keys), so why should it become a big problem with TLS?
+
+I suspect the real reason why OCSP exists is not security but rather the opposite, namely user tracking. Because every time the browser uses the OCSP, the OCSP server gets informed which servers the client intends to access immediately after this.
+
+
+What if the root CA is unknown
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Well, https://security.stackexchange.com/questions/141311/is-certificate-validation-done-completely-local states how things are done in the Windows world:
+
+....
+The validation of the trust chain might fail because the root CA is unknown. Some OS (Windows) might in this case ask a trusted server online if they have this missing root CA and will then download the unknown root CA and automatically trust it for this and future connections.
+....
+
+Basically, this is the TOFU security model ('Trust On First Use') in action, except that the download server is "trusted". Obviously it cannot really be safe.
+
+But there is not much better to do if a certificate is missing yet a connection to a server using it is required to be established.
+
+The next best thing might be trying to obtain different copies of the same certificate from different sources and compare them. If not all the copies are equal, this is suspicious.
