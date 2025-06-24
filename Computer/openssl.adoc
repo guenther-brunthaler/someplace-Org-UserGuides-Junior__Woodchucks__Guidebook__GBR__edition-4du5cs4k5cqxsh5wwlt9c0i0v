@@ -1,13 +1,13 @@
 OpenSSL Usage
 =============
 Guenther Brunthaler
-v2023.95
+v2024.72
 
 Copyright (C) 2023 Guenther Brunthaler.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
 
-A copy of the license is included in the separate document link:GFDL-1.3[entitled "GNU Free Documentation License"].
+A copy of the license is included in the link:GFDL-1.3[separate document entitled "GNU Free Documentation License"].
 
 
 S/MIME
@@ -225,20 +225,18 @@ Fingerprints only
 
 If you only want to see the certificate fingerprints and are not interested in the remaining details:
 
-PEM-Format::
-+
 ----
-$ openssl x509 -noout -fingerprint -in pubcert.pem
+$ set -- ... # Set of certificate files to check (in either PEM or DER format).
+$ for cert; do printf '\nCertificate file %s:\n' "$cert" && \
+for f in SHA-256 MD5 SHA1; do printf '%s\t' $f && \
+for i in DER PEM; do openssl x509 -inform $i -in \
+"${cert:?}" -outform DER 2> /dev/null && break; \
+done | openssl dgst -c -$f | cut -d ' ' -f 2-; done; done
 ----
+
+This outputs the fingerprint in all commonly used display variants.
 
 If multiple certificates are stored in a PEM file to be examined, only the fingerprint of the first certificate will be displayed. In case of a certificate chain stored in a file, this will typically be the leaf-level fingerprint you are actually interested in, rather than the fingerprint of one of the CAs (root or tree nodes).
-
-
-DER-Format::
-+
-----
-$ openssl x509 -noout -fingerprint -inform DER -in pubcert.crt
-----
 
 
 Verify X.509 certificate chain
@@ -252,7 +250,7 @@ Stand-alone verification
 
 This needs no special preparation such as setting up certificate directories and works right away.
 
-But first you need a "certificate chain" - the certificat to check plus all CA certificates certifying its validity up to some trusted self-signed top-level CA. The latter can usually be found preinstalled in your web browser. Export it from there and save it locally.
+But first you need a "certificate chain" - the certificate to check plus all CA certificates certifying its validity up to some trusted self-signed top-level CA. The latter can usually be found preinstalled in your web browser. Export it from there and save it locally.
 
 Certificate chains come in 2 varieties:
 
@@ -274,7 +272,7 @@ $ cat *.pem > chain.pem
 
 (Be sure the "*" wildcard only matches the certificates which are part of the chain, otherwise specify them explicitly as the `cat` command arguments.)
 
-But most of the time this won't be necessary because your browser will most likely provide you with a means of saving a certificate chain. which will alreade use the single-file PEM format described above.
+But most of the time this won't be necessary because your browser will most likely provide you with a means of saving a certificate chain which will already use the single-file PEM format described above.
 
 Once you have the PEM chain file, verification of a certificate against this chain is easy:
 
@@ -383,3 +381,78 @@ Basically, this is the TOFU security model ('Trust On First Use') in action, exc
 But there is not much better to do if a certificate is missing yet a connection to a server using it is required to be established.
 
 The next best thing might be trying to obtain different copies of the same certificate from different sources and compare them. If not all the copies are equal, this is suspicious.
+
+
+Changing the default configuration
+----------------------------------
+
+The openssl command line utility uses a compiled-in default location for its configuration file. This location can be displayed by
+
+----
+$ openssl version -a | grep OPENSSLDIR
+OPENSSLDIR: "/usr/lib/ssl"
+----
+
+Note that this configuration file might contain instructions to include other configuration files.
+
+However, in order to override the location of the OpenSSL configuration file, the environment variable `OPENSSL_CONF` can be set like this:
+
+----
+$ export OPENSSL_CONF=/etc/ssl/openssl.cnf
+----
+
+
+Custom preferred order of symmetric encryption algorithms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Let's say you want to display the current order of preference for 'TLS v1.3' connections:
+
+----
+$ openssl ciphers -s -tls1_3
+TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256
+----
+
+This means the first algorithm in this colon-separated list which is supported by both server and client will be used. (There is an OpenSSL option that the server's ordered list of preferred algorithms will be used instead, but this option is normally disabled.)
+
+Let's say you want to change this order so that 'ChaCha20' is first, and 'AES-256' is preferred over 'AES-128'.
+
+This can be accomplished with the following theoretical assignment within the OpenSSL configuration file:
+
+----
+openssl_conf.ssl_conf.system_default.Ciphersuites = TLS_CHACHA20_POLY1305_SHA256:TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256
+----
+
+Unfortunately this is not actually possible, because the OpenSSL configuration file works differently.
+
+Instead, this assignment must be translated into options which refer to section names which in turn refer to other section names, until the `Ciphersuites` option is finally set in the last referred section.
+
+For instance, the following `openssl.cnf` file would do the trick:
+
+----
+# Before any section.
+openssl_conf = my_sect01
+
+[my_sect01]
+ssl_conf = my_sect02
+
+[my_sect02]
+system_default = my_sect03
+
+[my_sect03]
+Ciphersuites = TLS_CHACHA20_POLY1305_SHA256:TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256
+----
+
+Note that the section names `my_sect01` etc. have been assigned by the user, while the option names like `openssl_conf` are fixed and must be used as-is.
+
+When merging such settings into an existing configuration file rather than creating a new one from scratch, the complication can arise that some of the options have already been set and refer to already-defined sections.
+
+In this case, one must skip creating a new section and rather follow the flow of indirections using the already-present options which specify section names.
+
+In any case, once successful, the output should be as follows:
+
+----
+$ OPENSSL_CONF=/etc/ssl/openssl.cnf openssl ciphers -s -tls1_3 
+TLS_CHACHA20_POLY1305_SHA256:TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256
+----
+
+As it turns out, at least in Debian 12, the file `/etc/ssl/openssl.cnf` is automatically included somehow by the default OpenSSL configuration file. So setting `OPENSSL_CONF` as shown here is actually unnecessary under Debian.
