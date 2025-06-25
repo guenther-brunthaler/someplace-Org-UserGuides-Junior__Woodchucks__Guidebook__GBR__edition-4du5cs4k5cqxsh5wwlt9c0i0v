@@ -1,5 +1,6 @@
-Netpbm Formats
+NetPBM Formats
 ==============
+v2025.176
 
 pnm: Any of the following formats.
 plain pbm: P1 $w $h ($h * $w * $bit)
@@ -8,9 +9,9 @@ plain ppm: P3 $w $h $ms ($h * $w * ($r + $g + $b))
 raw pbm: P4 $w $h ($num_images * $h * ceil($w / 8) * $eight_bits)
 raw pgm: P5 $w $h $ms ($num_images * $h * $w * $sample)
 raw ppm: P6 $w $h $ms ($num_images * $h * $w * ($r + $g + $b))
-raw pam: P7\nWIDTH $w\nHEIGHT $h\nMAXVAL $ms\nDEPTH $d\TUPLTYPE $t\nENDHDR\n($num_images * $h * $w * $d * $sample)
+raw pam: P7\nWIDTH $w\nHEIGHT $h\nMAXVAL $ms\nDEPTH $d\nTUPLTYPE $t\nENDHDR\n($num_images * $h * $w * $d * $sample)
 
-The Tokens before the ":" in the list above are the recommended filename extensions. The format names are the same except written in upper case.
+The token immediately before the ":" in the list above represents the recommended filename extension. The format names are the same except written in upper case.
 
 In the format descriptions above, a space between tokens actually means "whitespace" (ASCII SPACE, HT, LF or CR). Except for the last whitespace character which separates the header from the image data, "whitespace" can actually be a sequence of one or more whitespace characters.
 
@@ -30,4 +31,9 @@ Caveat: At least ImageMagick assumes that each row needs to be put into its own 
 
 Format names: The initial "P" stands for "portable". Remaining letters: "N" = "any", "B" = "bit" (bi-level), "G" = "gray" (intensity without hue), "P" = "pix" (RGB), "A" = "arbitrary" (any number of color component channels) and "M" = "map".
 
-MIME Type: None officially assigned, but "image/x-portable-arbitrarymap" is normally used.
+MIME Type: None officially assigned, but the following are normally used:
+
+* PAM: "image/x-portable-arbitrarymap; charset=binary"
+* PBM: "image/x-portable-bitmap; charset=binary"
+* PGM: "image/x-portable-greymap; charset=binary"
+* PPM: "image/x-portable-pixmap; charset=binary"
