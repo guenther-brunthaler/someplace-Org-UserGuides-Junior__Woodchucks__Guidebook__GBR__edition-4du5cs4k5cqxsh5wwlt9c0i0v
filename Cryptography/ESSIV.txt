@@ -1,0 +1,8 @@
+Encrypted Salt/Sector IV (ESSIV)
+
+SALT=Hash(KEY)
+IV=E[SALT](sectornumber)
+
+Hash() can be SHA1/RIPEMD, whatever. E is the encryption algorithm used.
+
+The nice thing is, one does not have to cope with hash context copying stuff, since the salt can efficiently been computed in the setup phase, further any assembler optimization of E can be used in the IV computation too, while Hash can be slow.

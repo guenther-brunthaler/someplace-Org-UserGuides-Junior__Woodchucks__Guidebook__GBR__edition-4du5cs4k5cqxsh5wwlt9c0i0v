@@ -1,0 +1,178 @@
+BCMAC
+=====
+Guenther Brunthaler
+v2022.182
+
+BCMAC - "Block-Chain MAC". I will call it that until I find a better idea for the name.
+
+Because the scheme is very simple, it is quite possible that someone else already invented this scheme before me. Please let me know. However, as of 2022-04-13, I have not yet heard before of that idea.
+
+The basic idea of BCMAC is to calculate a MAC (message authentication code) using an arbitrary block cipher. The MAC key is used as the cipher key.
+
+For messages which fit into a single block, the MAC is just taken from the leftmost bytes of the encrypted block.
+
+For longer messages, the MAC calculated from the first block is taken as the left-most part of the next block to be encrypted, padded to the block size using the next bytes of the message to be authenticated. Then this block is also encrypted, and its leftmost bytes are used as the next MAC value.
+
+This continues until all bytes of the message have been processed.
+
+The last block is special because the message needs to be padded - see below for details.
+
+
+Definitions
+-----------
+
+Let `M` be the message to be authenticated of arbitrary bit size (although it will typically consist of an integral number of 8-bit bytes).
+
+Let `H` be a cryptographically secure keyed hash function which maps `N` input bits into `N` output bits controlled by a key `K`. The function is not required (but allowed) to be invertable. For instance, every block cipher encryption function is eligible for `H`.
+
+Let `K` be the authentication key of the MAC. In BCMAC, this key is directly used as the key for `H` without any modifications. The supported MAC key sizes are therefore determined by the chosen `H`.
+
+Let `N` be the block size (in bits) of `H`, used for both as its input and its result output.
+
+Let `T` be the size (in bits) of the authentication tag which shall be produced by the MAC. `T` must be smaller than `N`.
+
+Let `M2` be the concatenation of `M` and a single bit with value `1`. In the typical case that `M` consists of 8-bit-bytes rather than arbitrarily-sized bit strings, this means that a byte with value `0x80` has to be appended to `M`. In the rest of this document, `M2` might also be referred to as the "augmented message".
+
+Let `R(n)` be a helper function which reads and returns the next `n` yet-unread bits of `M2`. If there are not enough bits left, set the remaining bits of the output to the value `0` (i. e. zero-pad the result at the right side).
+
+Let `LEFT(block, n)` be a helper function which returns the `n` leftmost bits of a larger bit string `block`.
+
+Let `CONCAT(l, r)` be a helper function which returns the concatenation of a left-hand bit block `l` and a right-hand bit block `r`.
+
+
+MAC calculation
+---------------
+
+The BCMAC is calculated as follows:
+
+1. `mac := LEFT(H(R(N)), T)` i.e. hash the fist `N` bits of the augmented message, and use the first `T` bits of the result as the initial intermediate MAC value.
+
+2. If all bits of `M2` have already been read, the algorithm terminates and the current intermediate MAC value `mac` represents the calculated authentication tag for message `M`.
+
+3. Otherwise, update `mac := LEFT(H(CONCAT(mac, R(N - T))), T)` i.e. use the current MAC value as an input chaining value of a new bit block to be hashed and fill the remainder of the block with the next bits of the augmented message. Then hash the block and take its the `T` leftmost bits as the new intermediate MAC value.
+
+4. Go back to step 2.
+
+
+Recommendations
+---------------
+
+The algorithm is simple, but inefficient compared to the (unfortunately broken) CBC-MAC because it requires one calculation of `H` for every `N` - `T` message bits except for the first block (which is as efficient as CBC-MAC).
+
+In order to maximize the efficiency, `N` should be as large as possible.
+
+For instance, when choosing AES which has a block size of 128 bit as `H` and a 64-bit message tag shall be calculated, then only 64 new message bits can be processed with every invocation of `H`. Which means it will be twice as slow as CBC-MAC!
+
+Which means that AES is not a good choice if speed is important.
+
+For maximum security and also considering future attacks via quantum computers, the following parameters are recommended: Use a block size `N` of at least 512 bit, a `K` and a `T` of at least 256 bit.
+
+Internal block sizes of 512 bit or even larger are not very common in encryption algorithms, but some ciphers do provide it.
+
+
+Variants
+--------
+
+The basic BCMAC algorithm requires several parameter choices, and therefore there are many effective variants of the algorithm.
+
+
+BCMAC-CHACHA (or just BCMAC)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following parameters are recommended and are assumed if the algorithm is just referred to as `BCMAC` without additional qualification.
+
+* `T`: 256 bit
+* `N`: 512 bit
+* `K`: A MAC key with a size between 256 and 512 bit.
+* `H`: A HMAC-512 (see below)
+
+A keyed HMAC requires an unkeyed hash function as a parameter.
+
+The ChaCha20 stream cipher contains a cryptographic hash function as its core, mapping 512 input bits into 512 output bits.
+
+We therefore ignore all the setup and counter stuff defined in the description of the ChaCha20 algorithm, and only use its beforementioned core function as the parameter for the HMAC.
+
+
+BCMAC-XXTEA
+~~~~~~~~~~~
+
+* `T`: 256 bit
+* `N`: 1664 bit
+* `K`: 128 bit
+* `H`: XXTEA
+
+An advantage of this variant is that it has small code size and does not require storage space for an S-box. A disadvantage is that the underlying XXTEA algorithm is considered broken.
+
+However, it seems unlikely that the weaknesses exploited by that attack could also be used in the BMAC construction, except for messages not larger than 208 bytes. So it should be secure enough for messages with a known minimum size of 209 bytes.
+
+XXTEA has a variable block size between 8 and 208 bytes in steps of 4 bytes. It is therefore also possible to use variants with shorter block sizes which have higher processing overhead, but allow shorter messages to be authenticated securely.
+
+
+BCMAC-TREYFER-2048
+~~~~~~~~~~~~~~~~~~
+
+* `T`: 256 bit
+* `N`: 2048 bit
+* `K`: 256 to 2048 bit in steps of 8 bit
+* `H`: TREYFER-2048
+
+TREYFER-2048 is a variant of the `TREYFER` MAC algorithm.
+
+The original block size of 64 bit has been extended to 2048 bit for increased security and also for maximizing BCMAC calculation efficiency.
+
+The modification to the algorithm is simple: Just increase the buffer sizes for both data and key from 8 to 256 bytes, and also increase the maximum index of the inner loop (or the only loop in the optimized version) by the same factor.
+
+TREYFER also requires an additional parameter, an S-Box[0 through 255] of 8-bit values. The S-Box to be used in this case shall be constructed as follows: Preset the S-box to the identity permutation. Then run an index variable `i` in a loop from 0 through 255. Within every iteration, obtain another index value `j` from the pseudorandom-sequence `PRS`. Then exchange the S-Box elements at index positions `i` and `j`. `PRS` shall be the 2048 initial significant bits of Pi, chunked into 8-bit values.
+
+Because TREYFER-2048 requires a 2048-bit key but it makes no sense to use such a long key, we derive the actual TREYFER-key from `K` as follows: First, preset the TREYFER-key with a copy of the contents of the TREYFER S-Box. Then XOR the elements of an infinite sequence `KMS` into the TREYFER-key, stopping as the last 8-bit unit of the TREYFER-key has been processed. The key material sequence `KMS` consists of the 8-bit units of `K`, cyclically repepeated.
+
+Use this variant if code size and complexity shall be low. It has the disadvantage that the S-Box needs to be included in the implementation code.
+
+There is a known attack against TREYFER, but I think it is only practical for block sizes below 256 bit (without quantum computers) and for block sizes below 512 bit (against attackers using quantum computers).
+
+
+BCMAC-AES
+~~~~~~~~~
+
+* `T`: 96 bit
+* `N`: 128 bit
+* `K`: 256 or 512 bit
+* `H`: AES-256 or AES-512
+
+Although very inefficient because it requires one application of the AES algorithm for every 4 bytes of the message, usage of AES might be mandated by security policies put into place.
+
+Use this variant only if you have to because it will be slow.
+
+The problem here is not the algorithm itself but its small block sizes of just 128 bit. When using a different block cipher with the same block size (such as TWOFISH oder SERPENT), exactly the same problem would arise.
+
+
+Other variants
+~~~~~~~~~~~~~~
+
+Custom-parameterized versions of BCMAC should be named as follows:
+
+....
+BCMAC-tTTT-hHHH-kKKK-bNNN
+....
+
+where `TTT`, `HHH`, `KKK` and `NNN` are placeholders which shall be replaced by actual values.
+
+* `TTT`: Value of algorithm parameter `T`.
+
+* `HHH`: The name of the keyed hash algorithm used as `H`. If that name refers to a block cipher algorithm such as 'AES', its encryption function is meant. If the decryption-function shall be used instead, add the string "`-dec`" after the cipher name (e. g. "`AES-dec`").
+
+* `KKK`: Bit size of the MAC key `K`. If the key size is variable, specifies the maximum allowed size. If there is no upper limit for the key size, this parameter part can be omitted entirely.
+
+* `NNN`: Value of algorithm parameter `N`.
+
+Parameter parts "`-xXXX`" where there is no choice because `H` only supports a single fixed value may (and should) be omitted.
+
+If the cipher requires its own parameters to be specified, feel free to invent additional parameter parts and add them to the description. The only restriction is that the parameter names must consist only of lowercase ASCII letters, and that the parameter values must not contain such lowercase letters.
+
+Although it is recommended to keep the order of parameter parts in the same order as specified above, this is not a hard restriction because all parameters are named.
+
+
+Example custom names
+~~~~~~~~~~~~~~~~~~~~
+
+* `BCMAC-t96-hXXTEA-b128`: Uses XXTEA with a reduced tag size of 96 bit and a block size of 128 bit. This version is less efficient than `BCMAC-XXTEA`, but it allows to securely authenticate messages not shorter than 16 bytes. The key size part "`-k128`" has been omitted because XXTEA supports only this key size.

@@ -1,0 +1,9 @@
+﻿A principal root is a complex number which, when raised to the power of n, yields the radicand of its nth degree radical, and which has the greatest real part among all such numbers, and positive imaginary part in case of equality of the real parts.
+
+A real or real-valued root is a root which has no imaginary part (i.e. having an imaginary value of 0).
+
+The square roots of 4 are 2 and -2, the principal square root of 4 is 2.
+
+The 3rd roots of -8 are 1 + i√3, -2 and 1 - i√3, the principal 3rd root of -8 is 1 + i√3 and the real root is -2.
+        
+The 4th roots of 16 are 2, -2, 2i and -2i, the principal 4th root of 16 is 2.

@@ -1,0 +1,63 @@
+﻿Rounding
+========
+v2022.327
+
+
+Commercial
+----------
+
+* If the first decimal digit that will be cut off is `0` - `4`, then round towards zero.
+
+* If it is `5` - `9`, round away from zero.
+
+Note that this means `-3.5` will be commercially rounded into `-4`, i.e. downward.
+
+
+Mathematical
+------------
+
+Also known as 'round half to even', 'symmetrical rounding', 'convergent rounding', 'statistician's rounding', 'Dutch rounding', 'Gaussian rounding', 'odd–even rounding', 'round to even' or 'Banker's Rounding'. It is also the default rounding mode for 'IEEE 754' floating point arithmetic.
+
+However, this rule distorts the distribution by increasing the probability of evens relative to odds. Typically this is less important than the biases that are eliminated by this method. 
+
+* If the first decimal digit that will be cut off is `0` - `4`, then round towards zero.
+
+* If it is `6` - `9`, or if it is `5` and is followed by any additional non-zero digits, round away from zero.
+
+* If it is exactly `5` and not followed by any non-zero digits, round the remaining digits (after cutting off the unwanted digits including the `5`) towards the neighboring even number. For example, when rounding to whole numbers,
++
+....
+r(-0.5) =   0, r(+0.5) =   0
+r(-1.5) =  -2, r(+1.5) =  +2
+r(-2.5) =  -2, r(+2.5) =  +2
+r(-3.5) =  -4, r(+3.5) =  +4
+r(-9.5) = -10, r(+9.5) = +10
+....
++
+In the above examples, the unrounded number `-3.5` could be rounded to either `-3` or `-4` because it is right in the middle between them. Of those candidates, the even number is chosen, which is `-4` in this case.
++
+The origin of the term 'bankers’ rounding' remains obscure. If this rounding method was ever a standard in banking, the evidence has proved extremely difficult to find. To the contrary, section 2 of the European Commission report 'The Introduction of the Euro and the Rounding of Currency Amounts' suggests that there had previously been no standard approach to rounding in banking; and it specifies that "half-way" amounts should be rounded up.
+
+
+Other known methods
+-------------------
+
+* round half up
+* round half to even 
+* round half away from zero 
+* round half toward zero 
+* round half down
+* round half to odd 
+
+All cases only apply if the digit to be cut off is a `5` not followed by other digits except `0`.
+
+Then there is a choice between the two numerically neighboring rounded numbers:
+
+* `up` chooses the numerically greater candidate
+* `down` chooses the numerically lesser candidate
+* `away from zero` chooses candidate with greater absolute value
+* `toward zero` chooses candidate with lesser absolute value
+* `to even` chooses candidate with even absolute value
+* `to odd` chooses candidate with odd absolute value
+
+In the remaining case that the digits to be cut off are not exactly `5` (optionally followed by redundant trailing zeros), all methods chose the candidate with the smaller distance from the unrounded number.

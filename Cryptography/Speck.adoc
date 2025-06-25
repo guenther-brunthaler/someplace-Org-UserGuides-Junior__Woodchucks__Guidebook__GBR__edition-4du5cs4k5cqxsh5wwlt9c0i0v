@@ -1,0 +1,96 @@
+﻿Speck
+=====
+v2025.19
+
+'Speck' and 'Simon' are simple encryption algorithms (block ciphers) developed by the 'National Security Agency' (NSA).
+
+'Simon' is optimized for hardware implementation, where 'Speck' is optimized for software implementation.
+
+'Speck' targets IoT computing devices with weak processing power, and uses only the computationally cheap operations bitwise exclusive-or, addition and bit-rotation (together known as "XAR").
+
+There are multiple sets of parameters as implementation choices, with block sizes from 32 to 128 bit and key sizes from 64 to 256 bit.
+
+
+Parameter sets
+--------------
+
+[options="autowidth,header"]
+|====
+| Block bits   | Key bits     | Rounds
+| 2 × 16 = 32  | 4 × 16 = 64  | 22
+| 2 × 24 = 48  | 3 × 24 = 72  | 22
+|             ^| 4 × 24 = 96  | 23
+| 2 × 32 = 64  | 3 × 32 = 96  | 26
+|             ^| 4 × 32 = 128 | 27
+| 2 × 48 = 96  | 2 × 48 = 96  | 28
+|             ^| 3 × 48 = 144 | 29
+| 2 × 64 = 128 | 2 × 64 = 128 | 32
+|             ^| 3 × 64 = 192 | 33
+|             ^| 4 × 64 = 256 | 34 
+|====
+
+The variants are referred to as "SpeckB/K", where B is the block size in bit and K is the key size in bit.
+
+
+Encryption
+----------
+
+The following is the (slightle re-arranged, but functionally equivalent) designers' reference implementation, written in C, for the Speck128/128 parameter set.
+
+Input are the key as K[2] and the plaintext in pt[2], the resulting ciphertext will be stored in ct[2].
+
+----
+#include <stdint.h>
+
+#define ROR(x, r) ((x >> r) | (x << (64 - r)))
+#define ROL(x, r) ((x << r) | (x >> (64 - r)))
+#define R(x, y, k) (x = ROR(x, 8), x += y, x ^= k, y = ROL(y, 3), y ^= x)
+#define ROUNDS 32
+
+void Speck128ExpandKeyAndEncrypt(uint64_t pt[2], uint64_t ct[2], uint64_t K[2]) {
+   uint64_t i, B = K[1], A = K[0]; /* Initialize round-key. */
+   ct[0] = pt[0]; ct[1] = pt[1];
+   for(i = 0; i < ROUNDS; ++i) {
+      R(ct[1], ct[0], A); /* Apply round-key to data. */
+      R(B, A, i); /* Generate next round-key. */
+   }
+}
+----
+
+For Speck32/64, the rotations are 7 bits right and 2 bits left; for all other word sizes, they are 8 and 3 as shown above.
+
+If the key is more than 2 words long, there are 2 or 3 `a` values, which are used in rotation. 
+
+Even though the test vectors given in the original paper suggest that the input/outputs shall be arranged using big-endian byte-ordering, the authors actually suggest using little-endian byte ordering. Most implementations follow this suggestions.
+
+
+Decryption
+----------
+
+Exists, but is not shown in the reference code except for the inverse round function.
+
+It might be easier to use the block cipher with a mode of operation that does not need decryption, such as CFB, CTR or OFB.
+
+
+Test vector
+-----------
+
+The test vector for the 32-round variant ist as follows:
+
+....
+Key: 0f0e0d0c0b0a0908 0706050403020100
+Plaintext: 6c61766975716520 7469206564616d20
+Ciphertext: a65d985179783265 7860fedf5c570d18
+....
+
+
+Security
+--------
+
+As of 2018, no successful attacks against Speck are known, except for unavoidable brute-force attacks of the variants with short key size.
+
+In practice, only Speck128/128 and Speck128/256 are normally used where brute-force is futile.
+
+Some people have reservations about Speck because it has been designed by the NSA. However, its simple structure makes it hard to believe algorithmic backdoors might have been placed in the code.
+
+Also it does not use any S-boxes or conditionals, thus thwarting timing side-channel attacks. Only power-demand side-channel attacks are still possible.

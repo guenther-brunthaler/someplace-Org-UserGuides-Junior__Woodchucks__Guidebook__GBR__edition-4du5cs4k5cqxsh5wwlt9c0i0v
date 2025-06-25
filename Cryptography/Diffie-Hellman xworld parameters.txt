@@ -1,0 +1,62 @@
+We are using an arbitrary safe prime as the modulus and the fixed value 4 as the generator. The latter will guarantee that the size of the subgroup produced by (4 ** i) % modulus is at least half as large as 2 ** modulus.
+
+The modulus (in big-endian base-256 format) is a 513-octet binary number starting with the ASCII string "Nothing up my sleeve!" (without the quotes, one character per octet), which ends with the 3-octet sequence 2e 8d d3 (here given in hexadecimal), and all remaining octets in the middle are zero. One way to generate this modulus in big endian binary format is:
+
+$ printf 'Nothing-up-my-sleeve!%489s\056\215\323' '' \
+  | tr ' -' '\0 ' > xworld_modulus.bin
+
+This is in fact the first safe prime found by ssh-keygen when starting with a start value which evaluates, when taken twice plus one, to the above value with the three octets at the end replaced by zero.
+
+Maxima verified it is indeed a safe prime (the above number is prime and (number - 1) / 2 is also prime) using 128 iterations for the Miller-Rabin test.
+
+It is therefore the first safe prime which is at least 4096 bits wide and starts with a byte sequence equal to the beforementioned ASCII string. This assumes ssh-keygen actually examines all primes from the starting point, otherwise only a (still infinite) subset of primes may be examined for being safe primes, the above being the first one found.
+
+As a recommendation, use 4 bytes more than the octet size of the modulus when requesting random bytes from /dev/random for reducing them modulo the above modulus, yielding random numbers in the right range for a Diffie-Hellman key exchange. Those extra bytes should sufficiently suppress any statistical bias resulting from mapping a random number from a numeric range larger than the modulus to the range of the modulus.
+
+Visually verify that the resulting random numbers have approximately the same number of significant digits as the modulus and are not sigificantly shorter. Otherwise an adversary might have severely tampered with your random number generator!
+
+Then follow the DH protcol, calculating two random numbers within the range of the modulus, called ra and rb, as explained above.
+
+In the remainder of this text, the result of all exponentation operations must be reduced modulo the above modulus. I will not mention that fact again.
+
+Transmit 4 ** ra to the side where rb is known, and transmit 4 ** rb to the side where ra is known. Hint: use the "|" operator of GNU "dc" for performing the required modular exponentation.
+
+Then the side where ra is known calculates (4 ** rb) ** ra, and the side which knows rb calculates (4 ** ra) ** rb.
+
+The result of both calculations will be the same, because
+
+(4 ** rb) ** ra == 4 ** (rb * ra) == 4 ** (ra * rb) == (4 ** ra) ** rb
+
+Both sides have now a shared secret, and can use it (or a hash of it) as an encryption key for exchanging secrets.
+
+But no-one else can calculate this secret, because either ra or rb is required to calculate the secret, but only 4 ** ra and 4 ** rb is known to easvesdroppers. And calculating the discrete modular logarithm for such large numbers is infeasible without the help of quantum computers far more powerful than those available today.
+
+Note that it is not necessary to keep the generator or the modulus secret. Only ra and rb must not fall into the hands of the attackers.
+
+Also note that a man-in-the-middle attack is still possible, so it is important to verify a hash of the shared secret by external means before trusting the other side of the encrypted communication channel.
+
+An easy way would be a phone call, assuming re-routing the telephone call and impersonating the other person exceeds the capabilities of the attacker. A video chat might be even better. It does not matter if the attacker can eavesdrop on this conversation as long as he is unable to influence it.
+
+In that conversation, one side reads to the other side the first half of the cryptographic hash of the shared secret and the other side verifies it. Then the roles are exchanged for the second half of the hash.
+
+Now both parties know that they actually know the same mutual secret, and that neither of them shares a secret with some man-in-the-middle.
+
+Helper: Create party-local secret "master.key" as a 256-bit binary random number.
+
+$ dd if=/dev/random bs=1 count=32 2> /dev/null > master.key
+
+Helper: Define command "derive" for deriving a subkey with name $2 from binary master key in file $1 (such as "master.key"). The same command can also be used to derive a "personalized" IV with name $2 from a binary salt of arbitrary size in file "$1". The derived data is returned as an endless stream of hex digits (stop reading when you have enough).
+
+$ derive() { local d; d=; while true; do d=`{ echo $d; echo "$2"; cat "$1"; echo "$2"; } | md5sum -b | cut -d " " -f 1`; echo $d; done | tr -dc 0-9a-f; }
+
+Helper: Command "xd" for converting binary data into a single long line of (upper-case) hex-digits.
+
+$ if which hexdump > /dev/null 2>& 1; then \
+        xd() { hexdump -ve '/1 "%02x"' | tr a-f A-F; echo; }; \
+else \
+        xd() { od -An -vtx1 | tr a-f A-F | tr -dc 0-9A-F; echo; }; \
+fi
+
+Helper: Command "modexp" for calculating ($1 ** $2) modulo $3, where $1, $2 and $3 are file names containing the numbers as hex strings.
+
+$ modexp() { dc -e "16 d i o `for f; do cat "$f" | tr a-f A-F | tr -dc 0-9A-F; printf " "; done`| p" | tr -dc 0-9A-F; echo; }

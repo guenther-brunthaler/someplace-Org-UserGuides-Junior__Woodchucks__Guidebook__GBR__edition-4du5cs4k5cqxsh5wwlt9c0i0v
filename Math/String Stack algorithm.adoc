@@ -1,0 +1,20 @@
+String Stack algorithm
+======================
+
+I found this algorithm described first in an online book for learning the Lua programming languages, but I don not know who actually invented it.
+
+The purpose of the algorithm is to concatenate a potentially large number of strings in a garbage-collected programming language (like Lua or JAVA) in such a way, that the least amount of garbage is generated.
+
+This assumes that strings are immutable in the language, and appending a string will create a new string and leave the old one as garbage.
+
+The algorithm is simple:
+
+* Maintain a stack of strings, initially consisting only of one empty string
+
+* When appending a string, push it onto the stack as the new last element
+
+* Now check whether the following invariant is true for the whole stack: Every predecessor must be a larger string than its successor
+
+* If this is not true, repeat merging the last to entries into a single concatenated string, until the invariant is true again.
+
+* After adding the last string to be concatenated to the stack using the algorithm, merge the last two elements in the stack until only a single element remains, which is then the total concatenated string.

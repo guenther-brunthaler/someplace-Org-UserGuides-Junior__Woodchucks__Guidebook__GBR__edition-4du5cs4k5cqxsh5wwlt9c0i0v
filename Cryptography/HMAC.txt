@@ -1,0 +1,13 @@
+HMAC(K, m) = H((K xor opad) concat H((K xor ipad) concat m))
+
+H() is a cryptographic hash function
+
+K is a secret key padded to the right with extra zeros to the input block size of the hash function, or the hash of the original key if it's longer than that block size (that of the underlying compression- or block processing function, *not* the one of the output digest)
+
+m be the message to be authenticated
+
+opad be the outer padding (0x5c repeated, one-block-long hexadecimal constant)
+
+ipad be the inner padding (0x36 repeated, one-block-long hexadecimal constant)
+
+HMACs do not need a nonce per se. It is OK to authenticate different messages with the same secret key, assuming the message contents themselves will not repeat.

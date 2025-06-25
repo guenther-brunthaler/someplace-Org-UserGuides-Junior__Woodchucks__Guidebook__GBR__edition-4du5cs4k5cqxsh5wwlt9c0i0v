@@ -1,0 +1,10 @@
+
+Some protocols seem to use a MIC (message integrity check) for the same purpose as a MAC (message authentication code).
+
+However, at least in many implementations I found, the MIC does not use a key, and seems to be just some sort of hash or CRC which is part of the encryted message.
+
+Therefore, MIC often seems to be biasd towards "MAC-then-Encrypt", whereas "Encryt-Than-MAC" is the currently recommended way to do cryptography.
+
+However, this is not always true: WPA2 uses CBC-MAC as a MIC.
+
+So, MAC and MIC seem to be synonyms, with the latter biased towards MAC-then-Encrypt.

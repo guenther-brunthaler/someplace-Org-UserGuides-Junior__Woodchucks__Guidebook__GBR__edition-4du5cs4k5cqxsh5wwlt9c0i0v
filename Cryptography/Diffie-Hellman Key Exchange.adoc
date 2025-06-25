@@ -1,0 +1,77 @@
+Diffie-Hellman Key Exchange
+===========================
+v2025.68
+
+
+Key-exchange
+------------
+
+Alice and Bob want to exchange an encryption key only known to them via a public channel everyone can monitor, but no one can manipulate.
+
+First, Alice and Bob need to agree on a safe-prime `m` and a generator `g` which must be a primitive root modulo m. Neither `g` nor `m` need to be kept secret.
+
+A safe prime `sp` is a prime for which `(sp - 1) / 2` is also a prime (the latter is then called a Sopie-Germain Prime).
+
+It is recommended to always use `4` as the generator `g`. This ensures that the subgroup represented by `g ^ i mod m` for every possible `i` will always consist of exactly `(m - 1) / 2` distinguished values. This eliminates small-subgroup attacks which are possible for some alternative combinations of `g` and `p`.
+
+Second, Alice and Bob select a uniformly equidistributed random number `>= 2` from the numeric range modulo `m` as their secret key `s`.
+
+`s = big_random_number mod m`
+
+Now they calculate their public keys as
+
+`p = g ** s mod m`
+
+and send that public key to their communication partner over the public channel.
+
+Finally, they combine the received public key `pp` of their communication partner with their own secret key in order to calculate their shared symmetric key `k`:
+
+`k = pp ** s mod m`
+
+Now both Alice and Bob have `k`, but no-one else who was monitoring the public channel is also able to calculate `k` from the transmitted public keys.
+
+Note that Diffie-Hellman is only secure unless an attacker is able to re-route traffic and substitute exchanged messages with his own.
+
+In this case, the exchanged public keys need to be authenticated before they can be trusted.
+
+
+Example
+~~~~~~~
+
+* Alice and Bob agree on `g = 4` and `m = 7`. (The subgroup created by those parameters consists of the values `1, 2 and 4`. There are `3` values in the group because `3` is the Sophie-Germain prime related to safe prime `m = 7`. This also means there exist only `3` possible public keys or shared secrets, because both will be elements of this subgroup.)
+
+* Alice chooses secret key `s_a = 2`.
+* Alice calculates public key `p_a = 4 ** 2 mod 7 = 2`.
+* Bob chooses `s_b = 6`.
+* Bob calculates public key `p_b = 4 ** 6 mod 7 = 1`.
+* Alice receives `p_b` and Bob receives `p_a`.
+* Alice calculates shared secret as `1 ** 2 mod 7 = 1`.
+* Bob calculates shared secret as `2 ** 6 mod 7 = 1`.
+
+Now both have the same shared secret `1`.
+
+
+Asymmetric encryption
+---------------------
+
+This is a delayed application of the Diffie-Hellman key exchange.
+
+Secret and public keys are generated as explained for the regular key exchange.
+
+But for each message to be sent, an additional new secret and public key is created for this message.
+
+The shared secret is created from the long-term public key of the receiver and the single-use per-message secret key.
+
+The shared secret is then used to encrypt the message, i.e. using conventional symmetric encryption with the shared secret as the symmetric key.
+
+In order to form the complete message, the encrypted data must be combined with the single-use public key and both are sent to the receiver.
+
+The receiver then combines the received single-use public key with his own long-term private key in order to reconstruct the shared secret, then use it to decrypt the symmetrically encrypted message body.
+
+
+Signing
+-------
+
+DH can also use to sign messages.
+
+First, a cryptographic hash of the message is created, which must result in a number `>= 2` and `< m`. It is suggested that this hash is padded with random bits if it is shorter than `floor(log2(m))` bits.

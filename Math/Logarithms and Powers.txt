@@ -1,0 +1,25 @@
+log(value, base) := log(value, some_other_base) / log(base, some_other_base)
+
+x ** y := some_base ** (y * log(y, some_base))
+
+x ** y := exp(y * ln(x))
+
+sqrt(x) := x ** (1/2)
+
+a ** 0 == 1
+
+a ** -1 == 1 / a
+
+(a ** x) * (a ** y) == a ** (x + y)
+
+(a ** x) ** y == a ** (x * y) == (a ** y) ** x
+
+exp(x) := sum(x ** k / k!, for:= k, from:= 0, to:= infinity)
+
+ln(x) := integral(1 / x, for:= x, from:= 1, to:= infinity)
+
+ln(x) := sum((-1) ** (k - 1) * (x - 1) ** k / k, for:= k, from:= 1, to:= infinity) where abs(x - 1) <= 1 and x <> 0 (this applies to 0 < x <= 2)
+
+ln(x * y) == ln(x) + ln(y) where x > 0, y > 0
+
+ln(x ** y) == y * ln(x) where 0 < x < y

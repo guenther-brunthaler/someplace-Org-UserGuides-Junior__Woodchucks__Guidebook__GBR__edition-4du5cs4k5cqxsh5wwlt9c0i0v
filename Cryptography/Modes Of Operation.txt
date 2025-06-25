@@ -1,0 +1,4 @@
+
+For streams, use RBT which is equivalent to CBC if the stream size is a multiple of the block size.
+
+If the storage overhead for the IV is not wanted, use ESSIV and choose the sector size such that the whole stream fits into a single sector.

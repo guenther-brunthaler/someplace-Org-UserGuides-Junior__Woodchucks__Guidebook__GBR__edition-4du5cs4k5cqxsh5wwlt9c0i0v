@@ -1,0 +1,27 @@
+All-Or-Nothing Transform (AONT)
+===============================
+v2025.68
+
+AONT transforms a plaintext message in a somewhat longer transformed text that looks totally random. The transformation an be undone without needing a key, and is therefore not encryption.
+
+In order to transform a plaintext, it must be chopped into block with the same size as the output of a chosen cryptographic hash function.
+
+Every block is then XORed with a HMAC of the block's index position.
+
+At the end, an additional block is added, which is computed as the XOR of all previous output blocks and a random nonce HMAC key chosen for the current tranform.
+
+AONT was described by its inventor Ronald L. Rivest in a 1997 paper.
+
+Obviously, if the message length is not an exact multiple of the HMAC block size, the last block needs to use a padding scheme just like in encryption with a block cipher.
+
+The receiver of the message first XORs all the blocks inluding the last one, which results in the HMAC key. Then all the blocks can be decoded, and any padding from the last block can be removed.
+
+There are variants which uses CTR mode instead of HMAC-encryption of the block index, which is computationally cheaper.
+
+It is possible to extend the idea to any cipher and encryption mode, as long as some sort of summation function over the encrypted data blocks combined with the added last block can produced the required decrytion key.
+
+For instance, a cryptographic hash over the transformed data blocks XOR the value in the additional block may result in the encryption key.
+
+This also works for stream ciphers, avoiding the need for padding. Just encrypt the data with a random key, then hash the output, and append the XOR of the hash and the random key at the end.
+
+An interesting idea is the fact that removing any sequence of bytes (at some well-known position, such as from the beginning or end of the file) from such a transformed message, makes it into an encrypted message with the removed bytes being the key needed for decryption.

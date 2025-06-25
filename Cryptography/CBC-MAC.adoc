@@ -1,0 +1,43 @@
+CBC-MAC
+=======
+v2022.83
+
+WARNING: In 2017, a "multicollision attack" has been found which can successfully attack at least the following variants of this MAC algorithm: CBC-MAC, EMAC, XCBC-MAC. It remains unclear whether OMAC, CMAC and PMAC are also affected, but it cannot be ruled out at this point either.
+
+A CBC-MAC is the ciphertext of the last CBC-enciphered data block, using an IV of all binary zeroes.
+
+The CBC-MAC *must* use a different key than the one used for CBC data encryption.
+
+Any single key must only be used for messages of a fixed and known length.
+
+CBC-MAC is as secure as the cipher for such fixed-length messages. In this case, it is also OK to always use the same key for the MAC.
+
+It is *unsafe* without additional measures for variable-length messages. Three techniques can make it safe again in this case:
+
+* Use a different key for every message size, such as including the size within in the key. Care must be taken that no part of the key becomes guessable to an attacker knowing the message length. For instance, append the length to the basic key and hash the result.
+
+* Prepend the length (using a fixed length for the length field itself) to the message when doing the CBC-MAC calculation. Only possible if the length can be determined in advance.
+
+* Encrypt the CBC-MAC result again directly (in ECB-mode) using a different (a second) key, and use this as the now-secure ECBC-MAC. Sometimes also called "EMAC".
+
+It is usually unsafe to "personalize" CBC-MAC by using different IVs. Better use different or derived keys. The MAC-IV must be constant, should not be included within the message, and the attacker must not be able to modify it.
+
+Another problem of all CBC-MAC-variants described above is that they can only authenticate data which is a multiple of the cipher block size.
+
+Otherwise, the data should be padded by adding a single "1" bit after the last byte of the message, and then as many "0" bits as necessary (but at least one) to fill the last input block to its block size. This *can* in fact result in another plaintext block containing only "0" bits.
+
+
+Descendants
+-----------
+
+There is a somehow improved version of the original CBC-MAC called XCBC, which is secure for variable-length messages but requires 3 different keys.
+
+Basically, it seems to work something like this: All complete blocks at the beginning are CBC-MAC'ed with key 1. If the last block is also complete, it is CBC-MAC'ed with key 2 first and then encrypted again with key 1. If the last block is incomplete, it is padded with a "1" bit and then padded with "0" bits (possibly none) to the block size. This is then CBC-MAC'ed with key 3 first and then encrypted again with key 1.
+
+OMAC was developed as a modified version of XCBC which derived the keys internally from a single input key.
+
+OMAC was then improved into two different versions, CMAC1 and CMAC2.
+
+CMAC1 was adopted/recommended by NIST and renamed CMAC.
+
+There is also a parallelizable version of CMAC called PMAC, which has been patented in the past but can now be used royalty-free.

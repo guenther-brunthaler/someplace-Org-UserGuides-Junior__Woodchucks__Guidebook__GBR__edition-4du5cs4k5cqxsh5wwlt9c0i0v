@@ -1,0 +1,42 @@
+ARCFOUR Stream Cipher
+=====================
+v2023.338
+
+This is a generalized description of the standard ARCFOUR algorithm, which is used for both key setup and normal operation (encryption, decryption, CPRNG):
+
+1. Only for key setup: s[i]= i for all i where s[all indices mod 256]
+2. i= j= 0
+3. Except for key setup: Move i one position to the right
+4. Move j by (s[i] + optional_next_key_octet()) positions to the right
+5. Swap s[] values at indices i and j.
+6. Optionally output s[index equal to sum of values just swapped]
+7. Only for key setup: Move i one position to the right
+8. Go back to step 3 unless finished
+
+Mnemonic device: Alternating "only-except-only" for key setup.
+
+Details:
+
+* As hinted by step 1, all indexes to array s[] have to be reduced modulo the array's size, which is 256 elements. Which means the valid indexes are 0 through 255. This is not explicitly mentioned in the remaining steps, but has to be applied there too.
+
+* optional_next_key_octet() is a function which provides the next input key material octet. It is only used in the key setup phase and always yields 0 during normal operation.
+
+* In the standard ARCFOUR algorithm's key setup phase, optional_next_key_octet() always returns key[i modulo keysize] and the key setup phase ends at step 8 after 256 octets have been produced by optional_next_key_octet().
+
+* The output value optionally produced by step 6 represents a cryptographically-secure pseudo random number sequence which is completely pre-determined by the key used in the key setup phase.
+
+* In the standard ARCFOUR algorithm, the CSPRNG-sequence produced by step 6 is directly XORed with the input stream in order to encrypt or decrypt it.
+
+* Cryptosystems can defend against certain attacks by discarding the initial portion of the keystream. Such a modified algorithm is traditionally called "RC4-drop[n]", where n is the number of initial keystream bytes that are dropped. The SCAN default is n = 768 bytes (3 * element_count(s)), but a conservative value would be n = 3072 bytes (4 * 3 * element_count(s)).
+
+* Like with most stream ciphers, the same ARCFOUR key must never be re-used for encrypting a different message.
+
+* In addition, specific to ARCFOUR, different keys should neither be similar to each other. In particular, it is unsafe to just combine a running per-message counter with a long-term key directly.
+
+* Also, ARCFOUR keys should look like random binary data with no recognizable regularities or patterns within them.
+
+* Like most stream ciphers, ARCFOUR is susceptible for bit-flipping attacks: Flipping any bit in the encrypted stream will flip the same bit in the decrypted message later. Always use MACs with such stream ciphers to verify the integrity of the encrypted data.
+
+* The effective maximum key strength of ARCFOUR is floor(log2(256!)), that is 1683 bit. That is 210.3 octets. Which means truly random keys with a length of 211 bytes already provide the maximum possible security. Longer keys, although allowed, cannot be more secure.
+
+Test vectors: Using the given LATIN1-encoded key strings, encrypting a stream of binary zero octets results in ciphertext starting with the specified bytes. "Key" -> EB9F7781B734CA72A719, "Wiki" -> 6044DB6D41B7, "Secret" -> 04D46B053CA87B59.

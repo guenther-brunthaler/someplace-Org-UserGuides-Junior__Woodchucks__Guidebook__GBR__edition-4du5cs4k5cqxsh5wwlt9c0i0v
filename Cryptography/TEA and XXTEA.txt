@@ -1,0 +1,142 @@
+/*
+   XXTEA, cleaned-up version.
+
+   From: http://en.wikipedia.org/wiki/XXTEA
+
+   An attack published in 2010 by E. Yarrkov presents an a chosen-plaintext
+   attack against full-round XXTEA, requiring 2 ** 59 queries for a block
+   size of 212 bytes (or more) and negligible work. This attack can be
+   avoided by modifying the cipher so that it never uses less than 8 rounds.
+*/
+
+#include <stdint.h>
+
+/*
+   DELTA= floor(2 ** 32 / golden_ratio).
+   golden_ratio= (1 + SQRT(5)) / 2.
+*/
+#define DELTA 0x9e3779b9
+#define MX ( \
+      ((z >> 5 ^ y << 2) + (y >> 3 ^ z << 4)) \
+   ^  ((sum ^ y) + (k[(p & 3) ^ e] ^ z)) \
+)
+
+/*
+   units: 32 bit (little endian encoding)
+   abs(n): block size in units where 2 <= n <= 52
+   sgn(n) == +1: encrypt
+   sgn(n) == -1: decrypt
+   k: key of 4 units
+   v: block of n units
+*/
+void xxtea(uint32_t *v, int n, uint32_t const key[4]) {
+   uint32_t y, z, sum;
+   unsigned p, rounds, e;
+   if (n > 1) {
+      rounds= 6 + 52 / n;
+      sum= 0;
+      z= v[n - 1];
+      do {
+	 sum+= DELTA;
+	 e= (sum >> 2) & 3;
+	 for (p= 0; p < n - 1; p++) {
+	    y= v[p + 1];
+	    z= v[p]+= MX;
+	 }
+	 y= v[0];
+	 z= v[n - 1]+= MX;
+      } while (--rounds);
+   } else if (n < -1) {
+      n= -n;
+      rounds= 6 + 52 / n;
+      sum= rounds * DELTA;
+      y= v[0];
+      do {
+	 e= (sum >> 2) & 3;
+	 for (p= n - 1; p > 0; p--) {
+	    z= v[p - 1];
+	    y= v[p]-= MX;
+	 }
+	 z= v[n - 1];
+	 y= v[0]-= MX;
+	 sum-= DELTA;
+      } while (--rounds);
+   }
+}
+
+
+The above algorithm is the improved version of the XTEA algorithm:
+
+#include <stdint.h>
+
+/* Encrypt 64 bits v[0] and v[1] in-place using 128 bit key k[0] through k[3]. */
+/* Encryption takes place in 2 * num_cycles rounds. */
+
+void encipher(
+   unsigned int num_cycles, uint32_t v[2], uint32_t const k[4]
+) {
+   unsigned int i;
+   const uint32_t delta= 0x9E3779B9;
+   uint32_t v0= v[0], v1= v[1], sum= 0;
+   for (i= 0; i < num_cycles; i++) {
+      v0+= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + k[sum & 3]);
+      sum+= delta;
+      v1+= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + k[(sum >> 11) & 3]);
+   }
+   v[0]= v0;
+   v[1]= v1;
+}
+
+void decipher(
+   unsigned int num_cycles, uint32_t v[2], uint32_t const k[4]
+) {
+   unsigned int i;
+   const uint32_t delta= 0x9E3779B9;
+   uint32_t v0= v[0], v1= v[1], sum= delta * num_cycles;
+   for (i= 0; i < num_cycles; i++) {
+      v1-= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + k[(sum >> 11) & 3]);
+      sum-= delta;
+      v0-= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + k[sum & 3]);
+   }
+   v[0]= v0;
+   v[1]= v1;
+}
+
+
+The above algorithm is an improved version of the original TEA algorithm:
+
+/* The primitive original version of TEA against which there are well-known
+ * attacks. It is a block cipher with 64 bit block size and 128 bit key. */
+static void tea_encrypt(uint32_t * v, uint32_t const *k) {
+   uint_fast32_t v0= v[0], v1= v[1], sum= 0, i;
+   uint_fast32_t const delta= 0x9e3779b9;
+   uint_fast32_t const k0= k[0], k1= k[1], k2= k[2], k3= k[3];
+   for (i= 0; i < 32; ++i) {
+      sum+= delta;
+      v0+= (v1 << 4) + k0 ^ v1 + sum ^ (v1 >> 5) + k1;
+      v1+= (v0 << 4) + k2 ^ v0 + sum ^ (v0 >> 5) + k3;
+   }
+   v[0]= (uint32_t) v0;
+   (uint32_t) v[1]= v1;
+}
+
+static void tea_decrypt(uint32_t **v, uint32_t const *k) {
+   uint_fast8_t n= 32;
+   uint_fast32_t sum, v0= v[0], v1= v[1];
+   uint_fast32_t const delta= 0x9e3779b9;
+   uint_fast32_t const k0= k[0], k1= k[1], k2= k[2], k3= k[3];
+   sum= delta << 5;
+   while (n-- > 0) {
+      v1-= (v0 << 4) + k2 ^ v0 + sum ^ (v0 >> 5) + k3;
+      v0-= (v1 << 4) + k0 ^ v1 + sum ^ (v1 >> 5) + k1;
+      sum-= delta;
+   }
+   v[0]= (uint32_t) v0;
+   v[1]= (uint32_t) v1;
+}
+
+Although no longer secure for actual encryption, it can still be used as a decent bit-mixing function (start with a constant v, encrypt it repeatedly with the data to be mixed in as a key), non-cryptographic hash function (just encrypt the data with a constant key), or PRNG (either start with the low-entropy seed as data and encrypt itself with the same key over and over, or encrypt the same seed as data with an incrementing counter value as the key).
+
+For instance, it can be used to hash the not very random looking return value of clock() into a completey random looking block of 64 data bits, which can be used to seed a high-quality LCRNG. LCRNGs do not like small values as seed and should be initialized with a quite random looking bit pattern as seed. Otherwise they may not generate very random looking numbers at the beginning and may need long to recover from their inappropriate seed.
+
+There is an attack on n == 53 or larger where rounds would become 6. This attack can be avoided, however, by using 2 more rounds (8 rounds in this case) instead. It remains unclear whether this is also sufficient for much larger blocks. Otherwise, larger block sizes seen generally to be more secure than shorter ones.

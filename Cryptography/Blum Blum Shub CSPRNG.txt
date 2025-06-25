@@ -1,0 +1,54 @@
+﻿Published in 1986 by Lenore Blum, Manuel Blum and Michael Shub, "Blum Blum Shub" (BBS) is considered a cryptographically secure PRNG. It is computed via
+
+x[n] := (x[n - 1] ** 2) mod (p * q)
+x[n] := (x[0] ** (2 ** n * lcm(p - 1, q - 1))) mod (p * q)
+
+where q and q are large primes (which must of course be kept secret if the CSPRNG is used as a stream cipher).
+
+The first formula above is iterative. The second one allows to "seek" the cipher to a particular starting position into the output stream.
+
+* p and q must not be identical
+
+* p and q should have a similar bit length (not necessarily identical)
+
+* p - q should not be too small. This chance can be neglected when selecting them randomly
+
+* Both must be congruent to 3 modulo 4
+
+* p and q should also be strong primes. See below how to generate those.
+
+* They should have a small gcd((p - 3) / 2, (q - 3) / 2)) because this ensures a large cycle length.
+
+Seed integer x[0] must not have p or q as factors and must be chosen from the interval [2, p * q - 1]. This integer should not yet be used for output; it shall only be used to "warm up" ("seed") the generator.
+
+The output value is some function over x[n], such as its bit parity or some particular extracted bits from it. Extracting the least significant bit always safe.
+
+Schneier states that it is also safe to use the floor(log2(p * q)) least-order bits of each x[n] as part of the random output bitstream.
+
+Given a part of the generated bitstream, an attacker which knows n but neither p nor q cannot predict the previous bit before the sequence or the next bit after the sequence.
+
+p * q can me made public so that everyone can create more random bits, randomly choosing one of the x[n] as the starting point for the sequence. In this case, an attacker watching the output sequence, still cannot predict the next or previous output of the generator beyond what he has already seen.
+
+BBS is too slow for use as a stream cipher, but can be used for high-security applications like "randomly" creating keys and nonces.
+
+The algorithm is fully understood by mathematicians, and all of its security is based on the infeasibilty to factor p * q. This makes the algorithm much safer than other ones which are too complicated to be analyze properly, raising the chance of discover undetected flaws at some later time.
+
+The security of BBS is comparable to that of the RSA and ElGamal asymmetric encryption algorithms. Its security is entirely based on the discrete log problem and might therefore eventually be challenged by quantum computers.
+
+How to generate a strong prime.
+
+p is a strong prime if integers r, s and t exist for which the following is true: r is a large prime factor of p - 1, s is a large prime factor of p + 1, and t is a large prime factor of r - 1.
+
+Gordon's algorithm of generating a strong prime p is as follows.
+
+* Generate two large random primes s and t of roughly equal bitlength.
+
+* Select an integer i0. Find the first prime in the sequence 2 * i * t + 1, for i = i0, i0 + 1, i0 + 2, ... Denote this prime by r = 2 * i * t + 1.
+
+* Compute p0 = 2 * ((s ** −2) mod r) * s - 1.
+
+* Select an integer j0. Find the first prime in the sequence p0 + 2 * j * rs, for j = j0, j0 + 1, j0 + 2, ...
+
+* Return p = p0 + 2 * j * r * s.
+
+The bitlengths of r and s will be about half that of p, while the bitlength of t will be slightly less than that of r.

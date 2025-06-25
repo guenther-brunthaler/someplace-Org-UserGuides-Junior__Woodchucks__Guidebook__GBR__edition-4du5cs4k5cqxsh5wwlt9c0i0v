@@ -1,0 +1,30 @@
+Residual block Termination (RBT)
+================================
+
+Encryption
+----------
+
+If the plaintext length N is not a multiple of the block size L:
+
+* Encrypt the floor(N/L) full blocks of plaintext using the cipher block chaining mode;
+
+* Encrypt the last full encrypted block again;
+
+* XOR the remaining bits of the plaintext with leftmost bits of the re-encrypted block.
+
+Decryption
+----------
+
+* Decrypt the floor(N/L) full encrypted blocks using the Cipher Block Chaining mode;
+
+* Encrypt the last full encrypted block;
+
+* XOR the remaining bits of the ciphertext with leftmost bits of the re-encrypted block.
+
+For messages shorter than one block, residual block termination can use an encrypted IV instead of the previously encrypted block.
+
+RBT is dangerous if the same plaintext is ever encrypted again using a different IV: In this case the attacker can trivially decrypt the contents of the last partial block of all messages of the same size encrypted with the same key. Including a nonce within the IV, plaintext or key avoids this possibility.
+
+http://en.wikipedia.org/wiki/Residual_block_termination
+
+For random-seekable data sets use ESSIV to calculate a per-sector IV, then use RBT to process the sector or partial sector (if the last sector is shorter than the regular sector size). The sector size should be chosen to be a multiple of the block size.

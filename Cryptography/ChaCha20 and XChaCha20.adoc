@@ -1,0 +1,139 @@
+ChaCha20 and XChaCha20
+======================
+Guenther Brunthaler
+v2025.153
+
+
+'ChaCha20' is a stream cipher developed by 'D. J. Bernstein'. It is a refinement of 'Salsa20' and was used in the core of the 'SHA-3' finalist, 'BLAKE'.
+
+'XChaCha20' is basically the same as 'ChaCha20' but adds a preprocessing step which allows a larger nonce.
+
+'ChaCha20' is basically a hash function, mapping 64 internal state octets into 64 pseudorandom output octets.
+
+The generated pseudorandom octets are then usually 'XOR'-combined with the input data stream in order to create the output data stream.
+
+
+Original Bernstein variant
+--------------------------
+
+In this (the original) variant of the algorithm, a single key/nonce combination can be used to encrypt up to 1 ZiB (2^70^ octets) of data. Then either the key or the nonce must be changed.
+
+The internal state consists of 16 words, each 32 bit wide:
+
+.. 4 words constants - deserialization of the 'ASCII' string "'expand 32-byte k'".
+
+.. 8 words - deserialization of the binary 256-bit encryption/decryption key
+
+.. 2 words block index, least significant word first. Use 0 as the index for encrypting/decrypting the first data block, 1 as the index for the second block, and so on.
+
+.. 2 words - deserialization of the binary 64-bit nonce
+
+Serialization chops an unsigned input number into groups of 8-bit each and outputs the resulting octets (= 8-bit bytes) in 'little-endian' byte order. (That means from least to most significant byte, least significant first.) Deserialization recreates the original number from such a serialized octet string.
+
+The maximum representable block index limits the input/output streams to 2^70^ octets each. (An unoffial modification allows larger streams by adding any overflowing block index words to the words at the end of the key.)
+
+'ChaCha20' consists of 20 rounds.
+
+The rounds work with a copy of the internal state words, updating the copies in-place. After the last round, the original internal state words are added to the result using the "`+=`"-operator described later.
+
+Finally, the pseudorandom output block is produced by serializing the result words.
+
+Each round applies a so-called "'quarter-round'" function four times, to a different set of words each time.
+
+First, the initial four words for each round are selected by conceptually arranging the 16 words of the internal state in a four by four grid with the first word in the top-left position and the fourth word in the top-right position.
+
+Then 'column' rounds and 'diagonal' rounds alternate until all rounds have been processed:
+
+* 'column' rounds select the four columns of the grid for the quarter-rounds, from left to right. The values are selected from top to bottom within the current column as the quarter-round arguments.
+
+* 'diagonal' rounds select the values of the grid diagonal from the top-left to the bottom-right as the arguments of first quarter-round. For the remaining three quarter-rounds, the pattern representing the selected grid positions of the previous quarter-round is rotated one column position to the right.
+
+The quarter-round function `R4()` itself updates in-place the words `(a, b, c, d)` which have been selected for this quarter-round as follows:
+
+....
+R4(): R8(RC(0), RC(1)); R8(RC(2), RC(3)).
+RC(i): 16 - i * 4 + floor(i / 3) * 3
+R8(r1, r2): R16(a, b, d, r1); R16(c, d, b, r2).
+R16(x, y, z, r): z ^= x += y; z <<<= r.
+....
+
+where "`a ^= b`" is short for "`a := BITWISE_EXCLUSIVE_OR(a, b)`", "`a := b`" means assignment of value `b` to variable `a`, "`a += b`" is short for "`a := (a + b) modulo (2 ** 32)`", "`**`" is the exponentiation operator and "`a <<<= n`" is short for "`a := BITWISE_ROTATE_LEFT(a, n)`".
+
+'ChaCha20' does not need any special key-setup preprocessing. Binary key, block-counter and nonce are used directly as-is by the algorithm. Which means changing the key is cheap. It bears no more overhead than incrementing the block index.
+
+Test vector:
+
+....
+Key
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+
+Nonce
+00 00 00 09 00 00 00 4a 00 00 00 00
+
+Block Count
+1
+
+Input
+00 ... 00
+
+Output
+10 f1 e7 e4 d1 3b 59 15 50 0f dd 1f a3 20 71 c4
+c7 d1 f4 c7 33 c0 68 03 04 22 aa 9a c3 d4 6c 4e
+d2 82 64 46 07 9f aa 09 14 c2 d7 05 d9 8b 02 a2
+b5 12 9c d1 de 16 4e b9 cb d0 83 e8 a2 50 3c 4e
+....
+
+
+IETF-variant
+------------
+
+In this variant, a single key/nonce combination can be used to encrypt up to 256 GiB of data. Then either the key or the nonce must be changed.
+
+The IETF-variant of ChaCha20 ist identical the Bernstein's original variant, except for the allocation of the last 4 words of the internal state:
+
+.. 1 word block index, least significant word first.
+
+.. 3 words - deserialization of the binary 96-bit nonce
+
+The reduced block index allows only for 256 GiB of data to be encrypted with a particular key-nonce combination.
+
+
+XChaCha20
+---------
+
+The 'eXtended-nonce ChaCha' cipher construction ('XChaCha') allows for 'ChaCha'-based ciphersuites to accept a 192-bit nonce with otherwise similar guarantees to the original construction.
+
+'XChaCha' ist based on the IETF-variant of 'ChaCha' with 96 bit nonce and 32 bit block counter.
+
+It can therefore only encrypt up to 256 GiB of data using the same key-nonce combination. After that, either the key or the nonce need to be changed.
+
+'XChaCha20' makes use of another 'ChaCha' variant 'HChaCha20' (see below).
+
+It invokes 'HChaCha20' with its own key and the first 16 octets (128 bit) of its 192-bit nonce as arguments.
+
+Then it uses the 16 octets returned by 'HChaCha20' as its own key for 'ChaCha20', and prefixes the remaining 8 octets of the 192-bit nonce with 4 zero octets resulting in a 96-bit nonce.
+
+After this initial setup, 'XChaCha20' executes the IETF-variant of the 'ChaCha20' cipher with the derived key and the 96-bit nonce in order to actually encrypt or decrypt something.
+
+
+HChaCha20
+---------
+
+'HChaCha20' is identical to the IETF-variant of 'ChaCha20', except that it uses a modified setup of the internal state.
+
+In 'HChaCha', the words representing the block counter have been repurposed as additional words for the nonce, resulting in a 128-bit nonce. 'HChaCha' does not provide a block index any longer.
+
+After running the 20 rounds for 'ChaCha20' using the modified state setup, the first and last 4 words of the resulting intermediate state will be extracted and returned as the 32 result words of 'HChaCha20'.
+
+
+Disk Encryption
+---------------
+
+Although the original variant could be used to encrypt even the largest hard drives directly, this would be somewhat dangerous because of the simple XOR-application of the key stream.
+
+It is recommended instead to use the 'Adiantum' Mode of Operation for stream ciphers in combination with 'XChaCha20'.
+
+This will practically convert 'XChaCha20' into a block cipher, where the block size is the same as the sector size or encryption cluster size of the disk.
+
+Changing even a single bit of an encrypted cluster will then decrypt as total garbage, making subtle modification of the decrypted data impossible.

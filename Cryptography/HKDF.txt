@@ -1,0 +1,27 @@
+
+HMAC-based Extract-and-Expand Key Derivation Function (HKDF).
+
+HMAC(key, data) uses an custom-defined cryptographic hash function and generates hLen output octets.
+
+IKM is the input keying material (master password).
+
+OKM is the output keying material which shall be generated.
+
+L is the requested length of the OKM in octets. It must be <= 255 * hLen.
+
+S is an optional salt and defaults to hLen octets of binary zero.
+
+info is an optional binary customization string, defaulting to an empty string.
+
+Extract pseudo-random key from IKM:
+
+PRK:= HMAC(key:= S, data:= IKM)
+
+Extract L octets of OKM from PRK:
+
+OKM:= Return the first L octets of T.
+
+T:= T(1) contact T(2) ... concat T(N).
+N:= ceiling(L / hLen)
+T(0):= ""
+T(i):= HMAC(PRK, T(i - 1) concat info concat unsigned_integer_to_octet(i))

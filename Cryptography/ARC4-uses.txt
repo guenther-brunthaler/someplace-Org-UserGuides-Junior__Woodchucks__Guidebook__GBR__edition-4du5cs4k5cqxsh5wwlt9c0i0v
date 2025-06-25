@@ -1,0 +1,25 @@
+Suggested Usages of ARCFOUR
+===========================
+v2024.228
+
+Idea for abusing ARCFOUR as a simple hash algorithm "rc4hash" for large messages:
+
+* Extend the standard ARCFOUR key setup so that it does not stop processing more key bytes if the key is longer than 256 octets.
+
+* ARCFOUR-drop3072 MAC: Prefix the message to be hashed with a 256-octet MAC key. This ensures that no bytes of the combined key will be recycled and every key octet will be processed exactly once. The initial output of ARCFOUR-drop3072 using this extended key represents the hash value.
+
+* String-to-key: ARCFOUR keys need to be binary and look like random bytes. In order to transform a text pass phrase into such a key, encrypt the original key using the same extended ARCFOUR algorithm in order to make it look more random. This shall be done by 12 iterations of the following algorith: Start with the same key, i.e. the first iteration encrypts the key using itself. The encrypted result is then used as the key encryption key for the next iteration. Each iteration always encrypts the original key, but with a different key encryption key. This ensures the entropy of the pass phrase will not be reduced (it has just been encrypted and has not been hashed or compressed) and its byte size will not change. The number of iterations is not magical. It has been chosen rather arbitrary. I chose 12 rounds because ARCFOUR-drop3072 discards 12 times the size of its s-box of initial output.
+
+* Be sure that different keys are used for MAC and encryption, if both are be used.
+
+* Derive both the per-message encryption key and the per-message MAC key from the rc4hash of a long-term key. sandwiched between two copies of a binary salt before hashing.
+
+* ARCFOUR hash: Abuse an ARCFOUR-drop3072 MAC with a constant MAC key as a an ARCFOUR hash. The key shall be created by the above string-to-key algorithm, consisting of byte value 0x55 (a pattern made of alternating "0" and "1" bits) repeated 256 times.
+
+* Prepend the salt before the encrypted message, and append the MAC after it.
+
+* Salt stretching can be used if a larger salt is required than has been prefixed in front of the encrypted message. Just rc4hash whatever short a salt may be present, and use the generated output stream as the actual salt of the required size.
+
+* Allow stream-based MAC verification and decryption. This is impossible if only a single MAC is used, because then the MAC needs to be checked before decryption, requiring to read the stream twice. In order to avoid this, chop the plaintext into fixed-sized segments (except the last one which might be shorter). I recommend a segment size of 16 MiB. Then each segment is encrypted independently and gets its individual MAC. Every segments uses a different encryption and MAC key, derived from the same per-file-instance keys and a segment counter.
+
+* The streaming encrypted output file shall consist of 32 octets of salt-seed nonce followed by as many encryption segment as necessary. Every segment contains up to 16 MiB minus 32 octets of encrypted data, followed by a 32 octet MAC. The last segment may be shorter. An encrypted empty file contains a single segment which just contains the MAC and has a file size of 64 bytes (salt-seed and MAC).

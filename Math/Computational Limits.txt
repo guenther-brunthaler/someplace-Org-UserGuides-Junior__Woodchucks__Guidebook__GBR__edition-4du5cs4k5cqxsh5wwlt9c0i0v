@@ -1,0 +1,4 @@
+﻿
+If, as seems highly unlikely, it is possible to extrapolate the exponential progress of Moore’s law into the future, then it will take only 250 years to make up the 40 orders of magnitude in performance between current computers that perform 10^10 operations per second on 10^10 bits and our 1-kg ultimate laptop that performs 10^51 operations per second on 10^31 bits.
+
+From "Ultimate physical limits to computation", 2000-08-31, Nature Vol. 406

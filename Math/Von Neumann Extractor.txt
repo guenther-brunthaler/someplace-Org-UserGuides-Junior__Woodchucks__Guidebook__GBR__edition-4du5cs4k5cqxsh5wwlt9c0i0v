@@ -1,0 +1,9 @@
+The Von Neumann extractor is a simple algorithm to remove bias from a lower-quality bit random source, resulting in a higher-quality bit random source.
+
+1. Read two bits A and B from the lower-quality input source
+
+2. If A == B back to step 1.
+
+3. Otherwise, emit bit A as the next bit of the higher-quality random output stream. (B is dropped. It would not be random anyway, because it must be the negated value of A.)
+
+4. Repeat this for as many output bits are required by going back to step 1.

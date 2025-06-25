@@ -1,0 +1,102 @@
+﻿Bézier splines and curves
+=========================
+v2022.142
+
+Bézier curves of degree `N` have two end-points and `N - 1` control points. Only Bézier curves of degrees 2 and 3 are commonly used.
+
+The curve then starts at both end points, stretches towards "its" control points, never actually reaching them but rather connecting with the other half of the curve instead.
+
+Mathematically, every point on the Bézier curve is defined as
+
+....
+point(t) = sum(binom(n, i) * (t ** i) * ((1 - t) ** (n - i)) * cp[i], i, 0, n)
+....
+
+where
+
+* `point(t)`: Function for calculating one point along the curve, selected by parameter `t`
+* `n`: The degree of the curve
+* `t`: The a curve position between `0` (start point) and `1` (end point)
+* `sum(expr(var), var, start, end)`: Sum of evaluating the expression for integer index variable `var` running from value `start` to value `end` (inclusive)
+* `**`: exponentiation
+* `cp[i]`: start point (`i == 0`) or end point (`i == n`) or otherwise one of the control points
+* `binom(n, k)`: The binomial coefficient "`n` over `k`", i. e. the value `(n! / (k! * (n - k)!))`
+* `x!`: the factorial of `x`, that is `1 * 2 * 3 * ... * (x - 1) * x`
+
+`point(t)` and `cp[i]` are co-ordinate column-vectors, normally containing `x` and `y` components (for 2D curves), and perhaps also a `z` component (for 3D curves).
+
+A problem with Bézier curves is the fact that the control points have global effect; changing any control points will change the curve everywhere (at least lightly).
+
+For that reason, normally Bézier splines are used rather than curves. Those consist of Bézier curves with fixed degree (normally 2 or 3) as segments. In this case, changing the control points only affect one segment and not the whole curve.
+
+* Bézier curves of degree 0 are points which are also the start- and end point. They are useless.
+
+* Bézier curves of degree 1 are normal lines. They have no control point and are useless as well.
+
+* Bézier curves of degree 2 are often just called 'quadratic splines'. There is only one control point per spline. 'TrueType' fonts use those. They represent a section of a rotated parabola.
+
+* Bézier curves of degree 3 are often just called 'cubic splines'. There are two control points per spline. 'PostScript' fonts use those. Supposedly they are better than quadratic splines, even though I cannot really see what quadratic splines could not achieve using a somewhat larger number of them. Also, the suggested memory savings because of a lower cubic spline count are relativized by the fact that every cubic spline needs to store one control point more than a quadratic spline.
+
+Here is how to calculate the points for degree 2 with the 'Maxima' CAS:
+
+----
+n: 2; cp[0]: [sx, sy]; cp[1]: [cx, cy]; cp[2]: [ex, ey]; fortran(horner(sum(binomial(n, i) * (t ** i) * ((1 - t) ** (n - i)) * cp[i], i, 0, n)));
+----
+
+which gave (reformatted and after substitution):
+
+....
+cx2 = 2 * cx
+cy2 = 2 * cy
+px = ((sx + ex - cx2) * t - 2 * sx + cx2) * t + sx
+py = ((sy + ey - cy2) * t - 2 * sy + cy2) * t + sy
+....
+
+The 'De-Casteljau' algorithm is used for splitting a Bézier curve into two smaller Bézier curves, acting as Bézier splines.
+
+This can also be done for rasterizing Bézier curves, where the splines are split into smaller splines until the spline resembles the control polygon represented by its control points, which can then be rendered as normal lines.
+
+The De-Casteljau algorithm selects one point on the combined curve which acts as the new endpoints when splitting the combined curve into two new splines. It also calculates new control points for both splines, which makes them look exactly like the combined curve.
+
+The algorithm is driven by a parameter `t` between `0` and `1`, similar to a parameter with the same name used in the definition of the Bézier curves. This parameter defines the splitting point: `0` means the start point and `1` means the other end point. Typically, `0.5` will be chosen for `t`, which means cutting a curve into half.
+
+The De-Casteljau algorithm works as follows (for Bézier curves/splines of degree 3): First three lines are subdivided using the ratio `t` to `(t - 1)`. The lines are: from start point to first control point, then from there to second control point, then from there to end point.
+
+This subdivision yields 3 points for those 3 lines. Let's call them A, B and C.
+
+Then the line from A to B and from B to C are also subdivided using the same ratio as before, this time giving points D and E.
+
+Finally, we subdivide the line from D to E also in the same way, giving point F.
+
+Now the new split curves are:
+
+* From the old start point to new end point F with new control points A and D.
+
+* From F to old end point with new control points E and C.
+
+A similar algorithm can be used for splitting quadratic splines. I presume it goes as follows:
+
+First, the line from start point to control point is subdivided in the same ratio as for the cubic algorithm. Then the line from there to the end point. This gives points A and B. Then the line from A to B is split, giving point C. The new quadratic curves are then:
+
+* From old start point to C with control point A.
+
+* From C to old end point with control point B.
+
+When choosing `t = 0.5`, all line segments only need to be split in half at their mid point, which is easy:
+
+....
+x[mid]= (x[a] + x[b]) / 2
+y[mid]= (y[a] + y[b]) / 2
+.....
+
+For rasterizing a Bézier spline, it can be recursively split until start and end points are adjacent and then plotting only the start point. After all recursions, the still-missing end point of the last partial spline is plotted separately.
+
+When writing an interactive editor for manipulating splines, there are usually the following operations provided:
+
+* Move all points (end points as well as control points
+
+* connect end points, closing the curve
+
+* lock two neighboring control points of different splines so that they form a straight line. This "rounds" the curve around that endpoint
+
+* lock the points as before but additionally make them symmetric. This makes the curve look like a section from a circle

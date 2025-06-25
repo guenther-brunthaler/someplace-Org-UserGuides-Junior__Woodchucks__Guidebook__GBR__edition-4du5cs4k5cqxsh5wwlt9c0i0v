@@ -1,0 +1,86 @@
+FNV-1a Hash Algorithm
+=====================
+Version 2025.10
+
+[NOTE]
+This is the document version, not the algorithm version.
+
+The hash algorithm is as follows:
+
+----
+hash= offset_basis
+for each octet_of_data to be hashed:
+	hash= hash xor octet_of_data
+	hash= (hash * FNV_prime) modulo (2 ** hash_bitsize)
+return hash
+----
+
+where `**` is the exponentiation operator.
+
+.FNV-1a `FNV_prime` depending on hash_bitsize
+[options="autowidth,header"]
+|====
+| Bits | FNV_prime            | decimal value
+| 32   | 2^24^ + 2^8^ + 0x93  | 16777619
+| 64   | 2^40^ + 2^8^ + 0xb3  | 1099511628211
+| 128  | 2^88^ + 2^8^ + 0x3b  | 309485009821345068724781371
+| 256  | 2^168^ + 2^8^ + 0x63 | 3741...2211
+| 512  | 2^344^ + 2^8^ + 0x57 | 3583...2759
+| 1024 | 2^680^ + 2^8^ + 0x8d | 5016...2573 
+|====
+
+.FNV-1a `offset_basis` depending on hash_bitsize
+[options="autowidth,header"]
+|====
+| Bits | offset_basis (decimal value)
+| 32   | 2166136261
+| 64   | 14695981039346656037
+| 128  | 144066263297769815596495629667062367629
+| 256  | 1000...5557
+| 512  | 9659...7785
+| 1024 | 1419...6915 
+|====
+
+The offset bases can also be calculated. They result from applying the FNV-0 algorithm to the string
+
+----
+chongo <Landon Curt Noll> /\../\
+----
+
+in ASCII encoding. (Backslashes are to be interpreted literally and not as escape sequences.)
+
+* FNV-0 is the same algorithm as FNV-1 except that an `offset_basis` of `0` is used.
+
+* FNV-1 is the same algorithm as FNV-1a except that the order of the two code lines within the loop is reversed.
+
+The advantage of FNV-1 over FNV-0 is that empty strings and sequences of `'\0'`-bytes do no longer always hash to `0`.
+
+The advantage of FNV-1a over FNV-1 is that it results in a better dispersed hash value for very small strings like binary integers.
+
+Except for those corner cases, all variants perform similarly satisfactory. The actual value of `offset_bias` is not important as long as it looks random enough.
+
+All variants share the advantage that the hash function gives good dispersion, and it is especially well suited for input strings which are nearly but not quite identical.
+
+The hash has been used in several application to hash host names, e-mail addresses, URLs, file names, IP addresses.
+
+If you do not want to calculate the `FNV_prime` values for `hash_bitsize` 256, 512 and 1024 yourself, see http://www.isthe.com/chongo/tech/comp/fnv/[here] for the precalculated values.
+
+
+`FNV_prime` values for other `hash_bitsize`
+-------------------------------------------
+
+Other `FNV_prime` values than the ones shown above are defined by the following constraints:
+
+When `s` is an integer and `4 < s < 11`, then `FNV_prime` is the smallest prime `p` of the form: 
+
++256^e^ + 2^8^ + b+ where +e = int((5 + 2 * s) / 12)+
+
+such that: 
+
+* +0 < b < 2^8^+
+* The number of one-bits in `b` is 4 or 5 
+* +p mod 2^40^ - 2^24^ - 1 > 2^24^ + 2^8^ + 2^7^+
+
+Note that not all of the officially documented `FNV_prime`s actually follow those rules. Some of them have been selected before the rules got refined, and have been kept for backwards compatibility. (Those primes still work fine.)
+
+When the `FNV_prime` is known, the `offset_basis` can always be calculated as explained before.

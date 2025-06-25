@@ -1,0 +1,120 @@
+Sorting Algorithms
+==================
+v2021.66
+
+Radix Sort
+----------
+
+Works by processing the records as "digits" of radix-R positional numeric system. For instance, if R == 256, every octet of the data is a "digit". If R == 10, every decimal digit is a "digit" after the binary data has been converted into a decimal number string. If R == 2, the digits are single bits.
+
+The sort starts with the rightmost digit, processes this digit in all records, and then repeats the process with the next digit left of the current digit. Once the first digit of all records has been processed, all records are sorted.
+
+The processing for every digit position consists of moving all records into buckets which are empty at the beginning of every processing phase. There is a bucket for every digit value, and every record is moved into the bucket corresponding with the digit value of the record at the current digit location. The records are appended to the current contents of the bucket as they are being moved. After all records have been moved in the buckets, the contents of all the buckets are appended together, forming a new list of partially sorted records. This will be the input to the next processing iteration (or the completely sorted list at the end of the final iteration).
+
+
+Bubble Sort
+-----------
+
+The list to be sorted containing N elements is processed in up to N iterations.
+
+During every iteration, every element is compared to the next one, exchanging both elements if they are in the wrong order.
+
+Depending on the direction in which this is done, either the smallest or the largest element which has not yet been at its final position will "bubble" up or down to its final position.
+
+As an optimization, the iterations can be stopped prematurely if no exchanges took place during an iteration, because that means everything must already be sorted. In fact, this check may also be used as the only condition whether to stop the iterations.
+
+Another optimization is to maintain a "stop position" from which on all elements are already known to be already sorted. The current iteration can then stop once it reaches this position.
+
+
+Cocktail-Shaker Sort
+--------------------
+
+This consists of two Bubble Sorts which process the same array into different directions: One of the sorts lets the largest element bubble up to its final position, while the other sort lets the smallest element bubble down to its final position. Both sorts are run alternating, until the current sort phase detects that all elements are in order.
+
+This algorithm eliminates Bubble Sort's problem that even though elements can bubble up quickly, they can only bubble down one position per iteration.
+
+
+Quicksort
+---------
+
+The elements of the list to be sorted are distributed into two smaller lists (both not empty) based on an arbitrarily chosen pivot value. That is, one list contains all list elements smaller than the pivot, the other list the elements larger than the pivot. After sorting both sublists recursively in the same way, appending both lists (the one with the smaller elements first) gives the sorted total list.
+
+This general description would not allow to pick a pivot value which itself is also present in the list. Therefore the definition is usually relaxed to assign the include values identical to the pivot in one of the sublists.
+
+Even though the choice of the pivot is arbitrary in theory, usually one of the list elements is chosen as median.
+
+Typically the first, last or middle element of the list is chosen, or better the median of those 3 elements (the middle element after sorting the 3 elements by their value).
+
+Here is one possible algorithm for partitioning array elements in-place with respect to the median value: Interpret the array as a left-hand section containing elements less than or equal to the median, followed by a right-hand section containing elements greater than the median, followed by a third list of yet-unpartitioned elements. Then run a loop until the unpartitioned list becomes empty. Within the loop, examine the first element of the unpartitioned list and decide whether it belongs to the left-hand or right-hand list. In the latter case, just leave it where it is and make it the new last element of the right-hand list. In the first case, do the same. But then exchange it with the first element of the right-hand list. Now it is the first element rather than the last. Then move the split point between left- and right-hand list one position to the right. This makes the element the new last element in the left-hand list. An advantage of this algorithm is that only elements sorted into the right-hand list need ever to be moved/swapped. The downside is that the median will be a member of the left-hand list like all the others, and have no special location there. It is therefore not possible to exclude the median as "middle element which is already at the right position" when sorting the sublists.
+
+As an optimization, quicksort might switch to a different sorting algorithm once the size of a sublist becomes smaller than an implementation-defined size. In that case, the sublist is sorted with a simpler sorting algorithm, typically Bubblesort or Insertion Sort. This also limits the adverse effects of the worst case where Quicksort "degenerates" into requiring as many recursions as there are elements.
+
+
+Introsort
+---------
+
+Introsort uses Quicksort until a "degenerated case" of quicksort is detected when generating a sublist. In this case, the sublist is sorted using a different sorting algorithm with guaranteed N * ld(N) order of work.
+
+A problem is that it is hard to find a concrete definition of the algorithm.
+
+Popular implementations seem to use Heapsort as their alternative sorting algorithm, and automatically switch to it once the Quicksort recursion depth exceeds some threshold based on the logarithm of entries in the total list to be sorted.
+
+The threshold is usually the logarithm of the total number of list entries to be sorted, scaled by some factor.
+
+By choosing the base of the logarithm and the factor (which are co-dependent), Introsort is "tuned".
+
+The Wikipedia implementation uses the natural logarithm and a factor of 2.
+
+The GNU-implementation of the C++ STL uses the logarithm to the base 2 and also a factor of 2. It also uses Insertion Sort for sublists smaller than 16 elements.
+
+
+Insertion Sort
+--------------
+
+Also known as "Straight Insertion" sorts the records by starting with an empty output list and then inserting all elements of the original list one by one into the output list in such a way that the output list remains always sorted.
+
+This is typically implemented in-place, partitioning the list to be sorted into a section of elements which are already sorted, and a section of elements not yet sorted.
+
+Insertion sort is better than selection sort if the entries to be sorted arrive one by one, because sorting can already start while they arrive.
+
+
+Selection Sort
+--------------
+
+Also known as "Straight Selection" sorts the records by starting with an empty output list and then repeatedly removing the smallest element from the remaining unsorted entries, appending it to the sorted output list.
+
+This is typically implemented in-place, partitioning the list to be sorted into a leading section of elements which are already sorted, and a trailing section of elements not yet sorted.
+
+The sort iteration then marks the first element of the unsorted elements to be exchanged with the smallest of the unsorted elements. After this exchange, the marked element becomes the new last element of the sorted section, while the next element after it becomes the new first element of the yet-unsorted section.
+
+Selection sort is better than insertion sort if the sort result shall be output one-by-one, because outputting elements can already start before the complete sort is finished. However, all items to be sorted need already to be available when the sort operation starts.
+
+
+Heapsort
+--------
+
+Heapsort first converts the records to be sorted into a binary heap, which is a binary tree structure where every tree node contains the smallest element of its sub-tree.
+
+Then the root of the heap (which is the smallest element of the tree) is removed and appended to the sorted output list. The heap is updated after the removal to maintain the heap property. After all elements have been removed from the heap, the sort is finished.
+
+The initial building of the heap consists of re-interpreting the existing list as an unordered binary tree. Then, starting at the leaf level, every leaf value is exchanged with its parent value if the leaf value is smaller than the current parent value. This is repeated for all tree levels up to the root.
+
+
+Gnomesort
+---------
+
+Previously known as "Stupid Sort".
+
+1. Initially, a garden gnome stands before the first pot in a row of flower pots which shall be sorted by pot size. (Or somewhere where there are no pots at all, neither before the gnome or right of it, if the set of pots to be sorted is empty.)
+
+2. If there are no more pots to the right, the gnome's job is finished and all pots are sorted.
+
+3. Otherwise, if the pot in front of the gnome and the next one to the right are in the right order, advance one pot to the right then go back to step 2.
+
+4. Otherwise, if the two pots are in the wrong order, exchange them and move a step to the left if possible (otherwise: one step to the right), then go back to step 2.
+
+Gnomesort is normally a lot slower than Insertion sort, and most of the time even slower than Bubblesort. It can beat Bubblesort in some scenarios, though.
+
+Gnomesort needs less variables than most other algorithms and no stack. Only the current position needs to be tracked.
+
+Also, there is only a single situation where a comparison needs to be made, and a single situation where an exchange takes place. This means the code is compact, because there are very few branches to consider in the decision-making process.

@@ -1,0 +1,21 @@
+﻿There are methods to turn every block encryption function into a compression function which can be used in the construction of a hash function.
+
+H[0] = constant
+
+Davies–Meyer:
+
+H[i] = E(key := msg[i], plaintext := H[i - 1]) xor H[i - 1]
+
+Miyaguchi–Preneel:
+
+H[i] = E(key := g(H[i - 1]), plaintext :=  msg[i]) xor H[i - 1] xor msg[i]
+
+g(value) transforms a value of hashlength into a value of key length, such as by folding, truncating or padding.
+
+Both constructions are obviously based on the CFB mode of operation. The output hash size is the same as the block size of the cipher. They are considered equally strong. Their security is maximal if the cipher's key length is the same as its block length.
+
+Davies-Meyer feeds the input in units with the same size of the key, while Miyaguchi-Preneel feeds the input in units of the cipher block size.
+
+Miyaguchi-Preneel will therefore be faster if the key is smaller than the block size, while the simpler Davies-Meyer should be preferred if this is not the case.
+
+Problems: Because the internal block size of the compression function is the same as that of the block cipher, it might be hard to find a good block cipher for larger hash sizes. If the block cipher has weak keys known to the attacker, this could be exploited to find hash collisions. Not all block ciphers are good compression functions when used as part of the above constructions and may reveal undesired statistical properties.

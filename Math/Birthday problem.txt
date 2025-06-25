@@ -1,0 +1,21 @@
+The problem is to compute an approximate probability p that in a group of n people at least two have the same birthday (one out of m possible birthdays).
+
+This is the same as the chance for at least one hash collision of n keys into a hash table with m buckets, assuming a hash function with perfectly equal distribution in regard to those keys.
+
+Obviously, if n > m, then this probability is 100 %.
+
+For less people, the probability of at least 2 people having the same birthday is
+
+p = 1 - m! / (m ** n * (m - n)!)
+
+which needs to be calculated with a CAS which can simplify this expression and avoid the actual evaluation of the factorials.
+
+Popular approximations:
+
+Taylor series:  1 - e ** ((n * (n - 1) / -2) / m) where e is Euler's number
+
+Square: p = n ** 2 / (2 * m)
+
+The first one is way more accurate, but the second one is easier to calculate mentally and also easier to remember.
+
+There is a general (though disputed) result that quantum computers can perform birthday attacks, thus breaking collision resistance, in 2 ** (n / 3) tries on the average. [ https://en.wikipedia.org/wiki/Birthday_problem ]

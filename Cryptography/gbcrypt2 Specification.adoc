@@ -1,0 +1,307 @@
+﻿gbcrypt2 Specification
+======================
+Günther Brunthaler
+v2024.47
+
+'gbcrypt2' is an fast and secure encryption solution based entirely on the ARCFOUR algorithm as its only cryptographic primitive.
+
+ARCFOUR can be unsafe unless used properly. 'gbcrypt2' tries its best to only use ARCFOUR in a safe way.
+
+'gbcrypt2' can encrypt and authenticate an arbitrary input file of unlimited size, and decrypt it later with implicit integrity verification.
+
+It uses a pass phrase of arbitrary length as a long-term encryption key which can be safely reused for many messages.
+
+The encrypted file will be exactly 64 bytes larger than the unencrypted original file.
+
+This document specifies how 'gbcrypt2' works in detail, allowing to create a working implementation based on this specification.
+
+
+Test vectors and examples
+-------------------------
+
+For all algorithms, test vectors are provided.
+
+They show the expected output of the algorithm for some example inputs.
+
+The commands shown after a `$` prompt are supposed to be run on a UNIX-like system.
+
+For other operating systems the command need to be changed, but the input and output should be the same.
+
+Important commands are:
+
+* `echo` which writes its arguments to standard output.
+* `od` which can produce hexadecimal or ASCII dumps of binary data read from standard input.
+* `tee` writes its input to the file with a specified filename and writes a second copy of its input to standard output.
+* "`|`" feeds the output of the command before as input into the command after.
+
+
+File format
+-----------
+
+The encrypted file consists of
+
+* 32 byte salt seed (256-bit)
+* N bytes of encrypted data
+* 32 byte MAC (256-bit)
+
+where the encrypted data part has exactly the same size as the unencrypted original file.
+
+
+Encryption
+----------
+
+This is the high-level view of 'gbcrypt2' encryption.
+
+* Generate a 32-byte random salt seed
+* Derive all required nonces from the salt seed
+* Preprocess the pass phrase into a binary key
+* Derive session keys from different nonces and the preprocessed pass phrase
+* Encrypt the data with ARCFOUR-drop3072 using one of the session keys
+* Calculate a MAC over the encrypted data using another one of the session keys
+* The result is the concatenation of salt seed, encrypted data and the MAC
+
+
+Decryption
+----------
+
+This is the high-level view of 'gbcrypt2' decryption.
+
+* Read the salt seed from the beginning of the file
+* Derive all required nonces from the salt seed
+* Preprocess the pass phrase into a binary key
+* Derive session keys from different nonces and the preprocessed pass phrase
+* Calculate a MAC over the encrypted data using one of the session keys
+* Verify that the calculated MAC is the same as the MAC stored at the end of the encrypted file
+* Decrypt the data with ARCFOUR-drop3072 using another one of the session keys
+* The result is the decrypted data
+
+
+MAC calculation
+---------------
+
+'gbcrypt2' uses the ARCFOUR-drop3072 CSPRNG for calculation of a MAC.
+
+It takes the concatentation of a MAC key and the encrypted message and uses it to seed the CSPRNG.
+
+Then it generates 32 output bytes with the CSPRNG and uses them as the MAC.
+
+This means 'gbcrypt2' follows the 'encrypt-then-MAC' pattern, which is considered more secure than the 'MAC-then-encrypt' pattern (which would also have been possible).
+
+
+Preprocess the pass phrase
+--------------------------
+
+This transforms a text pass phrase of arbitrary size into a binary key which is suitable as a key for the ARCFOUR algorithm.
+
+The pass phrase is fed through a chain of filter algorithms in the following order:
+
+* psw2key
+* key2prand
+
+In other words, the result of preprocessing the pass phrase is `key2prand(psw2key(pass_phrase))`.
+
+
+psw2key
+-------
+
+This algorithm converts a text pass phrase into a binary key.
+
+The output which still look very similar to its input, but shall be considered as a sequence of bytes now rather than a character string.
+
+The algorithm is:
+
+* Convert the character encoding of the pass phrase into UTF-8.
+* Normalize the UTF-8 text as NFKC.
+* Remove all ocurrences of the  ASCII characters LF, CR and VT.
+* Split the UTF-8 encoding into individual bytes.
+* Return the byte sequence as the result.
+
+'NFKC' means 'Normalization Form KC - Compatibility Decomposition,
+followed by Canonical Composition'. The UNICODE standard provides algorithms for this.
+
+However, this normalization and the first two steps shown above can be omitted if an implementation only allows ASCII characters in its pass phrases.
+
+In this case, every 7-bit ASCII character can be converted into valid UTF-8 by setting the most significant bit (bit #7, the 8th bit) of every byte to 0.
+
+The resulting UTF-8 string will also be NFKC-normalized already, so no further normalization is necessary.
+
+This is in fact recommended, because UNICODE normalization is complex and requires rather large tables.
+
+However, users might insist on using arbitrary UNICODE characters in their pass phrases, so restricting them to ASCII will not always be an option.
+
+
+Example implementation
+----------------------
+
+The POSIX shell commands below create an executable shell script which reads a pass phrase from standard input, applies the 'psw2key' algorithm to it, and writes the  binary result to standard output.
+
+----
+$ (s=psw2key && cat << 'EOF' | sed 's/^[[:space:]]*//' > $s && chmod +x $s)
+  #! /bin/sh
+  tr -d '[\012\015\013]' | uconv -x NFKC -t UTF-8
+EOF
+----
+
+
+Test vectors
+~~~~~~~~~~~~
+
+The commands below transform the string after `echo` into the hexadecimal byte sequences 3 lines later.
+
+----
+$ echo €-Ärger | ./psw2key | od -A n -t a -t x1
+   b stx   ,   -   C eot   r   g   e   r
+  e2  82  ac  2d  c3  84  72  67  65  72
+
+$ echo harmless | ./psw2key | od -A n -t a -t x1
+   h   a   r   m   l   e   s   s
+  68  61  72  6d  6c  65  73  73
+----
+
+Note that `echo` includes a newline sequence in its output, which has been removed by `psw2key`.
+
+On 'Debian'-based systems, the utility `uconv` is shipped as part of package `icu-devtools`.
+
+
+key2prand
+---------
+
+This algorithm converts an arbitrary byte sequence into a random-looking byte sequence.
+
+The algorithm will do nothing bad to the input sequence is already a random-looking one.
+
+The main purpose of this algorithm is to ensure that ARCFOUR keys are looking like random byte sequences.
+
+The ARCFOUR algorithm requires key with no recognizable bit patterns or repetitions in order to encrypt safely. Human-provided pass phrases normally do not meet this criterion. By applying this algorithm to pass phrases, it converts then into acceptable encryption keys for ARCFOUR and similar algorithms.
+
+'key2prand' works by encrypting the input sequence using the ARCFOUR-drop3072 stream encryption algorithm. Encrypted data always looks like random, which is exactly what 'key2prand' wants to accomplish.
+
+The result has exactly the same size as the input, but looks "more random" if the input sequence had recognicable patterns or statistical bias in it. If it did not, than the output looks just as random as the input, but is different.
+
+The encryption key used to encrypt the input sequence is obained from the input sequence itself using an iterative algorithm.
+
+Here is the whole algorithm:
+
+* 'key2prand' performs 32 iterations of the remaining steps, obtaining a new transform key after every iteration:
+
+* The first iteration uses the input sequence as the initial transform key.
+
+* Every iteration uses the current transform key to encrypt an unmodified copy of the input sequence using the ARCFOUR-drop3072 stream cipher into the next transform key.
+
+* The next transform key at the end of the last iteration is the result of the algorithm.
+
+Test vectors:
+
+----
+$ echo €-Ärger | ./psw2key | ./key2prand | od -A n -t x1
+ 0c 79 f2 19 83 8c 57 11 1c 1f
+
+$ echo harmless | ./psw2key | ./key2prand | od -A n -t x1
+ ab 81 35 5d 33 a5 55 5a
+
+$ printf '\5\4\3\2\1\0' | od -A n -t x1
+ 05 04 03 02 01 00
+
+$ printf '\5\4\3\2\1\0' | ./key2prand | od -A n -t x1
+ 5c f0 7d 31 8f 03
+----
+
+
+ARCFOUR-drop3072
+----------------
+
+This is a variant of the ARCFOUR algorithm which discards the initial 3072 pseudorandom bytes generated by the ARCFOUR CSPRNG ("cryptographically secure pseudo-random generator").
+
+The first couple of hundred bytes generated by ARCFOUR are not as unpredictable as they could be, and throwing away the first few kilobytes helps prevent some attacks on ARCFOUR which would like to exploit that fact.
+
+The 'SCAN' default is to discard the first 768 bytes, which is 3 times the size of the ARCFOUR internal sbox.
+
+But in order to be more conservative it has been suggested by some to throw away 4 times that amount for more security, which is 3072 bytes.
+
+'gbcrypt2' follows that suggestion.
+
+
+Test vectors
+~~~~~~~~~~~~
+
+ARCFOUR can be used for two purposes:
+
+* pseudorandom generation (CSPNG)
+* encryption/decryption (crypt)
+
+
+ARCFOUR CSPRNG
+^^^^^^^^^^^^^^
+
+Assuming there is a command `./arc4csprng` which implements the ARCFOUR CSPRNG for generating pseudo-random bytes, then the following example invocation
+
+----
+$ ./arc4csprng -d768 32768 < key.bin
+----
+
+would
+
+* read a binary key from some file `key.bin`
+* use the key to seed the ARCFOUR CSPRNG
+* generate pseudorandom 768 bytes which will be discarded
+* then generate 32768 further bytes which will written to standard output
+
+Then the following commands should produce test vectors:
+
+----
+$ printf '\0\1' | ./arc4csprng -d3072 8 | od -A n -t x1
+ 79 b9 9b e5 f1 c5 72 41
+
+$ printf '\0\1\1\2\3\5\8' | ./arc4csprng -d3072 8 | od -A n -t x1
+ 5d e3 eb 02 bc d4 75 a9
+----
+
+
+ARCFOUR crypt
+^^^^^^^^^^^^^
+
+Encryption and decryption are the same operation in the ARCFOUR stream cipher.
+
+When the algorithm is applied to unencrypted data, it encrypts it. The encrypted output has the same file length as the input.
+
+When the algorithm is applied to the already-encrypted data with the same key, it decrypts it.
+
+In order to encrypt or decrypt data, the ARFOUR CSPRNG is used to generate pseudorandom bytes which are then XOR-combined with the input data, creating the output data.
+
+Assuming there is a command `./arc4crypt` which implements the ARCFOUR stream cipher for encryption or decryption, then the following example invocation
+
+----
+$ ./arc4crypt -d768 key.bin < input.bin > output.bin
+----
+
+would
+
+* read a binary encryption/decryption key from some file `key.bin`
+* use the key to seed the ARCFOUR CSPRNG
+* generate pseudorandom 768 bytes which will be discarded
+* then generate as many further pseudorandom bytes as file `input.bin` has bytes
+* Read all bytes from `input.bin` and XOR them with the bytes generated in the previous step, which will encrypt or decrypt them
+* Write the resulting encrypted/decrypted bytes to the file `output.bin`.
+
+Then this command should produce the following test vectors for ARCFOUR-drop3072:
+
+----
+$ printf '\1\4\11' | tee key.bin | od -A n -t x1 # Set key.
+ 01 04 09
+$ printf '\0\1\1\2\3\5\10' | ./arc4crypt -d3072 key.bin | od -A n -t x1
+ 3d 6e 03 b3 c9 10 33
+
+$ echo supersecret | ./arc4crypt -d3072 /dev/stdin | tee key.bin | od -A n -t x1 # Set key.
+ 34 bf 03 9a 94 98 74 73 34 7a 64 d8
+$ echo plaintext | ./arc4crypt -d3072 key.bin | od -A n -t x1
+ 37 a6 12 96 88 9f 74 68 32 15
+
+$ echo supersecret2 | ./arc4crypt -d3072 /dev/stdin | tee key.bin | od -A n -t x1 # Set key.
+ 34 bf 03 9a 94 98 74 73 34 7a 64 e0 ec
+$ echo plaintext2 | ./arc4crypt -d3072 key.bin | od -A n -t x1
+ 37 a6 12 96 88 9f 74 68 32 2d 1a
+----
+
+Comparing the output of the last two test cases illustrates why it is not a good idea to use ARCFOUR directly with user-provided keys.
+
+'gbcrypt2' uses ARCFOUR in a way that this will not happen.

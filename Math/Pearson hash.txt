@@ -1,0 +1,20 @@
+The Pearson hash function generates an 8-bit result as the CBC-MAC of the input string, using an 8-bit substitution cipher.
+
+The cipher itself consists of a simple lookup into an s-box which has been initialized by a random permutation of the integers 0-255. A constant IV (usually 0) is used for the CBC-MAC.
+
+mac:= 0
+while more_characters_are_available()
+   mac:= sbox[mac XOR get_next_character()]
+end
+
+Pearson's algorithm can be made to generate hashes of any desired length, by running as many modified instances of the hash function on the same input string as there are output bytes required.
+
+For such a modification it is sufficient to add a different constant to the first byte of the string at the beginning of the MAC calculation only. It is not a problem if the different instances all share the same sbox.
+
+Typically, the first instance adds 0 to the first byte, the second instance adds 1, etc.
+
+For a small set of known inputs, the s-box can be precomputed in a way that no hash collisions will occur ("perfect hash function").
+
+Pearson's idea can obviously be generalized to more than 8 bits, but this also increases the storage requirement of the sbox.
+
+If the storage space requirements for the sbox becomes a problem, an arbitrary function can also be used instead as long as it behaves like it were an sbox. However, the function must not be too simple or the hash function will not be good.

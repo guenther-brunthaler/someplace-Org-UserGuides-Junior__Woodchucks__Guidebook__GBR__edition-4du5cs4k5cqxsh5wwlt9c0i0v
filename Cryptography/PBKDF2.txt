@@ -1,0 +1,31 @@
+Password-based key derivation function, version 2
+
+DK = PBKDF2(PRF, P, S, c, dkLen)
+
+PRF(key, bytestring) is a parameter of PBKDF2 - it is a pseudorandom function of two parameters with output length hLen (e.g. keyed HMAC)
+
+P is the master password for which a derivation is generated
+
+S is a salt
+
+c number of iterations, positive integer
+
+dkLen is the length of the derived key
+
+DK is a generated derived key
+
+---
+
+For each hLen-bit block T[i] of derived key DK, computing is as follows:
+
+DK = T[1] concat T[2] concat ... concat T[dklen/hlen]
+T[i] = F(P, S, c, i)
+
+F(P, S, c, i) = U[1] xor U[2] xor ... xor U[c]
+
+U[1] = PRF(key := P, S concat uint32be(i))
+U[2] = PRF(key := P, U[1])
+...
+U[c] = PRF(key := P, U[c - 1])
+
+uint32be(x) is the 32 bit big-endian representation of x as 4 octets.

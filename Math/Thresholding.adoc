@@ -1,0 +1,45 @@
+﻿﻿Thresholding
+============
+
+Two algorithms seem to be the best for converting scanned text from grayscale into B/W.
+
+
+Otsu's method
+-------------
+
+Use this if the background has the same (unknown) brightness everywhere on a page.
+
+----
+function level = otsu(histogramCounts)
+total = sum(histogramCounts); % total number of pixels in the image 
+%% OTSU automatic thresholding
+top = 256;
+sumB = 0;
+wB = 0;
+maximum = 0.0;
+sum1 = dot(0:top-1, histogramCounts);
+for ii = 1:top
+    wF = total - wB;
+    if wB > 0 && wF > 0
+        mF = (sum1 - sumB) / wF;
+        val = wB * wF * ((sumB / wB) - mF) * ((sumB / wB) - mF);
+        if ( val >= maximum )
+            level = ii;
+            maximum = val;
+        end
+    end
+    wB = wB + histogramCounts(ii);
+    sumB = sumB + (ii-1) * histogramCounts(ii);
+end
+end
+----
+
+From Ōtsu Nobuyuki
+
+
+Sauvola
+-------
+
+Use this if the brightness of the background on the page varies.
+
+From J. Sauvola and M. Pietikainen.

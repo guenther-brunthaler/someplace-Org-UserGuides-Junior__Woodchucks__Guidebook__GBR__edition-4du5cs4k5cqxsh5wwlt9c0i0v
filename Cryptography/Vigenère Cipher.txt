@@ -1,0 +1,12 @@
+﻿Vigenère Cipher
+
+C[i] = (P[i] + K[i]) mod 26
+P[i] = (C[i] - K[i]) mod 26
+
+where C[i] and P[i] are the i-th letter of the cipher- and plaintext, respectively.
+
+K[i] is the i-th letter of the key which is repeated as often as necessary to have the same length as the message.
+
+i is 0-based, i.e. 0 means first letter, 1 means the second letter etc.
+
+There is a variant for ASCII text which uses a bias of 32 and a modulo of 95, i.e. it rotates the ASCII range 32 through 126.

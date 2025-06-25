@@ -1,0 +1,27 @@
+Discrete Logarithm Integrated Encryption Scheme (DLIES)
+
+It applies the Diffie-Hellman key exchange in a non-interactive way and adds usage of a key-derivation function.
+
+* Bob and Alice both know the chosen non-secret crypto-system parameters (g, n). Those must have been chosen appropriately for usage by the DH key exchange algorithm.
+
+* Alice learns Bob's public key mod(g ^ x, n) through a public key infrastructure or some other distribution method.
+
+* Bob knows his own private key x.
+
+* Alice generates a fresh, ephemeral value y (in the range [2, n - 2]), and its associated public value mod(g ^ y, n).
+
+* Alice then computes symmetric key k using this information and a key-derivation function (KDF) as follows: k = KDF(mod(g ^ (x * y), n)).
+
+* Alice computes her ciphertext c from her actual message m (by symmetric encryption of m) encrypted with the key k (using an authenticated encryption scheme) as follows: c = E(k, m).
+
+* Alice transmits (in a single message) both the public ephemeral mod(g ^ y, m) followed by the ciphertext c.
+
+* Bob, knowing x and mod(g ^ y, n)), can now compute k = KDF(mod(g ^ (x * y, n)) and decrypt and verify m from c.
+
+Note that the scheme does not provide Bob with any assurance as to who really sent the message: This scheme does nothing to stop anyone from pretending to be Alice.
+
+Although Alice could easily create a digital signature ba reversing the above process using her own key, this is not part of DLIES.
+
+Note that an "authenticated" encryption scheme is used. That means it also integrity-protects the message and does not just encrypt it.
+
+Typically, a MAC is used for this. The encryption key k then actually consists of 2 subkeys (both derived from the KDF), a symmetric encryption key and a MAC key. The calculated MAC value is then appended after the symmetrically-encrypted text as the last part of the encrypted message.

@@ -1,0 +1,10 @@
+﻿
+Requires a collision-resistant compression function like Davies–Meyer.
+
+* Start with a fixed IV as hash, e.g. the digits of e^e
+* hash= compress(hash, nextplaintextblock)
+* result= finalize(hash, plaintextrest, plaintextbitlength)
+
+Finalization usually continues the iterative application of the compression function for additional input data: a 0x80 byte to pad the plaintext, an varint encoding of its bitlength, another 0x80 byte to pad the varint, the rest of the block filled with zeros. The compressed result is the hash value.
+
+The purpose of finalization is to ensure that different lengths of "plaintextrest" always create different results irrespective of the bit pattern of the message plaintext suffix.

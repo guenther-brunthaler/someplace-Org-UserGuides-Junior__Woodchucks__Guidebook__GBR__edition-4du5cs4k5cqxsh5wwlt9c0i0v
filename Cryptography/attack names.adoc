@@ -1,0 +1,33 @@
+Cryptographic Attacks
+=====================
+
+* CPA - chosen-plaintext attack
+
+Presumes that the attacker can obtain the ciphertexts for arbitrary plaintexts chosen by the attacker.
+
+
+* KPA - known-plaintext attack
+
+The attacker has access to both the plaintext (called a crib), and its encrypted version (ciphertext). The term "crib" originated at Bletchley Park, the British World War II decryption operation.
+
+
+* COA - ciphertext-only attack (A.K.A. ciphertext attack)
+
+The attacker is assumed to have access only to a set of ciphertexts. While the attacker has no channel providing access to the plaintext prior to encryption, in all practical ciphertext-only attacks, the attacker still has some knowledge of the plaintext. For instance, the attacker might know the language in which the plaintext is written in or the expected statistical distribution of characters in the plaintext.
+
+
+* CCA - chosen-ciphertext attack
+
+The attacker can gather information by obtaining the decryptions of chosen ciphertexts. From these pieces of information the adversary can attempt to recover the hidden secret key used for decryption.
+
+
+* CCA2 - adaptive chosen-ciphertext attack
+
+An interactive form of chosen-ciphertext attack (CCA) in which an attacker sends a number of ciphertexts to be decrypted, then uses the results of these decryptions to select subsequent ciphertexts. It is to be distinguished from an indifferent chosen-ciphertext attack (CCA1).
+
+The goal of this attack is to gradually reveal information about an encrypted message, or about the decryption key itself.
+
+
+* related-key attack
+
+The attacker can observe the operation of a cipher under several different keys whose values are initially unknown, but where some mathematical relationship connecting the keys is known to the attacker. For example, the attacker might know that the last 80 bits of the keys are always the same, even though he doesn't know, at first, what the bits are.

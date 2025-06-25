@@ -1,0 +1,10 @@
+Entropy
+=======
+
+Shannon's formula:
+
+H(x) = sum(-p[i] * log2(p[i]))
+
+H(x): Entropy of x[].
+x[i]: Set of all possible distinct values (e.g. allowed passwords)
+p[i]: relative probability of x[i]

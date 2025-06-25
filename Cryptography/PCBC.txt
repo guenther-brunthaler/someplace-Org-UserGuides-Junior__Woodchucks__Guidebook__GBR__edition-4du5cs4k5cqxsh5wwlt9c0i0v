@@ -1,0 +1,11 @@
+Propagating Cipher Block Chaining (PCBC)
+
+No block processing parallelization, random access, nor error recovery.
+
+C[0] = E(P[0] XOR IV)
+C[i] = E(P[i] XOR P[i - 1] XOR C[i - 1])
+
+P[0] = D(C[0]) XOR IV
+P[i] = D(C[i]) XOR P[i - 1] XOR C[i - 1]
+
+Restriction of Non-"Error recovery": If two adjacent ciphertext blocks are exchanged, this does not affect the decryption of subsequent blocks.

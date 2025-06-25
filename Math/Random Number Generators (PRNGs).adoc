@@ -1,0 +1,305 @@
+﻿Random Number Generators
+========================
+v2025.22
+
+
+Additive Random Number Generator
+--------------------------------
+
+----
+rnd[n] := (rnd[n - 24] + rnd[n - 55]) mod m
+----
+
+where
+
+* `n >= 55`
+* `m` is even (2^32^ and 2^64^ being the most popular choices)
+* `rnd[0 .. 54]` are arbitrary seed integers, not all of them even
+
+The generated sequence will have a period of at least +2^55^ - 1+.
+
+The lower-order bits are not very random. Either cut them off, or interpret them as the fractional digits of a floating point mantissa.
+
+The standard C rand() function has the same problems, though.
+
+It is also possible to use modular subtraction instead of addition. This doesn't really change the basic principle how the RNG works, but allows implementation in a programming context that provides signed integers but does not provide interval arithmetic.
+
+My transformation of the algorithm, ought to be equivalent:
+
+----
+rnd[i mod 55] := (rnd[i mod 55] + rnd[(i + (55 - 24)) mod 55]) mod m where i >= 0
+----
+
+The above generator is from Knuth.
+
+
+Additive Feedback Random Number Generator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Plan 9 operating system uses a PRNG which seems to be identical to Knuth's Additive RNG except that the constants `273` and `607` are used instead of `24` and `55`.
+
+For a choice of `m = 2 ** 31` as used in Plan9, the generator supposedly has a period of +(m / 2) * (2^607^ - 1)+ which is in the order of +2^637^+.
+
+However, from Knuth's algorithm, one can deduce the period to be at least +2^607^ - 1+ in any case and choice of `m`.
+
+This generator is also known as the ""ZUFALL lagged Fibonacci series generator" and its original author seems to be W. Peterson.
+
+I recommend using this variant if the period of Knuth's variant is too short.
+
+
+Additive Variants
+~~~~~~~~~~~~~~~~~
+
+Although the mathematical theory behind the above Additive generators is still being developed, one can observe some facts:
+
+* The smaller constant is in the factor range 2.2 to 2.9 of the larger constant and has 3 or 4 prime factors. It can be odd or even.
+
+* Both constants do not share any prime factors.
+
+* The larger constant is always odd and has 1 or 2 prime factors.
+
+* The sum of of the prime factor count for both constants does not exceed 6.
+
+
+Linear congruential generator (LCG)
+-----------------------------------
+
+----
+rnd[n] := (rnd[n - 1] * a + c) mod m
+----
+
+where
+
+* `0 < m` "modulus"
+* `0 < a < m` "multiplier"
+* `0 <= c < m` "increment"
+* `0 <= rng[0] < m` "seed"/"start value"
+
+Problem: The lower-order bits are not very random. (For instance, if m is a power of two, then the n least significant bits of the result cannot have a a period longer than +2^n^+.)
+
+Hull-Dobell Theorem: Such a generator will have a period of `m` (i. e. cycle through all possible values before repeating the sequence) if
+
+* `m` and `c` are relatively prime
+* `a - 1` is divisible by all prime factors of `m`
+* `a - 1` is divisible by `4` if `m` is divisible by `4`
+
+"relative prime" means there is no positive integer > `1` which divides both numbers. Equivalently: Both numbers have no common prime factors.
+
+For `m > 1` and `m` being a power of `2`, a subset of all possible parameters `a` and `c` meeting the Hull-Dobell requirements exists where `c` is odd and `a = 4 * k + 1` for some positive integer `k` as long as `a < m`.
+
+The book "Numerical Recipes" uses +m = 2^32^, a = 1664525, c = 1013904223+.
+
+Knuth uses +m = 2^64^, a = 6364136223846793005, c = 1442695040888963407+.
+
+As a starting point for choosing one's own parameters, some observations about the choices above:
+
+* The `c`'s in the above choices are `7.8 %` and `23.6 %` of `m`, and the `a`'s are `0.04` and `34.5 %` of `m`
+
+* The `c`'s have either `1` or `6` prime factors
+
+* All `a`'s have the form `a = 4 * k + 1`, where all `k`'s have `2` or `3` prime factors, and all prime factors but the smallest have about the twice the number of significant bits than the next smaller one.
+
+
+Linear-feedback shift register based PRNGs
+------------------------------------------
+
+Fibonacci LFSR
+~~~~~~~~~~~~~~
+
+Such a LFSR shifts one bit to the left. The new LSB is the XOR of several "tap" bits of the previous register value (tap values read before the shift).
+
+The MSB is always a tap bit, but there are normally at least 2 tap bits.
+
+A LFSR which cycles through all possible bit patterns of the register except 0 is called "maximal-length". This requires the following condition (but is not sufficient): The number of taps is even.
+
+When any LFSR reaches the state where all the bits are zero, this special condition must be recognized because the LFSR will always stay at this state.
+
+LFSRs are very fast but bad random sources when used alone. For instance, maximal-length LFSRs tend to only slowly increase values following the value 1.
+
+By combining LFSRs with other methods (including XORing with other LFSRs), good generators can be created, though.
+
+
+xorshift
+~~~~~~~~
+
+The 'xorshift'-Family is a modification of LFSRs in order to generate higher-quality random numbers and still be very fast.
+
+It multiplies the last random number (or the random seed for the first random number) with a binary matrix, producing the bits of the next random number.
+
+The random numbers are `n`-bit vectors, and the matrix is an `n·n`-bit matrix. All calculation steps are done modulo 2. This allows to implement the algorithm only with XOR- and shift-instructions; thus its name. The chosen matrix needs to be invertable in order to achieve maximum cycle length ("period").
+
+The period of the generator is +2^n^-1+ for the matrices which have been selected for the algorithm.
+
+There are 3 basic variants 'xorshift32', 'xorshift64' and 'xorshift128' which are basically the same except for the different period.
+
+Because of the multiplicative nature, the seed must not be zero and zero will also never be returned as a random number.
+
+The seed should have a similar number of `0`- and `1`-bits. However, with some additional warm-up rounds, this is not a requirement. By analyzing all possible seeds for 'xorshift32', 25 warm-up iterations have been determined to be sufficient for the algorithm to recover even from the worst seed.
+
+----
+static uint32_t x32 = seed;
+/* Only a short period. Don't request too many random numbers. */
+uint32_t xorshift32() {
+   x32 ^= x32 << 13;
+   x32 ^= x32 >> 17;
+   return x32 ^= x32 << 5;
+}
+
+static uint64_t x64 = seed;
+/* Requires 64-bit arithmetic. Repeats after a long time. */
+uint64_t xorshift64() {
+   x64 ^= x64 << 13;
+   x64 ^= x64 >> 7;
+   return x64 ^= x64 << 17;
+}
+
+static uint32_t x = seed1, y = seed2, z = seed3, w = seed4;
+/* None of the above problems, but slower. */
+static uint32_t xorshift128() {
+   uint32_t t = x ^ x << 11;
+   x = y; y = z; z = w;
+   return w ^= w >> 19 ^ t ^ t >> 8;
+}
+----
+
+The above algorithms are equally-distributed in two dimensions. (You can call the generator twice in succession to get `x` and `y` of a random 2D point.)
+
+They pass all 'DieHard' randomness tests except one, but fail some of the 'BigCrush' suite. (The low-order bits all 'xorshift'-generators have low linear complexity, despite the pseudorandom numbers themselves being equally-dustributed well.)
+
+All PRNGs based on linear recurrences allow to calculate some `jump polynomyial` which can then be used to "seek" into the generated sequence in constant time.
+
+There are also variants 'xorshift+' und 'xorshift*' which add to the algorithm a single addition and multiplication, respectively. Both have also better quality than 'xorshift'.
+
+An interesting variant is:
+
+----
+uint64_t state[2]; /* Initialize with not all zero. */
+uint64_t xorshift128plus(void) {
+   uint64_t x = state[0], const y = state[1];
+   state[0] = y; x ^= x << 23;
+   return (state[1] = x ^ y ^ x >> 17 ^ y >> 26) + y;
+}
+----
+
+This is also one of the fastest PRNGs which pass the 'BigCrush' tests. It returns an equally-distributed 64-bit non-zero random number and has a period length of +2^128^ - 1+.
+
+However, other than its ancestor 'xorshift', its output is equally-distributed in a single dimension only. This means one must not use the same pseudorandom-sequence to draw different co-ordinate components for multi-dimensional random points.
+
+Ways to fix this are:
+
+* Use different instances of the generator for the various co-ordinate components.
+
+* Slice the returned bits of every returned PRNG value into fixed-length fields and always use the same field for the same co-ordinate component.
+
+* Use a space-filling fractional like the Z-curve for mapping 1-dimensional random numbers to multi-dimensional co-ordinates.
+
+
+xoroshiro/xoshiro
+~~~~~~~~~~~~~~~~~
+
+The 'xoshiro' (xor/shift/rotate) / 'xoroshiro' (xor/rotate/shift/rotate) familiy (https://prng.di.unimi.it/) claims to improve upon the `xorshift` family and also be better than the 'Mersenne Twister' family.
+
+The family is interesting because it provides generators from 64 to 1024 bit internal state size (in steps of +2^n^+). It comes in variants "`*`", "`**`", "`+`" and "`++`" which denotes the number of additions/multiplications required per random number. Not all possible variants are actually available, though. 
+
+Most of the variants require 64-bit arithmetic, but the 128-bit variants only need 32 Bit. For the 64-Bit Variant even 16 bits suffice.
+
+One of the most interesting features of those generators ist that they also provide 'jump'-functions which allow to replace a large number (typically at least 2^64^) of invocations by a single constant-time invocation of the 'jump' function. This allows to split the sequence generated by a single seed into multiple parts, which can then be used by multiple threads independently in parallel.
+
+For the variants using 64-bit arithmetic with state size +2^n^+, the "`*`"- and "`**`"-variants are "`n / 64`"-dimensionally equidistributed, the "`+`"-and "`++`"-variants only "`n / 64 - 1`"-dimensionally.
+
+A downside of most variants is that up to 6 of their low order bits have weak linear complexity. They should therfore either be thrown away, or the high-order bits should be favored in usage.
+
+
+ISAAC
+-----
+
+ISAAC is a fast CSPRNG. It can therefore also be used as a stream cipher, claims to be three times faster than RC-4 and has no known weaknesses.
+
+ISAAC's minimum cycle length is 2^40^ with an average length of 2^8295^. It produces 256 unsigned 32-bit pseudorandom integers per invocation and has no bias.
+
+There is an unproved claim that ISAAC has flaws and a revised algorithm ISAAC+ might correct those. However, due to an error in the article's definition of ISAAC, it remains unclear whether the alleged flaws are real. Instead, ISAAC+ might be flawed due to a related error in the paper. Until this is resolved, I will ignore ISAAC+.
+
+----
+/* ISAAC. */
+uword32 a; /* Entropy acumulator. */
+uword32 b; /* Last result. */
+uword32 c; /* Counter, guarantees minimum cycle length. */
+uword32 s[256]; /* Internal state or seed. */
+uword32 r[256]; /* Result. Next batch of generated random numbers. */;
+b += ++c;
+for (int i = 0; i < 256; ++i) {
+   static int lshift[4] = {13, -6, 2, -16};
+   int lshift_bits = lshift[i & 3];
+   a ^= (lshift_bits > 0 ? a << lshift_bits : a >> -lshift_bits);
+   a += s[i + 128 & 0xff];
+   int x = s[i];
+   int y = s[i] = a + b + s[x >> 2 & 0xff];
+   r[i] = b = x + s[y >> 10 & 0xff];
+}
+----
+
+ISAAC does not define a seeding algorithm, even though known implementations do provide one.
+
+The generator must be seeded by filling `s[]` with high-quality uniform-distributed 32-bit random-looking seed integers. The variables `a`, `b` and `c` should be initialized either to 0, to random-looking constants, or may be set from three additional random-looking seed integers.
+
+
+Mersenne Twister
+----------------
+
+This is a widely used PRNG. It uses a state similarly in size as the Additive Feedback RNG and only uses cheap 32-bit integer operations except in its seed setup where many multiplications are used.
+
+The most commonly used version of the Mersenne Twister algorithm called MT19937 is based on the Mersenne prime 2^19937^-1.
+
+MT19937 is equidistributed in 623-dimensions. It has (2^19937^ - 1) possible seed states. (The seed must be not all zero.)
+
+There is also a 64-bit version of MT19937, but it generates a different PRNG sequence.
+
+MT19937 passed all diehard tests, but not all TestU01 tests. It exhibits two clear failures in the Crush and BigCrush test suites.
+
+Two instances of MT19937 that only differ in the seed are not generally appropriate for Monte-Carlo simulations, unless other parameters of the generator are also different.
+
+The generator needs a large number of warmup iterations it the seed contains many zeros before high quality random numbers are returned.
+
+
+WELL
+----
+
+'WELL' ("Well Equidistributed Long-period Linear") seems to be a combination of a "'Mersenne-Twister'"-style PRNG and the Additive RNG.
+
+'WELL' seems to generate better quality random number than 'MT'.
+
+Other than most beforementioned PRNGs (including the algorithms which it is built upon), 'WELL' does not seem to have a problem with the quality its low-order output bits.
+
+It also recovers quickly from a poor seed with many zeros.
+
+Actually, 'WELL' is a whole family of the same algorithm using a different parameter set, with state sizes from 512 to 44497 bits.
+
+There also "maximally equidistributed" ("ME") variants of the algorithm which give the best possible quality.
+
+Most 'WELL'-generators seem to use one floating-point multiplication with a constant (as a 'scrambler' to improve the distribution of the integer raw output), several additions, XORs and shifts and a rather large state. Speed comparisons of those variants also show them to be about 12 % slower than 'MT'.
+
+However, there are a few 'WELL' generators which do not use any scramblers, and thus do not require multiplication or floating-point arithmetic at all.
+
+Unfortunately the license of all implementations provided by the authors is only free for non-commercial uses. However, there remains an inplementation of 'WELL1024a' within the paper which does not state any copyright claims.
+
+
+Weyl sequence
+-------------
+
+The equidistribution theorem proven by Hermann Weyl states that the sequence
+
+`0, r, 2*r, 3*r, ...`
+
+is uniformly distributed when reduced modulo 1 (i.e. if only the fractional part is considered) for any irrational constant `r`.
+
+Because exact numerical calculations with irrational numbers are impossible, in computing a ratio `k/m` of two integers `k` and `m` is used instead of an irrational `r`.
+
+`k` must be relatively prime to `m` (which means that `GCD(k, m) == 1`). A simple way to ensure this is to choose `m` as a power of `2` and any odd number as `k`.
+
+Then the sequence
+
+`0, k, 2*k, 3*k, ...`
+
+is equidistributed modulo `m`.
+
+Such a sequence is used as part of the original `xorshift` algorithm where `k = 362437` and +m = 2^32^+ has been chosen.

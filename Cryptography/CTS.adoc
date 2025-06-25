@@ -1,0 +1,70 @@
+Ciphertext Stealing ('CTS')
+===========================
+v2022.13
+
+The 'Ciphertext Stealing' ('CTS') operation mode for block ciphers produces ciphertext whose length matches the plaintext length.
+
+It handles messages of any bit-length longer than one cipher block. See "<<corner_cases,Corner cases>>" for modifications dealing with shorter messages.
+
+'CTS' is not a standalone mode of operation, but requires a 'mode of operation' submode as an underlying layer.
+
+'CTS' itself only processes the last two blocks of the message. All other blocks are delegated to the submode for processing.
+
+Use 'CTS' in situations where padding shall be avoided, but the remaining properties of the submode (such as error propagation behavior) shall be maintained.
+
+Any 'mode of operation' can be used as a submode, but 'CBC' is the most common choice except for very short messages where 'ECB' is also popular.
+
+
+Algorithm
+---------
+
+This explains how the algorithm works when using output format 'CS3'.
+
+* Encrypt the penultimate plaintext block first using the submode. Do not emit the result yet. (The last block has not been emitted yet either.)
+
+* Split the result in two parts:
++
+--
+head:: The left-hand part with the same size as the used portion at the beginning of the last plaintext block. May be a full block.
+
+tail:: The right-hand part with the same size as the missing part of the last plaintext block which would make it into a multiple of the block size. May be empty.
+--
+
+* Append 'tail' to the last plaintext block, making it a full multiple of the block size. Then encrypt it using the submode, and output the result.
+
+* Emit 'head' last.
+
+
+Output format choices
+---------------------
+
+There are 3 ways how 'CTS' can determine the actual output order of the last two ciphertext blocks. There are no security implications, only the placement order of the already-encrypted data is affected.
+
+'CS1':: Swap the order of the last two output blocks emitted by 'CS3'. Has the advantage of resulting in an identical output as the submode would create in cases where the last block is not partially filled. This format keeps the ciphertext output in the same block order as the corresponding plaintext portions, because 'head' is output before 'tail'.
+
+'CS2':: This uses 'CS1' for messages with lengths that are a multiple of the block size, and otherwise 'CS3'. Which means it is identical to the submode where possible but switches to 'CS3' if the last block is only partially filled.
+
+'CS3':: As described above. The most popular choice, but not identical to the submode in any case except for that of an empty message. It might also seem somewhat strange that 'tail' is output before 'head'.
+
+
+[[corner_cases]]
+Corner cases
+------------
+
+* Empty messages result in empty ciphertext when using 'CTS', so this case can be checked separately.
+
+* There is a modification to 'CTS' when specifically using 'CBC' as a submode, which allows messages to also just consist of a single partial block:
++
+--
+. Pad the last partial plaintext block with zero-bits.
+
+. Encrypt the whole padded plaintext using standard CBC mode.
+
+. Swap the last two ciphertext blocks. (Use the IV instead of the last ciphertext block if the message is no larger than a single block. This requires including a modified IV as part of the message, so this case might not be allowed for IVs completely determined by external means.)
+
+. Truncate the ciphertext to the length of the original plaintext.
+--
++
+This can further be optimized by merging both layers, saving one block encryption.
+
+* For all other submodes, a typical workaround for messages not longer than one full block is to dynamically switch the mode of operation from 'CTS' to one of the streaming modes of operation which can actually handle messages that short, such as 'CTR', 'CFB' or 'OFB'. Or just switch to CTS-CBC for such cases.

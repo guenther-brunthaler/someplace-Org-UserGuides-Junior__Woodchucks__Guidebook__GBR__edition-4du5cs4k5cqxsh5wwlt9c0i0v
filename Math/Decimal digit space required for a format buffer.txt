@@ -1,0 +1,26 @@
+/* # of decimal digits in a format buffer (NOT including a null terminator) */
+#define UINT_BASE10_MAXCHARS(type_or_value) ( \
+   sizeof(type_or_value) * CHAR_BIT * 617 + 2047 >> 11 \
+)
+#define INT_BASE10_MAXCHARS(type_or_value) (1 + UINT_BASE10_MAXCHARS(type_or_value))
+/* # of maximum bytes required for a format buffer, including null terminator */
+#define UINT_BASE10_BUFSIZE(type_or_value) (UINT_BASE10_MAXCHARS(type_or_value) + 1)
+#define INT_BASE10_BUFSIZE(type_or_value) (INT_BASE10_MAXCHARS(type_or_value) + 1)
+
+Explanation:
+
+UINT_BASE10_MAXCHARS(type) == ceiling(bitsize(type) / log2(10))
+
+log2(10) == 3.3219... == 2 ^ 11 / 616.509... == 2 ^ 11 / 617 + epsilon
+
+bitsize(type) / log2(10)
+== bitsize(type) * (1 / (2 ^ 11 / 617 + epsilon))
+== 617 * bitsize(type) / (617 * epsilon + 2048)
+<= 617 * bitsize(type) / 2048
+
+ceiling(617 * bitsize(type) / 2048)
+== floor((617 * bitsize(type) + 2048 - 1) / 2048)
+== (617 * bitsize(type) + 2048 - 1) >> 11
+== bitsize(type) * 617 + 2047 >> 11
+
+INT_BASE10_MAXCHARS() returns 1 more than UINT_BASE10_MAXCHARS() because of the extra space for the possible minus sign.

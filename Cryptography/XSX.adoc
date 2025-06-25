@@ -1,0 +1,129 @@
+The 'XSX' Block Cipher Mode Of Operation
+========================================
+Guenther Brunthaler
+v2020.316
+
+This is a 'mode of operation' similar to 'OFB'.
+
+It is intended to be used together with 'CTS' for the degenerate case that the message is shorter than one cipher block, which 'CTS' cannot handle without modifications.
+
+'XSX' is a streaming mode much like 'CFB', 'OFB' and 'CTR'.
+
+In fact, it is identical with 'OFB' except for the way how the input is combined with the pseudorandom stream.
+
+Instead of just XORing it, 'XSX' performs XOR-SUBTRACT-XOR.
+
+Like any streaming mode, 'XSX' supports messages of all bit sizes.
+
+[NOTE]
+--
+Padding?
+--
+
+It is up to 3 times slower than 'OFB', but this depends on the message length and the block size.
+
+It supports any bit size and uses an XOR-SUBTRACT-XOR ('XSX') Scheme to encrypt indivdual bytes.
+
+Because of its relative slowness, it is intended to only be used for short messages.
+
+In particular, it has been designed to be used in tandem with 'CTS' (ciphertext stealing) mode of operation for the case that the message is shorter than one block.
+
+
+Shared functions
+----------------
+
+....
+R[0]= E(IV)
+R[i]= E(R[i - 1])
+R0[i]= E(R[3 * i + 0])
+R1[i]= E(R[3 * i + 1])
+R2[i]= E(R[3 * i + 2])
+....
+
+
+Encryption
+----------
+
+....
+C[n]= ((P[n] xor R2[n]) - R1[n]) xor R0[n]
+....
+
+
+Decryption
+----------
+
+....
+P[n]= ((P[n] xor R0[n]) + R1[n]) xor R2[n]
+....
+
+
+Operations
+----------
+
+"+" and "-" are modular addition and subtraction, i. e. they ignore overflow or underflow and just "wrap around".
+
+Both operations interpret their block arguments as unsigned base-256 little-endian integers.
+
+In other words, they interpret the blocks as large binary integers, least-significant octet first.
+
+The above definitions of 'R[]', 'R0[]' and 'R2[]' might seem scary and highly expensive, but actually it is quite simple:
+
+* Recursively encrypt the 'IV' in order to generate any amount of pseudorandom blocks
+
+* The first such pseudorandom block represents 'R0[0]'.
+
+* The next represents 'R1[0]'.
+
+* The following blocks represent 'R2[0]', 'R0[1]', 'R1[1]', 'R2[1]', 'R0[2]', 'R1[2]', ... - you get the idea!
+
+
+Design Choices
+--------------
+
+The algorithm is tuned for decryption being easier than encryption.
+
+Usually, data gets encrypted only once, but might be decrypted several times.
+
+However, the performance difference should be neglectible.
+
+The only practical difference is that encryption needs more memory than decryption: It needs to provide temporary storage for 'R0[n]', 'R1[n]' and 'R2[n]' before it can actually start encrypting.
+
+Decryption only needs to store a single 'R[n]', because it can use it immediately for the next decryption step and does not need to save it for later.
+
+Obviously it makes no performance difference whether encryption or decryption use the addition operation.
+
+However, as I wanted the decryption function to be the "easier" operation, it got the addition. Therfore, subtraction is used for encryption.
+
+Also, I am quite sure there are already chaining modes out there which are called 'XAX'. But I have never heard about 'XSX'. So this is an additional bonus.
+
+
+Intended usage with 'CTS'
+-----------------------
+
+'CTS' is nice, but it requires two cipher-data blocks to operate on.
+
+It can fall back to the underlying submode of operation if 'CS1' or 'CS2' are used and the message is exactly one block long, but 'CTS' has really a problem if the message is shorter than one cipher block.
+
+If 'CBC' is used as a submode, there is a known modification for 'CTS' to still make it work.
+
+However, that cannot be generally extended to arbitrary modes of operation, such as 'PCBC'.
+
+In such cases, it is usually suggested to dynamically switch the mode of operation to a different one which can "digest" such short messages.
+
+Usual choices are 'CTR', 'CFB' and 'OFB'.
+
+However, they all suffer from the Problem that they simply XOR a pseudorandom stream with the plaintext to create the ciphertext.
+
+Such constructions are extremely dangerous, and not well suited for many situations.
+
+I wanted to provide a mode which is not much more complicated than the ones mentioned above, yet cannot be simple cracked as easily if the 'IV' is to be reused for different messages.
+
+The combination of XOR and ADD seemed natural, but I wasn't sure whether this would be good enough and so I added another XOR.
+
+Maybe I could have re-used the argument of the 1st XOR for the 2nd XOR, but I didn't want to think about too hard about the security implications and just decided to use a third pseudorandom number.
+
+Obviously this is slower because it "eats up" the pseudorandom numbers faster.
+
+But it is most likely more secure, and certainly not less secure. So I took that approach.
+
+Also, performance should not be a problem, because 'XSX' is only intended to be used for messages shorter than one cipherblock. Longer messages will be handled by 'CTS', which is more efficient.

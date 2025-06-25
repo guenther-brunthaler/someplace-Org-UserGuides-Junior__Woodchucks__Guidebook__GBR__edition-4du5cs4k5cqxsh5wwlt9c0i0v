@@ -1,0 +1,39 @@
+﻿Complements
+===========
+v2020.232
+
+2's Complement
+--------------
+
+The two's complement of an `N`-bit number is defined as its complement with respect to `2**N`; the sum of a number and its two's complement is `2**N`.
+
+Trick zur schnelleren Umwandlung (einer negativen in eine positive Binärzahl oder umgekehrt) im Zweierkomplement von Hand: Von rechts angefangen, alle Nullen und die erste Eins abschreiben und alle nachfolgenden Stellen invertieren.
+
+Two's complement is the easiest to implement in hardware, which may be the ultimate reason for its widespread popularity.
+
+
+9'es Complement
+---------------
+
+The nines' complement of a number given in decimal representation is formed by replacing each digit with nine minus that digit.
+
+
+Ones' complement
+----------------
+
+The ones' complement form of a negative binary number is the bitwise NOT applied to it, i.e. the "complement" of its positive counterpart. 
+
+
+Radix Complement
+----------------
+
+The radix complement of an `n` digit number `y` in radix `b` is, by definition, `b**n - y`.
+
+The radix complement is most easily obtained by adding 1 to the diminished radix complement, which is `(b ** n − 1 ) − y`.
+
+The diminished radix complement of a number is found by complementing each digit with respect to `b − 1`, that is, subtracting each digit in `y` from `b − 1`.
+
+In the decimal numbering system, the radix complement is called the ten's complement and the diminished radix complement the nines' complement. In binary, the radix complement is called the two's complement and the diminished radix complement the ones' complement.
+
+Some people, notably Donald Knuth, recommend using the placement of the apostrophe to distinguish between the radix complement and the diminished radix complement. In this usage, the four's complement refers to the radix complement of a number in base four while fours' complement is the diminished radix complement of a number in base 5. However, the distinction is not important when the radix is apparent (nearly always), and the subtle difference in apostrophe placement is not common practice. Most writers use one's and nine's complement, and many style manuals leave out the apostrophe, recommending ones and nines complement. 
+

@@ -1,0 +1,19 @@
+John Conway's Game Of Life
+==========================
+v2020.155
+
+This is a cellular automata game. The game board consists of a rectangular grid where every cell can either be dead (empty) or alive (visible cell symbol).
+
+The initial board is either manually set-up or random-generated.
+
+Now, for every follow-up generation:
+
+First, the number (0-8) of neighbors for every cell of the last generation is counted. Then every cell of the new generation is determined as follows:
+
+* An cell with 2 or 3 neighbors survives
+
+* An dead/non-existing cell with 3 neighbors is born as a new cell
+
+* A cell with less then 2 neighbors dies of isolation
+
+* A cell with more than 3 neighbors dies of overpopulation

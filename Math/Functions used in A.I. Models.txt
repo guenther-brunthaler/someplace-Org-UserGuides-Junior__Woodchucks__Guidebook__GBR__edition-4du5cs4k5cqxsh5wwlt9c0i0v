@@ -1,0 +1,6 @@
+softmax(v) := generate_vector(
+      v[i] / sum(
+         exp(j), j, v.first, v.last
+      )
+   ,  i, v.first, v.last
+)
