@@ -1,0 +1,52 @@
+IPv4
+----
+
+IPv4-addresses consist of 32 bits / 4 octets (bytes) written as decimal byte values (1 to 3 digits) separated by ".".
+
+The class-based IPv4 network number consists of the first one, two or
+three bytes; the rest of the bytes are the local address.
+
+Class A: 0-127.$HOST1.$HOST1.$HOST3 with implied netmask 255.0.0.0
+Class B: 128-191.$NET1.$HOST1.$HOST2 with implied netmask 255.255.0.0
+Class C: 191-239.$NET1.$NET2.$HOST1 with implied netmask 255.255.255.0
+Class D: 240-254.* with implied netmask 240.0.0.0 is used for multicast addresses (the host-part of the address represents a multicast group)
+Class E: 255.* is reserved and must not be used at all in IP packets to be routed
+
+Class A network 0.* is reserved for broadcasts to all networks.
+
+Class A network 127.* is reserved for loopback to the local machine.
+
+$HOST* parts with all bits equal to '1' address the network itself rather than any of the hosts (in routing tables, for instance).
+
+$HOST* parts with all bits equal to '1' is address all hosts on that network for broadcasts.
+
+In classless IPv4 addresses the distinction between classes A, B and C can be ignored. Instead an IPv4 host address consists of a 32-bit address and a 32-bit mask. Classless IPv4 network addresses are written in numbers-and-dots
+notation with the prefix length appended and a slash as separator. For
+example the class A network 10 is written as '10.0.0.0/8'.
+
+
+Reserved IPv4 Ranges
+~~~~~~~~~~~~~~~~~~~~
+
+For private use (RFC 1918):
+
+10.0-255.0-255.0-255:10/8 prefix
+172.16-31.0-255.0-255: 172.16/12 prefix
+192.168.0-255.0-255: 192.168/16 prefix
+
+For other uses (RFC 5737):
+
+128.66.0.0/16: has been used for examples in the past. This does no longer applied. Can be used as regular address with caution.
+192.0.2.0/24 "TEST-NET-1": for use in documentation
+198.51.100.0/24 "TEST-NET-2": ditto
+203.0.113.0/24 "TEST-NET-3": ditto
+
+
+IPv6
+----
+
+IPv6-addresses vonsist of 128 bits / 16 octets (bytes) written as hexadecimal byte values (1 or 2 digits) separated by ":".
+
+A sequence of consecutive zero bytes can be abbreviated by "::".
+
+The first 64 bits of an IPv6 address are considered the "network"-part, the other 64 bits are interpreted as the "host"-part. There is no explicit "netmask" as in IPv4.

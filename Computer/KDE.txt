@@ -1,0 +1,64 @@
+KDE-applications
+================
+v2020.39
+
+This documents describes several things to try if KDE applications are not working properly.
+
+
+Environment Variables
+---------------------
+
+You might need to set those:
+
+----
+$ export KDE_SESSION_VERSION=5 KDE_FULL_SESSION=true
+----
+
+Also ensure the following ones are set correctly:
+
+....
+DBUS_SESSION_BUS_ADDRESS
+DISPLAY
+HOME
+PATH
+TERM
+....
+
+
+Processes to kill
+-----------------
+
+Kill those if running after closing all KDE apps (be sure not using a KDE application in order to edit/view THIS document):
+
+....
+kglobalaccel5
+kactivitymanagerd
+kdeinit5
+klauncher
+....
+
+
+Temporary directories to remove
+-------------------------------
+
+....
+$HOME/.cache/sessions/thumbs-*
+$HOME/.cache/thumbnails/*
+/tmp/kde-*
+/var/tmp/kdecache-*
+$XDG_RUNTIME_DIR/kdeinit*
+$XDG_RUNTIME_DIR/klauncher*
+....
+
+
+Application-specific
+--------------------
+
+This describes additional application-specific cache-directories to be removed.
+
+Krusader
+~~~~~~~~
+
+....
+/tmp/krusader*
+....

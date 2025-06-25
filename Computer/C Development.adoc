@@ -1,0 +1,384 @@
+﻿Various notes about the C programming language
+==============================================
+Günther Brunthaler
+v2023.140
+
+
+[[cc_options_ivcs6e88l8n1elarieuccw5ud]]
+Compiler flags
+--------------
+
+Run the following commands in order to create a local file for sourcing settings suitable for compiling your programs:
+
+----
+$ f=setflags.debug
+$ f=setflags.release
+$ true ${f:=setflags.debug}; cat << 'EOF' | sed "s/%SELF%/$f/g" > "$f" && . ./"$f"
+#! /bin/false
+
+# Prepare environment variables for incremental accumulation.
+for f in CC CPPFLAGS CFLAGS CXXFLAGS LDFLAGS MAKEFLAGS; do unset $f; export $f; done
+
+# Optional: Preset your custom flags:
+#CPPFLAGS='-D NDEBUG -D _GNU_SOURCE'
+#CFLAGS='-O3'
+#LDFLAGS='-l pthread'
+
+# Check whether to emit release version options rather than debugging options
+true && case '%SELF%' in *release*) case $CPPFLAGS in *"-D NDEBUG"*) ;; *) CPPFLAGS="$CPPFLAGS -D NDEBUG"; esac; esac
+
+# If you prefer "make" to let above variables override conflicting macro assignments in the Makefile:
+MAKEFLAGS="$MAKEFLAGS -e"
+
+case $CPPFLAGS in *"-D NDEBUG"*)
+# Use release options rather than debugging options.
+f='-march=native -O3'
+;; *)
+# Use -O1 for *ancient* versions of gcc, which are said to sometimes generate faulty code with -O0 under rare circumstances:
+f="-ggdb3 -O1"
+
+# Supposedly the best option for debugging. But expecience has shown that some
+# local variables can still become "optimized out".
+f="-ggdb3 -Og"
+
+# Use -O0 for the most reliable debugging information.
+f="-ggdb3 -O0"
+esac
+
+# Add above selection:
+CFLAGS="$CFLAGS $f"
+
+# Other generally useful "gcc" options:
+CFLAGS="$CFLAGS -pipe"
+
+case $CPPFLAGS in *"-D NDEBUG"*)
+# Other possibly useful "gcc" options release versions:
+CFLAGS="$CFLAGS -fno-stack-check"
+# Be careful with the following, it's a security feature:
+true && CFLAGS="$CFLAGS -fno-stack-protector"
+;; *)
+# Other possibly useful "gcc" options for debugging:
+CFLAGS="$CFLAGS -feliminate-unused-debug-symbols -fstack-check -fno-omit-frame-pointer"
+CFLAGS="$CFLAGS -fanalyzer -Wanalyzer-too-complex"
+esac
+
+true && case $CPPFLAGS in *"-D NDEBUG"*)
+unalias vg 2> /dev/null
+;; *)
+# The following additional options are useful if GCC was built with the address sanitizer (asan) feature enabled:
+CFLAGS="$CFLAGS -fstack-protector-strong"
+LDFLAGS="-fsanitize=address -fsanitize=leak -fsanitize=undefined $LDFLAGS"
+f=`dpkg -l libgcc-*-dev | awk '$1 ~ /^i/ {print $2}'`
+f=`dpkg -L "$f" | grep '/libasan.so$'`
+LD_PRELOAD=$f
+
+# Note that valgrind might not work with the asan options when used as a command prefix like in the following alias:
+alias vg='valgrind --show-reachable=yes --malloc-fill=aa --free-fill=ee'
+esac
+
+# Warning flags you also might want to add:
+CFLAGS="$CFLAGS -W -Wall -Wextra -pedantic -Wimplicit -Wreturn-type -Wunused -Wpointer-arith -Wundef -Wwrite-strings -Wdeclaration-after-statement -Wconversion -Wredundant-decls -Winit-self -Wno-multichar -Wno-missing-field-initializers -Wno-overlength-strings -Wno-parentheses -Wno-uninitialized -fno-builtin-vprintf"
+
+# You might also enforce compliance with a particular C standard:
+f="-std=c89"
+f="-std=c99"
+CFLAGS="$CFLAGS $f"
+
+# Link-time optimizations
+false && case $CPPFLAGS in *"-D NDEBUG"*)
+CFLAGS="$CFLAGS -flto"
+LDFLAGS="$LDFLAGS -Wl,-flto"
+;; *)
+esac
+
+# Linker flags:
+LDFLAGS="$LDFLAGS -Wl,-O1,--as-needed,--hash-style=gnu"
+
+case $CPPFLAGS in *"-D NDEBUG"*)
+# Use release options rather than debugging options.
+LDFLAGS="-s $LDFLAGS"
+esac
+
+# GNU-specific "make" flags:
+if true && make --version 2>& 1 | grep -q "GNU Make"
+then
+cores=`getconf _NPROCESSORS_ONLN`; cores=`expr $cores + 1`
+MAKEFLAGS="$MAKEFLAGS -j$cores -l$cores"
+unset cores
+fi
+
+if false; then
+unalias ef sf 2> /dev/null
+else
+
+# Helper alias to source this file again after changes:
+alias sf="echo \"Sourcing %SELF%\"; . ./%SELF%"
+
+# Another for editing and re-sourcing;
+for f in "$EDITOR" "$VISUAL" joe vim vi false; do command -v "$f" > /dev/null 2>&1 && break; done
+alias ef="$f \"%SELF%\" && sf"
+
+fi # Aliases
+
+# Change this to false in order to enforce merging CPPFLAGS into CFLAGS (which is done by default if "GNU make" is not used because POSIX does not spefify CPPFLAGS):
+if true && make --version 2>& 1 | grep -q "GNU Make"; then true; else CFLAGS="$CPPFLAGS $CFLAGS"; unset CPPFLAGS; fi
+
+# Change this to true in order to enforce merging LDFLAGS into CFLAGS for non-POSIX-compliant Makefiles.
+false && { CFLAGS="$CFLAGS $LDFLAGS"; unset LDFLAGS; }
+
+# Mirror C flags for C++:
+CXXFLAGS=$CFLAGS
+
+# Remove leading/trailing spaces from values:
+for f in CC CPPFLAGS CFLAGS CXXFLAGS LDFLAGS MAKEFLAGS; do eval varval=\$$f; varvalN=`printf '%s\n' "$varval" | sed 's/^ *//; s/ *$//'`; test "$varval" = "$varvalN" && continue; eval $f=\$varvalN; done; unset varval varvalN
+
+# Summary
+if true; then for f in CC CPPFLAGS CFLAGS CXXFLAGS LDFLAGS MAKEFLAGS LD_PRELOAD; do eval varval=\$$f; test "$varval" && echo "$f=\"$varval\""; done; unset varval; alias | command grep -E '^alias (ef|sf|vg)='; fi
+
+# Clean up.
+unset f
+
+EOF
+----
+
+Save current compiler flags to a file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes you might have defined and exported variables like `$CFLAGS' manually so that `make` will use them. The following command will save those definitions into a file
+
+----
+$ sh -c "export -p | grep -E '^export (AS|C|CPP|CXX|LD|MAKE)FLAGS='" > setflags
+----
+
+allowing it to `source` it in a future session again:
+
+----
+$ . ./setflags # Restore saved flags.
+----
+
+This can also be used to edit the current flags in a text editor and re-source them immediately after this, applying the changes to the current session.
+
+The `sh` command invocation in the above command might seem unnecessary, but it is necessary to force some shells (read: `bash`) to write a 'POSIX'-compliant output script.
+
+
+Depending on a particular revision of the C standard
+----------------------------------------------------
+
+Add the following lines to your C source file in order to ensure a C99-compliant compiler must be used to compile it:
+
+----
+#if !defined __STDC_VERSION__ || __STDC_VERSION__ < 199901
+   #error "This source file requires a C99 compliant C compiler!"
+#endif
+----
+
+This especially helpful when using types from the <inttypes.h> header or printf-formats such as "%z" which are not defined for C89.
+
+
+A portable Makefile for small projects
+--------------------------------------
+
+Maybe you also want a skeleton portable POSIX Makefile for your project. Here are some you can copy.
+
+
+Minimal
+~~~~~~~
+
+This assumes your program does not need any additional libraries (such as `libm`):
+
+----
+$ m=Makefile && test -e "$m" || unexpand << 'EOF' > "$m"; unset m
+.POSIX:
+
+# You may redefine these settings via the "make" command line or export them
+# as environment variables and (in the latter case only) also
+# "export MAKEFLAGS=e". Or just edit this file.
+
+CFLAGS = -D NDEBUG -O
+LDFLAGS = -s
+
+# No need to redefine these.
+TARGETS = myprog
+
+.PHONY: all clean
+
+all: $(TARGETS)
+
+clean:
+        -rm $(TARGETS)
+EOF
+----
+
+
+Using some libraries
+~~~~~~~~~~~~~~~~~~~~
+
+This assumes your program needs to be linked against an additional library (`libm` in this example):
+
+----
+$ m=Makefile && test -e "$m" || unexpand << 'EOF' > "$m"; unset m
+.POSIX:
+
+# You may redefine these settings via the "make" command line or export them
+# as environment variables and (in the latter case only) also
+# "export MAKEFLAGS=e". Or just edit this file.
+CPPFLAGS = -D NDEBUG
+CFLAGS = -O
+LDFLAGS = -s
+
+# No need to redefine these.
+LIBS = -lm
+
+TARGETS = myprog
+
+.PHONY: all clean
+
+all: $(TARGETS)
+
+clean:  
+        -rm $(TARGETS)
+
+AUG_CFLAGS = $(CPPFLAGS) $(CFLAGS)
+AUG_LDFLAGS = $(LDFLAGS) $(LIBS)
+
+.c:
+        $(CC) $(AUG_CFLAGS) -o $@ $< $(AUG_LDFLAGS)
+
+EOF
+----
+
+
+Overriding Makefile macros
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If a `Makefile` contains macro definitions like that for `CFLAGS` in the above listing, but you would like to use different definitions, there are 2 ways how to override them without editing the `Makefile`.
+
+* Assign them in the `make` command line. E. g. like this:
++
+----
+make CFLAGS="-D NDEBUG -O3"
+----
+
+* Export them as environment variables with the same names and pass the `-e` option to `make`, like this:
++
+----
+$ export CFLAGS="-Og -ggdb3"
+$ make -e
+----
++
+Instead of passing the `-e` option, it is also possible add the option to the exported environment variable `MAKEFLAGS` instead, such as with command
++
+----
+$ export MAKEFLAGS=-e
+$ export CFLAGS="-Og -ggdb3"
+$ make
+----
+
+Note that the `-e` is only necessary if the `Makefile` already contains a definition for one of the macros you want to define. Otherwise, exporting environment variables with the same names as the macros will suffice and option `-e` will not be necessary. This option is only required for actually *overriding* macros already defined in the Makefile.
+
+
+Generate Makefile dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you want to create your Makefile by hand rather than by some other tool like automake or cmake, you can use `gcc` to detect and emit emit `Makefile` rules, especially for local header files.
+
+
+Header files
+^^^^^^^^^^^^
+
+Lets say you already have a `Makefile` and want to add dependencies for compiling two new source files `source1.c` and `source2.c` which include several header files from the current project.
+
+First you need to know any `-D` or `-I` options your `Makefile` might require. Show them with
+
+----
+$ make -np | grep -E '^C(PP|XX)?FLAGS'
+----
+
+And let's say you found out that options `-I . -I include` are required.
+
+Now run this command:
+
+----
+$ gcc -MM -I . -I include source1.c source2.c >> Makefile
+----
+
+which determines the dependencies for those two files and adds them to the `Makefile`. (Note that you had to add the `-D` and `-I` options displayed by the previous command after the `-MM`, being followed by the source files to be examined.)
+
+Then edit `Makefile` to reformat the new dependencies if needed and move them to the right spot within the `Makefile` according to your taste.
+
+
+Linking order
+^^^^^^^^^^^^^
+
+Header files are one thing, but figuring out the correct order for specifying the object files and libraries for linking is a completely different thing.
+
+After compiling the individual source files into .o files, run
+
+----
+$ > s2d > s2r; nm -APgtd -- *.[oa] | awk '
+	{$1= substr($1, 1, length($1) - 1)}
+	$4 ~ /^[0-9]/ {print $2 " " $1 >> "s2d"; next}
+	{print $2 " " $1 >> "s2r"}
+  ' o="$o"; { export LC_COLLATE=C; \
+  	for f in s2d s2r; do sort -uo $f $f; done; \
+	sort -o d2s -t ' ' -k 2 s2d; \
+	sort -o r2s -t ' ' -k 2 s2r; \
+  }
+----
+
+which will create two lists:
+
+`s2d`:: associate a symbol with all `.o` files that define it
+`s2r`:: associate a symbol with all `.o` files that reference it
+`d2s`:: associate `.o` files with all symbols they define
+`r2s`:: associate `.o` files with all symbols they reference
+
+For creating the correct linking order, start with the object files which define symbol `main`
+
+
+Navigating between source files
+-------------------------------
+
+Run
+
+----
+$ command -v ctags || sudo apt-get install exuberant-ctags
+$ ctags -R
+----
+
+in the top-level source directory, which will generate a "tags" file, containing an index of all/most symbols defined in all the source files. Many programmer's text editors have support such a file and can then jump to the definition of some symbol currently under the cursor.
+
+"cscope" is an even more powerful similar tool which also supports fulltext search, but it does not scale well to really large source trees such as the Linux kernel.
+
+
+Avoiding multiple inclusions of the same header
+-----------------------------------------------
+
+Use something like this as a template for your new C header file:
+
+----
+#ifndef HEADER_8QDXCGTQV6APHZ78QRWYA5YPM_INCLUDED
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
+/* Actual content goes here... */
+
+#ifdef __cplusplus
+   }
+#endif
+#endif /* !HEADER_8QDXCGTQV6APHZ78QRWYA5YPM_INCLUDED */
+----
+
+Use the following command line in order to generate a suitable UUID-based HEADER_* symbol:
+
+----
+$ uuidgen -t | perl -MMath::BigInt -e '$a= "09ANPZ";
+$a =~ s/(..)(?=(?:..)+$)/\1:/g;
+$a= join "", map {($a, $b)= split //, $_; $a .. $b} split /:/, $a;
+$u= <>; $u =~ s/[^[:xdigit:]]//g; $u= Math::BigInt->from_hex($u); $o= "";
+for ($i= 25; $i--; ) {$o= substr($a, $u % 35, 1) . $o; $u/= 35};
+print "HEADER_${o}_INCLUDED\n"'
+----
+
+If you don't want your MAC address to be included within the generated time-based UUID, replace the "uuidgen -t" with "uuidgen -r" in order to create a random-based UUID instead.

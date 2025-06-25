@@ -1,0 +1,221 @@
+`tmux` Terminal Multiplexer
+===========================
+v2025.63
+
+
+Quick overview of most important functions
+------------------------------------------
+
+* Equivalent to 'GNU screen'
++
+--
+* `[Ctrl]+[b],[c]` - create a new logical screen with a new shell
+* `[Ctrl]+[b],[n]` - switch to next logical screen
+* `[Ctrl]+[b],[p]` - switch to previous logical screen
+* `[Ctrl]+[b],[d]` - detach from `tmux` process which keeps running
+* `[Ctrl]+[b],[Esc]` - enter "scrollback mode"
++
+Re-attach later with "`tmux attach`".
+--
+
+* `[Ctrl]+[b],[l]` - (letter "ell") switch back to previously shown screen
+
+* `[Ctrl]+[b],[,]` - change title of current screen
++
+Use `[Ctrl]+[u]` to delete the old title rather than modifying it.
+
+* `[Ctrl]+[b],[']` - switch to a particular screen by entering its index number.
++
+If unknown, pressing the `[Tab]`-key will provide "Tab completion" for the index number by showing a list of all screens with their index numbers and titles, and the cursor keys can be used to select the desired list entry.
+
+
+Preconditions of usage
+----------------------
+
+`tmux` requires a UTF-8 locale to be set before it can be started. That is, at a minimum one of
+
+----
+export LANG=C.UTF-8
+export LANG=POSIX.UTF-8
+----
+
+(or any other locale with UTF-8 character encoding) needs to be set.
+
+Also, `$TERM` must be set to correctly describe the terminal currently in use.
+
+
+Nesting
+-------
+
+In order to nest a `tmux` server (with an independent set of sessions and also possible a different "global" prefix key) within an already-running `tmux` session:
+
+----
+$ TMUX= tmux -L $name
+----
+
+where `$name` identifies the `tmux` server. For instance, use a host name or a top-level name such as "worlds" as `$name`.
+
+`$name` will also be used as the name of the server socket in the `/tmp/tmux-$userid/`-directory.
+
+If `-L` is not specified, `$name` defaults to "default".
+
+Avoid using `-L` for server instances to which you will re-attach frequently, such as `tmux` servers for individual user accounts accessed via SSH. Using the default name avoids the requirement of using `-L` with `tmux attach`.
+
+In order to check which `tmux` servers are running for a particular user, look into the `/tmp/tmux-$USERID` directory. There will be a socket for every `tmux` server of that user. In this case, it might be easier to use the `-S` option in combination with tab completion instead of `-L`, which has the same effect but allows to specify the complete path to the socket special file.
+
+
+Hierarchy
+---------
+
+Every component of `tmux` is controlled by a particular "`tmux`" server process.
+
+Every `tmux` server is controlled by a UNIX domain socket, which are by default located in the directory `/tmp/tmux-$UID/$SOCKET` where `$UID` is the numeric user ID and `$SOCKET` is the argument of the `-L` opition when the `tmux` process was started ("default" will be used as `$SOCKET` in the absence of `-L`). However, when using the `-S` option when starting the `tmux` server, the socket can be created anywhere using any name.
+
+Every `tmux` server hosts a number of `tmux` sessions. List them with
+
+----
+$ tmux list-sessions
+----
+
+Sessions seem to be a way of grouping windows within the same server, similar to the "workspaces" of a graphical WM. Create a new session with "`[$prefix][:]new-session -s SESSION_NAME[Return]`" at the `tmux` command-prompt. Then switch between sessions with "`[$prefix][(]`" and "`[$prefix][)]`" or toggle between current and previous session with "`[$prefix][L]`".
+
+Within every session, there is a number of windows linked to it:
+
+----
+$ tmux list-windows
+----
+
+A `tmux` window is the view of an entire terminal window controlled by `tmux`. Only one of the windows may be currently visible in the terminal. This is the "active" window. Other windows may exist and can be switched to become the active window.
+
+Within every window, there is at least one pane (rectangular section of the currently visible window which is linked to a particular PTY):
+
+----
+$ tmux list-panes
+----
+
+The `tmux` panes are therefore the relevant components of `tmux` which interact with actual user processes running under `tmux` control.
+
+
+Change prefix key
+-----------------
+
+Make use of my script `tmux-change-prefix-key` in order to customize the `tmux` key bindings and change the prefix key for the different nested instances.
+
+Here is the currently recommended `/etc/tmux.conf` (version 2018.185.1):
+
+----
+$ openssl base64 -d << EOF | tar -C / -vzxO
+H4sIANTFV1sAA+2UTW/TQBCGc86vGKWqDKIbbDdpoDcUKsQBLi2iUlWhtbuOV7F3
+ze46H6g/nlnbaZNA4RQhYB4p8sYzfufTFi592TswITKZjP01mozD7euGXnR6Go8n
+o/gsivH+ZBTGPRgfOjFPbR03AL1Z8mu/39n/UgTO35X1aphqlR0ohh/w2Wj01Pzj
+aBw/zj/GPYmiGM0QHiifHf7z+R/BBz4X4FcAuIV3Hz+BTY0QClJdVtzJpBDeUGlr
+/XnYP4JnV9672RiYCSUMd+IOknWjwtKcq5lglRGZXLG5WMNCGCu1gjiMXg3j8Awl
+un8snLB4DGF8fjo6j1/D9OLyavi8jw7TRqXNq5UCL5UZXUKQBOA0BDwY9q1wwGbA
+vm68poz7529SZ4rbFzf89gR/YIW6s1BIh8kWW8Zhv1aJVJh931+adHnj3RWwr/Vw
+BLuULs2F9amg70Lq2sISRfTyQbXYHKasDeDTg4Jbx1rPvi9g2VVQ6jvhM7CwkD7u
+W2m5b38lTMmVUA5wV13t61A4FAcuF5Bo57AnOmv+YX2lVLzYbkz3kM4yL3qhGk1f
+B0trY7X50oS0dVVp40AquI6iByEQZV1wp40dbqe68vY2V632e2Rzmbm2SUYoXmKP
+MJLxBWz60/Tijd8xrMz3GpcN830PwdHnAAbtY12PIDg+DgabTp7sR2M4igon+xik
+wmb5pXMy5UWx7qKx1m3T+E4uGASt+XLXvBdkgEFyvbS4HKVQNWTa4JYUInVSzfBm
+lymuQrsWeOrCYgBIc62t2Iv8Q4z7nxeSayO/aeW2Sgnug51sgeX7Yhc2vQXUwFcP
+u1ytX+JbrYsi4em82bNOCd14JRoP5m8/NcqVH2WpF37dcc12EsSCc1078N8DiZvq
+8F3v5K9hLouCebf+n/7SEQRBEARBEARBEARBEARBEARBEARBEMS/y3ddEM8TACgA
+AA==
+EOF
+----
+
+Replace the `xO` with a `t` in the above `tar`-command in order to show what file and subdirectory would be installed relative to the `/` directory.
+
+Remove the trailing `O` from the `tar`-command above in order to actually install the file rather than just writing its contents to standard output for visual inspection and/or redirection into a different output file.
+
+
+Nesting tmux-instances
+----------------------
+
+The following commands will starts an outermost tmux instance named `worlds` controlled by prefix key combination `[Ctrl]+[w]`, within that instance a middle tmux instance named `myhost` controlled by prefix key combination `[Ctrl]+[e]`, and within that instance an innermost tmux instance named `thisuser` controlled by prefix key combination `[Ctrl]+[a]`:
+
+----
+$ tmux -L worlds worlds new-session \; set -g prefix C-w \; unbind C-a \; bind-key w send-prefix \; unbind a
+
+$ tmux -L myhost new-session \; set -g prefix C-e \; unbind C-a \; bind-key e send-prefix \; unbind a
+
+$ tmux -L thisuser
+----
+
+The above example assumes the tmux configuration file shown in a previous sections of this document is in effect, which changed the prefix key combination to `[Ctrl]+[a]`.
+
+Otherwise, using tmux defauld key bindings, the following commands need to be used instead:
+
+----
+$ tmux -L worlds worlds new-session \; set -g prefix C-w \; unbind C-b \; bind-key w send-prefix \; unbind l
+
+$ tmux -L myhost new-session \; set -g prefix C-e \; unbind C-b \; bind-key e send-prefix \; unbind l
+
+$ tmux -L thisuser new-session \; set -g prefix C-e \; unbind C-b \; bind-key e send-prefix \; unbind l
+----
+
+
+Problem Solutions
+-----------------
+
+
+Midnight Commander
+~~~~~~~~~~~~~~~~~~
+
+----
+$ TERM=screen mc
+----
+
+may file display issues when running `mc` under `tmux`.
+
+Somethimes `mc` seems to "swallow" some key strokes, while honoring the remaining ones. Try restarting `mc` with option `-x` in this case.
+
+
+Frozen `tmux` pane
+~~~~~~~~~~~~~~~~~~
+
+Sometimes, often after mistakenly displaying binary data as text in a `tmux` pane, it will freeze and not react to any key strokes any more, even though `tmux` itself still works normally. This might help then:
+
+* Create a new pane with "`[$prefix][:]split-window[Enter]`"
+
+* Execute
++
+----
+$ tmux display-panes
+----
++
+within the new pane in order to show the pane numbers and memorize the number of the frozen pane. Then set the `$PANE` variable to this number, e. g.
++
+----
+$ PANE=0
+----
+
+* Try the following steps in order, stopping once the messed-up display has as been cleaned up again:
++
+--
+. Try to reset the pane status
++
+----
+$ tmux send-keys -R -t $PANE
+----
+
+. If the process in the pane has died, try to respawn a new shell there
++
+----
+$ tmux respawn-pane -t $PANE
+----
+
+. If the process hangs, kill it then respan a new shell instead
++
+----
+$ tmux respawn-pane -k -t $PANE
+----
+--
+
+* Once you are satisfied, remove the temporary command-entry pane with
++
+----
+$ tmux kill-pane
+----
+
+I have written a script `tmux-reset-pane` which can perform all of the above actions automatically. Run it without arguments for resetting pane # 0, or with option `-h` for displaying available options.

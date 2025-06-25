@@ -1,0 +1,43 @@
+File /etc/passwd
+================
+v2021.78
+
+Fields are separated by "`:`".
+
+
+Fields by column number
+-----------------------
+
+1. `pw_name` - account name
+2. `pw_passwd` - "`x`" for password entries which have been moved to `/etc/shadow`
+3. `pw_uid` - numeric user ID
+4. `pw_gid` - numeric primary group ID
+5. `pw_gecos` - comment field ('GECOS')
+6. `pw_dir` - home directory
+7. `pw_shell` - login shell (optional)
+
+
+GECOS-field
+-----------
+
+Entries are separted by "`,`".
+
+1. "`full name`": User's full name (or application name, if the account is for a program)
+2. "`room`": Building and room number or contact person
+3. "`work phone`": Office telephone number
+4. "`home phone`": Home telephone number
+5. "`other`": Any other contact information (pager number, fax, external e-mail address, etc.) This field is used to store accounting information used by other applications, and can be changed only by a superuser.
+
+These fields must not contain any colons. Except for the `other` field, they should not contain any comma or equal sign.
+
+The latter restriction obviously allows the `other` field to be used for a variable number of `key=value` pairs separated by commas. Within `key` and `value`, neither colons nor commas nor equal signs must be used in order to not confuse simplistic parsers.
+
+On Debian, "`$ man pam_umask`" reveals that an "`umask=`"-entry in the GECOS field is actually used in that way.
+
+
+Origin of the Name
+------------------
+
+'GECOS' stands for "'General Electric Comprehensive Operating System'". Some early Unix systems at Bell Labs used GECOS machines for print spooling and various other services, so this field was added to carry information on a user's GECOS identity. GECOS was later renamed to 'GCOS'.
+
+A trace of GCOS influence remains today in modern UNIX systems. Some early Unix systems at Bell Labs used GCOS machines for print spooling and various other services. The field added to "`/etc/passwd`" to carry GCOS ID information was called the "'GECOS field'" and survives today as the "`pw_gecos`" member used for the user's full name and other human-ID information.

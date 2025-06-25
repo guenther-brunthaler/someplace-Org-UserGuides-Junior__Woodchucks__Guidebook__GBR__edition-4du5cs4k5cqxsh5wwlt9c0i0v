@@ -1,0 +1,13 @@
+Terminal Control
+================
+v2020.92
+
+----
+$ stty -a # Show current settings.
+$ stty cols 80 # Set character width of current terminal.
+$ stty rows 25 # Set character height of current terminal.
+$ reset # Reset the terminal using in case of problems.
+
+$ TERM=screen # Get colors.
+$ reset-env # Re-source startup scripts (example only, user-specific)
+----

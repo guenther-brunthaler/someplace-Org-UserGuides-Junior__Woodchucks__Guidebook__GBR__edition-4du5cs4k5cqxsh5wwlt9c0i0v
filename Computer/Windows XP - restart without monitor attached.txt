@@ -1,0 +1,2 @@
+
+[Strg]+[Esc], [Up], [Return], [n]

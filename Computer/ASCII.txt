@@ -1,0 +1,177 @@
+ASCII - American Standard Code for Information Interchange
+
+Also known as: US-ASCII, AI5, ISO-IR-006, ANSI_X3.4-1968, ANSI_X3.4-1986, ISO_646.irv:1991, ISO646-US, us, IBM367, cp367, US-version of T50/IA5.
+
+MIME-type is "text/plain; charset=US-ASCII".
+
+Compact Tables (hex and decimal):
+
+   2 3 4 5 6 7       30 40 50 60 70 80 90 100 110 120
+ -------------      ---------------------------------
+0:   0 @ P ` p     0:    (  2  <  F  P  Z  d   n   x
+1: ! 1 A Q a q     1:    )  3  =  G  Q  [  e   o   y
+2: " 2 B R b r     2:    *  4  >  H  R  \  f   p   z
+3: # 3 C S c s     3: !  +  5  ?  I  S  ]  g   q   {
+4: $ 4 D T d t     4: "  ,  6  @  J  T  ^  h   r   |
+5: % 5 E U e u     5: #  -  7  A  K  U  _  i   s   }
+6: & 6 F V f v     6: $  .  8  B  L  V  `  j   t   ~
+7: ' 7 G W g w     7: %  /  9  C  M  W  a  k   u  DEL
+8: ( 8 H X h x     8: &  0  :  D  N  X  b  l   v
+9: ) 9 I Y i y     9: '  1  ;  E  O  Y  c  m   w
+A: * : J Z j z
+B: + ; K [ k {
+C: , < L \ l |
+D: - = M ] m }
+E: . > N ^ n ~
+F: / ? O _ o DEL
+
+Control characters:
+
+Dec Hex Abbreviation  Ctl C   Name ('67)
+        '63   '65 '67
+0   00  NULL  NUL     ^@  \0  Null
+1   01  SOM   SOH     ^A      Start of Heading
+2   02  EOA   STX     ^B      Start of Text
+3   03  EOM   ETX     ^C      End of Text
+4   04  EOT           ^D      End of Transmission
+5   05  WRU   ENQ     ^E      Enquiry
+6   06  RU    ACK     ^F      Acknowledgement
+7   07  BELL  BEL     ^G  \a  Bell
+8   08  FE0   BS      ^H  \b  Backspace
+9   09  HT/SK HT      ^I  \t  Horizontal Tab
+10  0A  LF            ^J  \n  Line Feed
+11  0B  VTAB  VT      ^K  \v  Vertical Tab
+12  0C  FF            ^L  \f  Form Feed
+13  0D  CR            ^M  \r  Carriage Return^[h]
+14  0E  SO            ^N      Shift Out
+15  0F  SI            ^O      Shift In
+16  10  DC0   DLE     ^P      Data Link Escape
+17  11  DC1           ^Q      Device Control 1 (often XON)
+18  12  DC2           ^R      Device Control 2
+19  13  DC3           ^S      Device Control 3 (often XOFF)
+20  14  DC4           ^T      Device Control 4
+21  15  ERR   NAK     ^U      Negative Acknowledgement
+22  16  SYNC  SYN     ^V      Synchronous Idle
+23  17  LEM   ETB     ^W      End of Transmission Block
+24  18  S0    CAN     ^X      Cancel
+25  19  S1    EM      ^Y      End of Medium
+26  1A  S2    SS  SUB ^Z      Substitute
+27  1B  S3    ESC     ^[  \e  Escape
+28  1C  S4    FS      ^\      File Separator
+29  1D  S5    GS      ^]      Group Separator
+30  1E  S6    RS      ^^      Record Separator
+31  1F  S7    US      ^_      Unit Separator
+127 7F  DEL           ^?      Delete
+
+The control codes felt essential for data transmission were the start of message (SOM), end of address (EOA), end of message (EOM), end of transmission (EOT), "who are you?" (WRU), "are you?" (RU), a reserved device control (DC0), synchronous idle (SYNC), and acknowledge (ACK). These were positioned to maximize the Hamming distance between their bit patterns.
+
+Printable characters:
+
+Dec Hex Glyph
+32  20  (space)
+33  21  !
+34  22  "
+35  23  #
+36  24  $
+37  25  %
+38  26  &
+39  27  '
+40  28  (
+41  29  )
+42  2A  *
+43  2B  +
+44  2C  ,
+45  2D  -
+46  2E  .
+47  2F  /
+48  30  0
+49  31  1
+50  32  2
+51  33  3
+52  34  4
+53  35  5
+54  36  6
+55  37  7
+56  38  8
+57  39  9
+58  3A  :
+59  3B  ;
+60  3C  <
+61  3D  =
+62  3E  >
+63  3F  ?
+64  40  @
+65  41  A
+66  42  B
+67  43  C
+68  44  D
+69  45  E
+70  46  F
+71  47  G
+72  48  H
+73  49  I
+74  4A  J
+75  4B  K
+76  4C  L
+77  4D  M
+78  4E  N
+79  4F  O
+80  50  P
+81  51  Q
+82  52  R
+83  53  S
+84  54  T
+85  55  U
+86  56  V
+87  57  W
+88  58  X
+89  59  Y
+90  5A  Z
+91  5B  [
+92  5C  \
+93  5D  ]
+94  5E  ^
+95  5F  _
+96  60  `
+97  61  a
+98  62  b
+99  63  c
+100 64  d
+101 65  e
+102 66  f
+103 67  g
+104 68  h
+105 69  i
+106 6A  j
+107 6B  k
+108 6C  l
+109 6D  m
+110 6E  n
+111 6F  o
+112 70  p
+113 71  q
+114 72  r
+115 73  s
+116 74  t
+117 75  u
+118 76  v
+119 77  w
+120 78  x
+121 79  y
+122 7A  z
+123 7B  {
+124 7C  |
+125 7D  }
+126 7E  ~
+
+Some usage details:
+
+US separates the individual fields in a database record.
+
+RS separates the records within a database table.
+
+GS separates the database tables within a database. When ASCII was standardized, the term "database table" was not commonly used. The term "group" was used instead.
+
+FS separates the database files within a larger serial data stream.
+
+VT advances either to the next explicitly defined vertical zone position within the current page, such as header, body and footer or some other zone of interest within a form. Or advance to the next multiple of lines defined by a defined vtab width, which is typically 6 lines. Some programs like Microsoft Word use it internally to represent enforced line breaks within a paragraph. Some applications use it to represent a newline within a CSV line (rather than quoting the string properly because of embedded newlines). In some UNIX terminals, VT has the same effect that NL should have, that is to move the cursor just down but not also to the first column.

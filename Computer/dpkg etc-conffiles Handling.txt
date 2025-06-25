@@ -1,0 +1,56 @@
+When dpkg or related tools upgrade configuration files in /etc, the existing/new files may be added/renamed with particular suffixes.
+
+Hints from [ https://raphaelhertzog.com/2010/09/21/debian-conffile-configuration-file-managed-by-dpkg/ ]:
+
+Configuration file `/etc/bash.bashrc'
+ ==> Modified (by you or by a script) since installation.
+ ==> Package distributor has shipped an updated version.
+   What would you like to do about it ?  Your options are:
+    Y or I  : install the package maintainer's version
+    N or O  : keep your currently-installed version
+      D     : show the differences between the versions
+      Z     : start a shell to examine the situation
+ The default action is to keep your current version.
+*** bash.bashrc (Y/I/N/O/D/Z) [default=N] ? 
+
+In this specific example, if you answer "Y" or "I" (for "yes" or "install"), dpkg will install the new version of /etc/bash.bashrc but it will also backup the current version in /etc/bash.bashrc.dpkg-old. If you answer "N" or "O" (for "no" or "old"), dpkg will install the new version in /etc/bash.bashrc.dpkg-dist and /etc/bash.bashrc is left untouched. The two other answers allow you to examine the differences before taking a decision. Note that if you choose to start a shell, the new version is currently available as /etc/bash.bashrc.dpkg-new (and since Squeeze there are convenient environment variables $DPKG_CONFFILE_OLD and $DPKG_CONFFILE_NEW in case you want to create a custom review script).
+
+All configurations files managed by dpkg are called "conffiles" because that's the name of the field where they are recorded in the dpkg database. You can display the list of conffiles for any package:
+
+$ dpkg --status bash
+[...]
+Conffiles:
+ /etc/skel/.profile ecb6d3479ac3823f1da7f314d871989b
+ /etc/skel/.bashrc 2afdd6c53990f2387a7ef9989af0bc07
+ /etc/skel/.bash_logout 22bfb8c1dd94b5f3813a2b25da67463f
+ /etc/bash.bashrc 5b3c3bc73d236e4e1b6f9b6c1ed5964e
+[...]
+
+The command "dpkg-query --showformat='${Conffiles}\n' --show bash" can give you the same information if you need to retrieve only that field. The 32 characters after the filename are the MD5 checksum of the original configuration file provided by the package.
+
+Avoiding the conffile prompt
+
+Every time that dpkg must install a new conffile that you have modified (and a removed file is only a particular case of a modified file in dpkg's eyes), it will stop the upgrade and wait your answer. This can be particularly annoying for major upgrades. That's why you can give predefined answers to dpkg with the help of multiple --force-conf* options:
+
+* --force-confold: do not modify the current configuration file, the new version is installed with a .dpkg-dist suffix. With this option alone, even configuration files that you have not modified are left untouched. You need to combine it with --force-confdef to let dpkg overwrite configuration files that you have not modified.
+
+* --force-confnew: always install the new version of the configuration file, the current version is kept in a file with the .dpkg-old suffix.
+
+* --force-confdef: ask dpkg to decide alone when it can and prompt otherwise. This is the default behavior of dpkg and this option is mainly useful in combination with --force-confold.
+
+* --force-confmiss: ask dpkg to install the configuration file if it's currently missing (for example because you have removed the file by mistake).
+
+If you use Apt, you can pass options to dpkg with a command-line like this:
+
+$ apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
+
+You can also make those options permanent by creating /etc/apt/apt.conf.d/50keep_conf:
+
+Dpkg::Options {
+   "--force-confdef";
+   "--force-confold";
+}
+
+Bringing up the conffile prompt at any time
+
+The conffile prompt is only displayed when dpkg detects that the package provides an new version of the conffile. Thus reinstalling the same package will not bring up the prompt. But you can instruct dpkg to ask nevertheless with the --force-confask option. This is a new feature in Debian Squeeze. It will only ask for files that are locally modified.

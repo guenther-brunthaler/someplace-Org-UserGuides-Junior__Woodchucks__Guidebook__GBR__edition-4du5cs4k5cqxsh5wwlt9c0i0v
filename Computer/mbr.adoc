@@ -1,0 +1,93 @@
+MBR Partition Table
+===================
+v2023.273
+
+
+Well-known partition types
+--------------------------
+
+[options="header,autowidth"]
+|===
+|   ID | type name
+| 0x07 | HPFS/NTFS/exFAT
+| 0x83 | Linux
+| 0xda | Non-FS data
+|===
+
+
+MBR Layout
+----------
+
+[options="header,autowidth"]
+|===
+| Offset | Purpose
+| 0x0000 | Master boot code (platform-specific native machine language)
+| 0x01b8 | MBR serial number (little-endian byte order)
+| 0x01bc | No idea; seems to be always zero.
+| 0x01be | Primary partition table entry # 1
+| 0x01ce | Primary partition table entry # 2
+| 0x01de | Primary partition table entry # 3
+| 0x01ee | Primary partition table entry # 4
+| 0x01fe | "MBR-valid"-signature 0x55aa
+| 0x0200 | First byte beyond end of MBR; its length
+|===
+
+All items are ranges of certain size. Each range ends where the next range starts.
+
+When booting, the master boot code will be loaded into RAM at address 0x7c00 on the x86 platform and be executed there. This would be a memory range close to the upper end of memory on a machine equipped with 32 KiB of contiguous RAM (starting at offset 0x0000).
+
+
+PTE Laypout
+-----------
+
+The layout of every primary partition table entry (PTE) is as follows:
+
+[options="header,autowidth"]
+|===
+| Offset | Purpose
+| 0x00   | Boot indicator: `0x00` if non-bootable, `0x80` if bootable partition. (This is also the drive number of the boot drive.)
+| 0x01   | Partition starting head
+| 0x02   | Bits 7-6: bits 9-8 of starting cylinder; bits 5-0: starting sector. Partitions normally start at sector 1 of a cylinder for a given head.
+| 0x03   | Bits 7-0 of starting cylinder
+| 0x04   | Operating System Indicator Byte
+| 0x05   | Partition ending head. Partitions normally end with the last sector of a cylinder for a given head.
+| 0x06   | Bits 7-6: bits 9-8 of ending cylinder; bits 5-0: ending sector
+| 0x07   | Bits 7-0 of ending cylinder
+| 0x08   | Relative sector offset of the first actual partition sector
+| 0x0c   | Total # of sectors in partition
+| 0x10   | First byte beyond end of PTE; its length
+|===
+
+The relative sectors and total sectors fields in the 'BRs' ('boot records') have a different meaning in MBRs and EBRs.
+
+The starting and ending partition values are all inclusive, i.e. they specify the first and last sector in the partition, respectively.
+
+Both are specified by ('Cylinder', 'Head', 'Sector') triples ('C/H/S'), where 'Cylinder' can range from 0 to 1023, 'Head' from 0 to 254 and 'Sector' from 1 to 63.
+
+C/H/S addressing depends on the geometry of the drive as it is visible to the 'BIOS' (which may be different from the actual physical geometry of the drive). The geometry used by the BIOS is usually defined in its 'CMOS settings' and can also be looked up there.
+
+The 'relative sectors' field usually represents the same information as the partition starting cylinder, starting head and starting sector (C/H/S-notation) in an alternative way: As a 0-based linear sector count where LBA # 0 is the first sector of the disk.
+
+'Linear' means that instead of specifying the number of the cylinder, the number of the head on that cylinder, and the sector number on that head of the cylinder, a single logical block number is used that enumerates all the sectors on all the heads of all the cylinders.
+
+This numbering scheme is essentially the same as used BIOS-internally for 'Logical Block Addressing' ('LBA').
+
+When converting the starting C/H/S from and to a LBA-address, the following formulas apply:
+
+----
+lba = (cyl * heads + hd) * spt + (sec - 1)
+sec = lba mod spt + 1
+hd = (lba - (sec - 1)) mod heads
+cyl = (lba - hd * heads) mod (heads * spt)
+----
+
+where `lba` is the 0-based linear sector number, `cyl` is the 0-based cylinder number, `hd` is the 0-based head number and `sec` is the 1-based sector number of the starting sector; `heads` is the total number of heads and `spt` is the number of sectors per track (i. e. the number of sectors for each head on that cylinder).
+
+
+[[alignment]]
+Alignment
+---------
+
+Modern disks should align the LBA starting sectors of all performance-critical disk ranges at least to 2^12^ bytes (4 KiB aligment), or eben better to 2^13^ bytes (8 KiB aligment).
+
+However, the current convention is to use 2^20^ bytes (1 MiB) instead for LBA aligment, and drive manufacturer can be expected to exploit that convention sooner or later.

@@ -1,0 +1,50 @@
+xterm
+=====
+v2022.211
+
+
+Useful command-line options
+---------------------------
+
+* `-hold -e $SOME_COMMAND with optional arguments`: Run the command rather than a shell in the new `xterm` window and wait for the user to close the windows manually. Must be the last option. Alternatively, `[Ctrl]+[LMB]` can be pressed which will display a menu containing a "Quit" command.
+
+* `-maximized`: Create the window maximized (the exact window size resulting from this option will be determined by the X11 window manager.)
+
+
+If the fonts are too tiny, try something like this:
+
+----
+$ xterm -fa "-*-*-*-*-*-*-24-*-*-*-c-*-iso10646-*" -fs 16
+----
+
+where the last argument controls the font size. Increase or decrease it until you are pleased with the result.
+
+Also try to set those resources:
+----
+$ cat .Xresources
+! Customized X resources.
+XTerm*font: fixed
+XTerm*omitTranslation: fullscreen
+XTerm.?.metaSendsEscape: true
+XTerm.VT100.AppcursorDefault: true
+XTerm.VT100.background: black
+XTerm.VT100.faceName: DejaVu Sans Mono
+XTerm.VT100.faceSize: 15
+XTerm.VT100.faceSize1: 8
+XTerm.VT100.faceSize2: 10
+XTerm.VT100.faceSize3: 12
+XTerm.VT100.faceSize4: 16
+XTerm.VT100.faceSize5: 18
+XTerm.VT100.foreground: gray90
+XTerm.VT100.loginShell: true
+XTerm.VT100.renderFont: true
+XTerm.VT100.utf8Fonts.font: -*-*-*-*-*-*-24-*-*-*-c-*-iso10646-*
+XTerm.VT100.font: 10x20
+XTerm.VT100.geometry: 80x42
+----
+
+After updating your `~/.Xresources` file, do not forget to integrate its new contents into the currently running X11 session:
+
+----
+$ xrdb merge ~/.Xresources
+----

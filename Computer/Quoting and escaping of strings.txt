@@ -1,0 +1,25 @@
+﻿Quoting of text strings
+=======================
+
+
+POSIX shell
+-----------
+
+* Quoting is used to remove the special meaning of certain characters or words to the shell, such as operators, whitespace, or keywords. There are three types of quoting: matched single quotes, matched double quotes, and backslash.
+
+* Backslash preserves the literal meaning of the following character, with the exception of ⟨newline⟩. A backslash preceding a ⟨newline⟩ is treated as a line continuation.
+
+* Single Quotes enclose text strings in order to preserves the literal meaning of all the characters (except single quotes, making it impossible to put single-quotes in a single-quoted string).
+
+* Double Quotes enclose text strings in order to preserve the literal meaning of all characters except dollarsign ($), backquote (`), and backslash (\). The backslash inside double quotes is historically weird, and serves to quote only the following characters: $ ` " \ <newline>. Otherwise it remains literal.
+
+
+socat
+-----
+
+Within arguments to socat source or destination specifications, the following characters need to be escaped by prefixing them with a backslash:
+
+* ":"
+* ","
+
+This applies escpecially to the "EXEC:" specification. Note that literal spaces do not need to be escaped in socat (but the shell will require quoting of the socat arguments themselves).

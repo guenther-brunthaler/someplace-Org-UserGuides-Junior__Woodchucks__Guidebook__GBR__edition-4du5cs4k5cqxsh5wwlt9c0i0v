@@ -1,0 +1,66 @@
+CMOS BIOS Settings
+==================
+
+For AMD Phenom QuadCore host "xquad". Award BIOS.
+
+CPU: Phenom X4 9600 Black Edition, 2.3 GHz (I think; not completely sure).
+
+
+Power-On
+--------
+
+* Shortcut the two red-colored pins of the PANEL connector bar at one of the corners of the mainboard in order to power the machine on. (The neighboring two green-colored pins which are closer to the edge of the board will trigger a reset instead.)
+
+* Wait until the POST (power-on self-test) messages appear
+
+* Press [Del] during POST to enter Setup
+
+
+Load Optimized Defaults
+-----------------------
+
+Do it. Then change only the settings shown below.
+
+
+Standard CMOS Features
+----------------------
+
+* Date
+* Time (in UTC!)
+* Drive A: None
+
+
+Advanced BIOS Features
+----------------------
+
+* Virtualization: Enabled
+* AMD K8 Cool&Quiet control: Disabled
+* HDD S.M.A.R.T. Capability: Enabled
+* Init Display First: PEG
+
+
+Integrated Peripherals
+----------------------
+
+* OnChip SATA Type: SATA->AHCI
+* Onboard Parallel Port: Disabled
+
+
+Power Management Setup
+----------------------
+
+* USB Wakeup from S3: Disabled
+* PME Event Wake Up: Disabled
+
+
+Optional Kernel Command-Line Arguments
+--------------------------------------
+
+radeon.test=1
+radeon.benchmark=1
+
+
+Initramfs Pre-Boot Environment
+------------------------------
+
+Run script "sclock" to obtain a more exact time setting from hist "xrpi3".

@@ -1,0 +1,74 @@
+autotools based projects
+========================
+v2024.129
+
+
+Generate `autogen.sh`
+---------------------
+
+----
+$ unexpand > autogen.sh << '====='
+#! /bin/sh
+# This will generate "./configure". You need GNU autotools installed.
+
+set -e
+trap 'test $? = 0 || echo "\"$0\" failed!" >& 2' 0
+for f in AUTHORS ChangeLog NEWS README
+do
+        test -e $f && continue
+        > $f
+done
+exec autoreconf -i
+=====
+----
+
+
+Create `configure.ac`
+---------------------
+
+----
+$ autoscan
+$ test ! -e configure.ac && mv configure.scan configure.ac
+----
+
+Then add `AM_INIT_AUTOMAKE` after the `AC_INIT(...)` line
+
+....
+AC_INIT([myproject], [1.0], [BUG-REPORT-ADDRESS])
+AM_INIT_AUTOMAKE
+....
+
+If a `pkg-config` library is used by your project, also add
+
+....
+# Checks for libraries.
+PKG_CHECK_MODULES(SOME3RDPARTYLIB, 3rdparty)
+....
+
+where `3rdparty` is the pkg-config entry as shown by
+
+----
+$ pkg-config --list-all
+----
+
+
+Generate `Makefile.am`
+----------------------
+
+
+----
+cat > Makefile.am << '====='
+bin_PROGRAMS = myproject
+myproject_SOURCES = myproject.c myproject2.c myproject3.c
+DOCFILE = README
+EXTRA_DIST = autogen.sh $(DOCFILE)
+myproject_CPPFLAGS = $(SOME3RDPARTYLIB_CFLAGS)
+myproject_LDADD = $(SOME3RDPARTYLIB_LIBS)
+myprojectdir=$(docdir)
+myproject_DATA=$(srcdir)/$(DOCFILE)
+=====
+----
+
+Note that the files defined by `myproject_DATA` will be installed into the directory taken from a variable which as the same name as the target ("`myproject`") but with "`dirs`" added to the name of the variable.
+
+Also note that `myproject_SOURCES` is not required if only a single source file exists which has the same name as the target (except that a file extension like "`.c`" which is known to `automake` has been added).

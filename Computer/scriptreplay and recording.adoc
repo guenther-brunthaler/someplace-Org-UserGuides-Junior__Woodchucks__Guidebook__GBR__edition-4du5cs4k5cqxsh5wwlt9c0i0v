@@ -1,0 +1,179 @@
+﻿scriptreplay and recording
+==========================
+Günther Brunthaler
+v2020.154
+
+This guide explains how to use the `script` and `scriptreplay` commands for recording and playing back interactive shell sessions properly.
+
+
+Checking for the required utilities
+-----------------------------------
+
+The following command verifies that all non-standard utilities used by this guide are present:
+
+----
+$ (o=$IFS; for pf in \
+colorized-logs:ansi2txt dos2unix bsdmainutils:hexdump lrzip \
+bsdutils:script bsdutils:scriptreplay coreutils:stty tar
+do IFS=:; set $pf; IFS=$o; test "$2" || set $1 $1; \
+printf "checking for $2: "; command -v $2 && continue; echo "MISSING! \
+('sudo apt-get install $1' might install it on Debian-based system \
+installations)"; done) | grep MISSING || echo All OK
+----
+
+This will just display "`All OK`" if everything is already installed.
+
+If you prefer a more verbose output which also displays the utilities which have been found (and where), just insert a "`#`"-character immediately after the "`done)`".
+
+Not all of those utilities are required for every task described in this guide, and some can be easily replaced by others. However, installing them ensures this guide can be followed without deviation and improvisation.
+
+
+Record the session for playback
+-------------------------------
+
+Start the recording
+~~~~~~~~~~~~~~~~~~~
+
+----
+$ script -ttypescript.tm
+----
+
+This command will launch a new shell, and everything typed or output here will be recorded.
+
+Note that you do not need to hurry just for avoiding long pauses during playback later. There is a playback option which allows to limit the amount of time to pause during playback, shortening longer pauses in the recorded session to this. No need for stress when recording!
+
+
+Stopping the recording
+~~~~~~~~~~~~~~~~~~~~~~
+
+Just exit the shell launched by `script` earlier:
+
+----
+$ exit
+----
+
+This completes the recording.
+
+Note that that the starting and ending dates/times of the recording will have been written automatically to the first and last lines recorded file, respectively, so there is no need for you to manually write down this information.
+
+
+Archiving the recorded session
+------------------------------
+
+This is useful for long-term storage or for transferring the session to a different host for playback.
+
+The following command will move the files containing the recording into a high-efficiently compressed archive file `typescript.tar.lrz`:
+
+----
+$ tar -cf typescript.tar typescript typescript.tm \
+  && lrzip -L 9 -z typescript.tar && rm typescript.tar \
+  && rm typescript typescript.tm
+----
+
+If you want to keep the files rather than moving them into the archive, just comment out the very last line of the command (put a "`#`" immediately before the first character of the last line).
+
+Note that even though any compression utility can be used for archiving, `lrzip` is recommended because typescripts can become very large, especially if `make` output messages for large builds are part of the session, and `lrzip` is best equipped to handle that type of redundancy.
+
+
+Unpacking an archived recorded session
+--------------------------------------
+
+If the archived file has a different filename, you might want to rename it into "`typescript.tar.lrz`" at this point so you can follow the instructions below literally.
+
+----
+$ lrzip -d typescript.tar.lrz \
+  && tar -xf typescript.tar && rm typescript.tar \
+  #&& rm typescript.tar.lrz
+----
+
+Remove the "'#'" from the last line of you want to remove the archive file after unpacking it.
+
+
+Playing back a recorded session
+-------------------------------
+
+Preparing a terminal for replay
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order for replay to work properly, you need to make sure that the terminal window used for playback has the same character-cell width/height as the one used when recording.
+
+The output of
+
+----
+$ head -n 1 typescript
+----
+
+will show you something like this:
+
+....
+Script started on 2020-06-02 20:42:39+02:00 [TERM="screen" TTY="/dev/pts/43" COLUMNS="80" LINES="42"]
+....
+
+Then your best option is to start an 80 x 42 `xterm` with a command like this:
+
+----
+$ xterm -geometry 80x42 &
+----
+
+Note that your window manager might override such a size specification, and other terminal programs might need different options than `xterm` does.
+
+Consider using exactly the same terminal emulator program (as indicated by the TERM-setting in the first line of the typescript) as was used for the recording only in the case of noticable playback problems.
+
+
+Starting the playback
+~~~~~~~~~~~~~~~~~~~~~
+
+----
+$ scriptreplay -d 1.5 -m 6 typescript.tm
+----
+
+This will play back the recorded session at 50 % faster than in the recording (sped up by a factor of 1.5 which is usually a good choice), and shorten all recorded pauses which were longer to 6 seconds during the playback.
+
+Omit the "`-d 1.5`" from the command if you want to witness the exact original typing speed (except for long pauses which are still shortened).
+
+
+Stopping/Pausing the playback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The playback stops automatically when it is done.
+
+If you just want to pause playback, press `[Ctrl]+[s]` which will pause the output on most terminals. Press `[Ctrl]+[q]` to resume output later.
+
+You can also use job control (press `[Ctrl]+[z]` to stop playback and enter command `fg` to resume later), but this will interfere with the output and might screw up the initial part of the output of the resumed playback.
+
+In order to prematurely abort playback, just press `[Ctrl]+[c]` as usual.
+
+If you used `[Ctrl]+[c]` or `[Ctrl]+[z]`, it is possible that your terminal does not function correctly at this point because the playback switched into some strange input mode or switched the output color to be invisible.
+
+Therefore, if you don't see anything (or strange characters) after pressing those key combinations, blindly type in and execute the following command:
+
+----
+$ reset
+----
+
+This should reset the terminal, restoring normal behavior.
+
+
+Extracting a plain-text session transcript
+------------------------------------------
+
+Often you want to see just the text of the recorded session, so you can view it with `less` or open it in a text editor without the control characters in the recording screwing up your display. The following command will produce file "`typescript.txt`" containing such a transcript:
+
+----
+$ ansi2txt < typescript > typescript.txt \
+  && dos2unix typescript.txt
+----
+
+Note that the `ansi2txt`-utility is not perfect at filtering out all possible control characters, but it usually does a good job.
+
+When in doubt, you can also examine a character dump which will replace control characters by human-readable designations:
+
+----
+$ od -vta typescript | less
+----
+
+Alternatively, you might prefer a combined hexadecimal/ASCII dump of the recording:
+
+----
+$ hexdump -vC typescript | less
+----

@@ -1,0 +1,174 @@
+﻿Sun .au audio format
+====================
+v2024.155
+
+The *.au audio format was originally used on 'Sun Microcomputers', but is a very simple data format widely used especially in the 'UNIX' realm.
+
+It consists of a number of 32-bit words in big-endian encoding as the file header, followed by the audio sample data.
+
+.File Header
+[options="header,autowidth"]
+|===
+| Word | Title       | Description
+| 0    | magic       | ASCII "`.snd`" as the first 4 bytes of the file
+| 1    | start       | Absolute starting offset of sample data in bytes.
+| 2    | size        | Byte size of sample data, including the header. All bits "1" if unknown.
+| 3    | encoding    | See table. Most prominent: 2 = 8 bit PCM, 3 = 16 bit PCM.
+| 4    | sample_rate | Given as number of samples / second
+| 5    | channels    | 1 = mono, 2 = stereo etc.
+| 6    | annotation  | optional description string, null terminated. 4 bytes minimum size even if unused.
+|===
+
+Both `magic` and `annotation` are actually encoded as ASCII strings (one character per octet), not as big-endian words as their field size might suggest.
+
+The data `size` is normally restricted to 4 GiB minus 2 bytes. But if setting all bits of the `size` field to 1 then there is no size restriction. In this case the sample data continues until the end of the file is encountered.
+
+The minimum `start` is 28 (decimal). In the original Sun version this had to be a multiple of 8 bytes, but this restriction has been lifted.
+
+Some older implementation failed to properly null-terminate `annotation`, but `start` remains reliable even for those.
+
+'ffmpeg' uses `annotation` to store the track name (if any) in the format "`Title=$NAME`" where the whole resulting string is NUL-padded to a multiple of 4 bytes. It remains unclear whether the first NUL byte terminates the `$NAME` or is just alignment.
+
+.Encodings
+[options="header,autowidth"]
+|===
+| Value | Encoding
+| 0     | Unspecified
+| 1     | 8-bit G.711 μ-law
+| 2     | 8-bit linear PCM
+| 3     | 16-bit linear PCM
+| 4     | 24-bit linear PCM
+| 5     | 32-bit linear PCM
+| 6     | 32-bit IEEE floating point
+| 7     | 64-bit IEEE floating point
+| 8     | Fragmented sample data
+| 9     | Nested (unclear format)
+| 10    | DSP program
+| 11    | 8-bit fixed point
+| 12    | 16-bit fixed point
+| 13    | 24-bit fixed point
+| 14    | 32-bit fixed point
+| 15    | (Unassigned)
+| 16    | non-audio display data
+| 17    | μ-law Squelch format
+| 18    | 16-bit linear with emphasis
+| 19    | 16-bit linear compressed
+| 20    | 16-bit linear with emphasis and compression
+| 21    | Music kit DSP commands
+| 22    | Music kit DSP commands samples
+| 23    | ITU-T G.721 4-bit ADPCM
+| 24    | ITU-T G.722 SB-ADPCM
+| 25    | ITU-T G.723 3-bit ADPCM
+| 26    | ITU-T G.723 5-bit ADPCM
+| 27    | 8-bit G.711 A-law
+|===
+
+Values 0 through 255 are supposed to be assigned by a file format authority (was NeXT, now Oracle). Other values can be used for custom formats.
+
+All multi-byte per-channel sample formats use big-endian byte order.
+
+The 'PCM' formats are signed data (as opposed to unsigned) in 2's complement encoding.
+
+The 'µ-Law' and 'A-Law' formats are just linear-logarithmic mappings, allowing to store a wider range of sample values in less (tyically 8) bits. Mathematically this is not compression, but rather a form of companding.
+
+ADPCM are lossy formats.
+
+Only the 'PCM' and 'G.711' formats (used for speech compression in early cellular communication) are of practical interest, the remaining one are rarely used and other file formats liks 'MP3' oder 'AAC' will be more effective. Historically, most `.au` files were encoded as 8-bit `μ-Law`.
+
+`non-audio display data` has been used to store wave-based but non-audio data like brain waves or radio spectrum samples.
+
+
+File format attributes
+----------------------
+
+[options="autowidth"]
+|===
+| Filename extension v| .au
+|                     | .snd
+| MIME type           | audio/basic
+| Type code          v| public.au-audio
+|                     | public.ulaw-audio
+|===
+
+
+μ-law
+-----
+
+----
+f_μ(x) = sgn(x) * ln(1 + μ * abs(x)) / ln(1 + μ)
+----
+
+where
+
+----
+-1 <= x <= 1
+μ = 25
+----
+
+
+Quantized Algorithm
+~~~~~~~~~~~~~~~~~~~
+
+This converts a 2's complement signed 14-bit input integer into an unsigned 8 bit output integer.
+
+It quantizes the input integers from different from/to ranges into different numbers of intervals with different interval sizes.
+
+Then the (0-based) interval index within the range is added to the `output` column from the table below in order to obtain the 8-bit code.
+
+
+.Quantized μ-law algorithm
+[options="header,autowidth"]
+|===
+| from  | to    | intervals | interval_size | output
+| +8158 | +4063 | 16        | 256           | 0x80
+| +4062 | +2015 | 16        | 128           | 0x90
+| +2014 | +991  | 16        | 64            | 0xA0
+| +990  | +479  | 16        | 32            | 0xB0
+| +478  | +223  | 16        | 16            | 0xC0
+| +222  | +95   | 16        | 8             | 0xD0
+| +94   | +31   | 16        | 4             | 0xE0
+| +30   | +1    | 15        | 2             | 0xF0
+| 0     | 0     | 1         | 0             | 0xFF
+| −1  | -1    | 1         | 0             | 0x7F
+| −31   | −2    | 15        | 2         | 0x70
+| −95   | −32   | 16        | 4         | 0x60
+| −223  | −96   | 16        | 8         | 0x50
+| −479  | −224  | 16        | 16        | 0x40
+| −991  | −480  | 16        | 32        | 0x30
+| −2015 | −992  | 16        | 64        | 0x20
+| −4063 | −2016 | 16        | 128       | 0x10
+| −8159 | −4064 | 16        | 256       | 0x00
+|===
+
+
+A-law
+-----
+
+----
+F_A(x) = sgn(x) * numerator / (1 + ln(A))
+----
+
+where
+
+----
+A = 87.6
+numerator = A * abs(x) for abs(x) < 1 / A
+numerator = 1 + ln(A * abs(x)) for 1 / A <= abs(x) <= 1
+----
+
+----
+F_A_inverse(y) = sgn(y) * numerator / A
+----
+
+where
+
+----
+numerator = abs(y) * (1 + ln(A)) for abs(y) < 1 / (1 + ln(A))
+numerator = exp(-1 + abs(y) * (1 + ln(A))) for 1 / (1 + ln(A)) <= abs(y) < 1
+----
+
+
+Open Questions
+--------------
+
+* How are the fixed-point formats defined, especially regarding the sign?

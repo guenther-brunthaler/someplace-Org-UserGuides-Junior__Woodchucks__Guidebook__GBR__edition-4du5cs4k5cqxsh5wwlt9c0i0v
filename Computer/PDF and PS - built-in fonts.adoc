@@ -1,0 +1,16 @@
+
+When using only the following Fonts, PDF and PS Documents do not need to embed any fonts or reference any external fonts, making them smaller.
+
+The following 14 fonts will always be available, typically built-into the document viewers/printers themselves, or shipping as part of their installation:
+
+* Times (regular, italic, bold, bold italic): Has serifs.
+
+* Courier (regular, oblique, bold, bold oblique): Monospaced font.
+
+* Helvetica (regular, oblique, bold, bold oblique): Without serifs.
+
+* Symbol: Contains greek letters and mathematical symbols. Intended to be used together with "Times".
+
+* Zapf Dingbats: Bullets, smileys, boxes, circles, stars, game card symbols, check-marks, some action symbols, some object symbols.
+
+However, since Adobe Acrobat version 6, most of these fonts are not guaranteed to be available in the reader, and may only display correctly if the system has them installed (which can safely be assumed, I guess).

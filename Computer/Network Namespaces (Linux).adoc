@@ -1,0 +1,83 @@
+Setup and connect Linux networking namspaces
+============================================
+Guenther Brunthaler
+v2019.353
+
+This guide shows to isolate a shell from the default network stack by creating a new network stack just for the current shell.
+
+Then, a communication network device is added, allowing the shell to communicate with the other processes using the default network stack.
+
+We use 2 shells here:
+
+* The one with the prompt `host $` represents a root shell which will use the default network stack.
+
+* The one with the prompt `separate $` represents a root shell which will use the new isolated network stack.
+
+First we create the new network stack:
+
+----
+separate $ unshare -n $SHELL -l # Create shell with new network stack
+separate $ echo $$ # Report PID (value shown is just an example)
+12345
+----
+
+Then we create a "network fifo" consisting of two virtual Ethernet interfaces named "2host" and "2separate". Both devices are connected with one another, as if they were the only two devices connected to their private Ethernet bus.
+
+----
+host $ ns=12345 # Type in here the PID of the isolated shell
+host $ ip link add 2host type veth peer name 2separate # create pair
+----
+
+Now we move one of the two connected virtual interfaces ("2host") to the other isolated namespace:
+
+----
+host $ ip link set 2host netns $ns
+----
+
+Now, virtual interface "2host" is only visible in the network namespace belonging to shell "separate", whereas interface "2separate" remains in the default namespace used by shell "host".
+
+Now we assign IP-adresses for the same class B network to both virtual devices, allowing to use them from applications:
+
+----
+separate $ ifconfig 2separate 160.128.0.2 netmask 255.255.0.0 up
+----
+
+and
+
+----
+host $ ifconfig 2host 160.128.0.1 netmask 255.255.0.0 up
+----
+
+Note that those commands automatically add a route for accessing the network, so we don't need to set a route manually.
+
+Now the host can be reached with address `160.128.0.1` from within the "separate" shell, and the host can reach the separate shell with address `160.128.0.2`.
+
+Testing:
+
+----
+separate $ ping -c1 160.128.0.1 | grep packets
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+----
+
+and
+
+----
+host $ ping -c1 160.128.0.2 | grep packets
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+----
+
+All is fine!
+
+
+What to use the separate namespace for
+--------------------------------------
+
+Run daemons or applications from the 'separate' shell which listen on unwanted interfaces.
+
+This is especially true for programs which always bind to all interfaces and do not support an option for binding to a particular interface (such as 127.0.0.1) only.
+
+When running such programs in a networking namespace, they can only bind to the virtual Ethernet device, because no other interfaces will be visible there.
+
+Now other hosts cannot access those daemons directly from the outside any more.
+
+But is still possible to access them securely via an SSH tunnel, by creating local SSH port forwardings to address `160.128.0.2` on the remote host.

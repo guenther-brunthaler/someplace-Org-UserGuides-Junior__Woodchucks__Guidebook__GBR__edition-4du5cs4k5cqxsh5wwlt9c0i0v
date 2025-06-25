@@ -1,0 +1,329 @@
+Usage of "Open With..." in file managers
+========================================
+v2020.59
+
+XDG-compliant file managers usually provide an 'Open With...' context menu entry for passing the currently selected files to a user-defined command.
+
+This document describes how to specify such a command correctly, even if it happens to be a complex "one liner" in some shell language.
+
+Note that the same methods can be used to create a suitable command for the `Exec`-key of a `*.desktop` file, although an additional layer of quoting will be required then.
+
+
+Basic command syntax
+--------------------
+
+Arguments
+~~~~~~~~~
+
+The command expected to be entered by 'Open With...' consists of arguments separated by a single space character.
+
+The first argument must represent an executable program and must not contain "=". It can be absolute or will be located via `$PATH`.
+
+Any number of arguments may follow. Certain special arguments will be replaced by macro expansions before the executable is run.
+
+All arguments are separated by a single space.
+
+
+Quoting
+~~~~~~~
+
+Arguments (including the first argument specifying the program) containing any of the following characters must be quoted by enclosing them between double quotes:
+
+* space
+* tab
+* newline
+* double quote
+* single quote
+* backslash character
+* greater-than sign
+* less-than sign
+* tilde
+* vertical bar
+* ampersand
+* semicolon
+* dollar sign
+* asterisk
+* question mark
+* hash mark
+* (round) parentheses
+* backtick character
+
+
+Escaping
+^^^^^^^^
+
+Within such quoted arguments, the following literal characters must be escaped by prefixing them with a backslash character:
+
+* double quote character
+* backtick character
+* dollar sign
+* backslash character
+
+
+Macros
+~~~~~~
+
+Certain special arguments will expanded by 'Open With...' as macros.
+
+Those macros will only be recognized as such if they occur as individual arguments which must not have been quoted:
+
+%%:: A literal %
+%f:: A single file name. Indicates that the application cannot handle more
+%F:: A list of all file arguments. Must be a separate argument
+%u:: A single URL. Indicates that the application cannot handle more
+%U:: A list of URL arguments. Must be a separate argument
+%c:: The translated name of the application
+%k:: The location of the .desktop file as a URI, local file name or empty if unknown
+
+Each individual macro invocation should occur at most once as an argument of the whole command.
+
+If `%f` is used but multiple files have been selected, the command will be run multiple times in parallel, once for every individual selected file.
+
+
+Example
+--------
+
+Open all selected files as individual instances of the GUI-based `leafpad` text editor:
+
+----
+leafpad %f
+----
+
+
+Using a pager within a terminal window
+--------------------------------------
+
+This assumes the command output should be shown in a terminal window and may produce an unknown and possibly very large amount of output lines, so we will make use of the `less` pager for allowing the user to scroll through the output.
+
+For instance, let's say you select a couple of files and/or directories in your XDG-compliant file manager and want to display `ls -ld` for them in an `xterm` window which shall stay open until explicitly closed by you.
+
+First we need to come up with a shell command which creates the output that we want to see in the `xterm`.
+
+We start with the command that creates the actual output:
+
+----
+ls -ld -- "$1"
+----
+
+This assumes someone has set the pathname of the file to be listed as the only positional argument of the current shell instance.
+
+Note that the `$1` argument has been put within double-quotes. This protects against a single file name containing spaces to be mis-interpreted as multiple file names separated by spaces.
+
+Also note the `--` after last option for `ls`. This tells `ls` to stop looking for further option arguments at this point and protects against the file name passed as `$1` to be mis-interpreted as options if it happens to start with a "`-`" character.
+
+However, in this case we do not want just to list a single file, but any number of files currently selected in the file manager at the time when the command is run.
+
+Therefore, we re-write the command as a `for`-loop, assuming all filenames have been set as the positional arguments (`$1`, `$2` and so on) of the current shell instance by someone:
+
+----
+for f; do ls -ld -- "$f"; done
+----
+
+Note that the `for`-loop without an `in` clause automatically iterates over all the positional arguments of the shell instance, which is exactly what we want here.
+
+Next, we pipe this output through the `less` pager:
+
+----
+for f; do ls -ld -- "$f"; done | less
+----
+
+In order to pass this command sequence to `xterm`, we must convert it into an invocation of the shell executable, because `xterm` can execute only scripts or programs but it is not a shell itself and therefore has no idea about `for` and other syntactic elements of the shell language.
+
+We will use the standard POSIX shell `sh` in this example as the shell executable, but you could invoke `bash`, `dash` or any other POSIX-compliant shell as well:
+
+----
+sh -c 'for f; do ls -ld -- "$f"; done | less' --
+----
+
+Note that the `--` at the end is essential for the `sh` command passing additional arguments (which will be added later) as positional arguments through to the commands specified with `-c`.
+
+Now we put this command as the `-e` Argument to an `xterm` invocation, making `xterm` execute this command as soon as it has created its terminal window:
+
+----
+xterm -e sh -c 'for f; do ls -ld -- "$f"; done | less' --
+----
+
+Now we split this command manually into separate arguments, as the shell would also do it when executing it:
+
+----
+xterm
+-e
+sh
+-c
+for f; do ls -ld -- "$f"; done | less
+--
+----
+
+Note that the single quotes were removed from the argument of the `-c` option as part of the process, because they only used to quote the argument but are not actually part of it.
+
+Next we add the `%F` argument which will be interpreted by `Open With...` and will be expanded into the list of currently selected files in the file manager's window at the time the command is run.
+
+----
+xterm
+-e
+sh
+-c
+for f; do ls -ld -- "$f"; done | less
+--
+%F
+----
+
+Now we have all the arguments for the `Open With...` command, and we need to properly quote them if necessary.
+
+----
+xterm
+-e
+sh
+-c
+"for f; do ls -ld -- \"\$f\"; done | less"
+--
+%F
+----
+
+Note that only the argument starting with `for` contained any characters which require quoting, so only that argument has been quoted.
+
+Within the quoted argument, the characters which need to be escaped within double-quoted strings were escaped using backslashes.
+
+Now we can concatenate this into a complete command for use with `Open With...` by separating all arguments by a single space:
+
+----
+xterm -e sh -c "for f; do ls -ld -- \"\$f\"; done | less" -- %F
+----
+
+
+Make the command an `Exec=`-key
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If we want to use this command not just in "Open With..." but rather as an actual value for the `Exec` key in a `*.desktop` file, the command needs to be further escaped according to 'localestring' escaping rules.
+
+The whole line from the `*.desktop` file then look as follows:
+
+----
+Exec=xterm -e sh -c "for f; do ls -ld -- \\"\\$f\\"; done | less" -- %F
+----
+
+In this case, only the bashslashes needed to be doubled for escaping them.
+
+
+Using the terminal's built-in scrollback buffer
+-----------------------------------------------
+
+This is a better choice if the command will produce a known number of output lines, or at least not exceed a known maximum number of output lines.
+
+This method avoids usage of a pager and will use the terminal's built-in scrollback buffer for scrolling through the output instead.
+
+This has the advantage that the user does not need to use the keyboard for operating the pager; instead everything can be done only using the mouse.
+
+For instance, let's say we want to display the output of ImageMagick's `identify` command with verbosity enabled for a single selected graphics format file such as a `.jpg` file and also the MD5 hash of that file.
+
+The `xterm` window displaying this information shall remain open after the command has completed, and the user shall explicitly close it when no longer needed.
+
+If the output of `identify` happens to be larger than than what fits in the terminal window, the terminal's built-in scrollback buffer shall be used by the user to view the remaining output.
+
+First we need to come up with a shell command which creates the output that we want to see in the `xterm`.
+
+----
+identify -verbose -- "$1"; echo; md5sum -b -- "$1"
+----
+
+This assumes someone has set the pathname of the file to be listed as the only positional argument of the current shell instance.
+
+Note that the `$1` argument has been put within double-quotes. This protects against a single file name containing spaces to be mis-interpreted as multiple file names separated by spaces.
+
+Also note the `--` after last options for the `identify` and `md5sum` commands. This tells both programs to stop looking for further option arguments at this point and protects against the file name passed as `$1` to be mis-interpreted as options if it happens to start with a "`-`" character.
+
+In order to pass this command sequence to `xterm`, we must convert it into an invocation of the shell executable for the reasons already explained in the previous example.
+
+We will use the standard POSIX shell `sh` in this example as the shell executable:
+
+----
+sh -c 'identify -verbose -- "$1"; echo; md5sum -b -- "$1"' --
+----
+
+Note that the `--` at the end is essential for the `sh` command passing additional arguments (which will be added later) as positional arguments through to the commands specified with `-c`.
+
+Now we put this command as the `-e` Argument to an `xterm` invocation, making `xterm` execute this command as soon as it has created its terminal window:
+
+----
+xterm -hold -rightbar -sl 500 -sb -e sh -c 'identify -verbose -- "$1"; echo; md5sum -b -- "$1"' --
+----
+
+The `-hold` option will make the `xterm` window remain open after the command has finished, allowing to use the usual methods (such as pressing the close-button of the window) provided by the window manager in order for the user to close the window when it is no longer needed.
+
+The `-sl 500` option sets the size of the `xterm`'s scrollback buffer to 500 lines. We expect the actual output to be in the range of about 100 lines, but in order to play things safe we support command outputs five times as much before the rest would be cut off because the scrollback buffer was too small.
+
+The `-sb` makes `xterm` display a scrollbar, and `-rightbar` positions it at the right edge of the terminal window. This scrollbar can then be paged up/down using the left and right mouse buttons, or the currently displayed section can directly be moved using the middle mouse button.
+
+Now we split this command manually into separate arguments, as the shell would also do it when executing it:
+
+----
+xterm
+-hold
+-rightbar
+-sl
+500
+-sb
+-e
+sh
+-c
+identify -verbose -- "$1"; echo; md5sum -b -- "$1"
+--
+----
+
+Note that the single quotes were removed from the argument of the `-c` option as part of the process, because they only used to quote the argument but are not actually part of it.
+
+Next we add the `%f` argument which will be interpreted by `Open With...` and will be expanded as one of the currently selected files in the file manager's window at the time the command is run. (If more than one file is selected, the whole command will be run multiple times by the file manager, resulting in as many `xterm` windows as files have been selected.)
+
+----
+xterm
+-hold
+-rightbar
+-sl
+500
+-sb
+-e
+sh
+-c
+identify -verbose -- "$1"; echo; md5sum -b -- "$1"
+--
+%f
+----
+
+Now we have all the arguments for the `Open With...` command, and we need to properly quote them if necessary.
+
+----
+xterm
+-hold
+-rightbar
+-sl
+500
+-sb
+-e
+sh
+-c
+"identify -verbose -- \"\$1\"; echo; md5sum -b -- \"\$1\""
+--
+%f
+----
+
+Note that only the argument starting with `identify` contained any characters which require quoting, so only that argument has been quoted.
+
+Within the quoted argument, the characters which need to be escaped within double-quoted strings were escaped using backslashes.
+
+Now we can concatenate this into a complete command for use with `Open With...` by separating all arguments by a single space:
+
+----
+xterm -hold -rightbar -sl 500 -sb -e sh -c "identify -verbose -- \"\$1\"; echo; md5sum -b -- \"\$1\"" -- %f
+----
+
+
+Letting the file manager invoke a terminal emulator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+XDG-compliant file managers usually provide a checkbox for running the command in a terminal when `Open With...` is invoked for running a user-defined command.
+
+In this case, the example above can still be used as-is, except that all the initial arguments up to the `-e` must be removed.
+
+There is typically also a second checkbox for keeping the terminal window open after the command terminates. This should usually be also enabled when making use of the beforementioned option.
+
+A disadvantage of this method is that the user has less control about the way the scrollback buffer of the terminal works or how large it is.

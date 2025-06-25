@@ -1,0 +1,40 @@
+Network Filesystems
+===================
+v2020.102
+
+
+NFS
+---
+
+Edit `/etc/exports` then reload `nfs-kernel-server` service.
+
+
+Ports used by the various NFS services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2049/tcp+udp: rpc.nfsd (NFS server process)
+111/tcp+udp: rpcbind
+?????/tcp+udp: rpc.mountd (a dozen or so random high ports)
+none: rpc.idmapd
+
+
+DHCP/PXE
+--------
+
+In addition to NFS (as shown above):
+
+53, 67, 69: dnsmasq
+
+53 tcp+udp: DNS
+67/udp: bootps
+69/udp: TFTP
+
+The rpcbind utility is a server that converts RPC program numbers into universal addresses. It must be running on the host to be able to make RPC calls on a server on that machine. The `rpcinfo` shows the information currently registered with that service.
+
+The rpc.mountd daemon implements the server side of the NFS MOUNT protocol, an NFS side protocol used by NFS version 2 and NFS version 3.
+
+rpc.idmapd is the NFSv4 ID <-> name mapping daemon. It provides functionality to the NFSv4 kernel client and server, to which it communicates via upcalls, by translating user and group IDs to names, and vice versa.
+
+Note that on more recent kernels only the NFSv4 server uses rpc.idmapd. The NFSv4 client instead uses nfsidmap(8), and only falls back to rpc.idmapd if there was a problem running the nfsidmap(8) program.
+
+Network file systems must also detect when lock state is lost because aremote  host  has rebooted. For NFS version 2 and NFS version 3, the Network Status Monitor protocol (or NSM for short) is used to notify NFS peers of reboots. sm-notify is a helper program that notifies NFS peers after the local system reboots

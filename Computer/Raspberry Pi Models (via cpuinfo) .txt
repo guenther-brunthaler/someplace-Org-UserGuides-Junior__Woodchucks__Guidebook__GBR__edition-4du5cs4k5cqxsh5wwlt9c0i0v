@@ -1,0 +1,75 @@
+Raspberry Pi
+============
+Guenther Brunthaler
+v.2019.184
+
+
+/proc/cpuinfo
+-------------
+
+This worked since the first models.
+
+----
+Hardware Revision Code from cpuinfo [, Model and PCB Revision, RAM]
+0002, Model B Rev 1, 256MB
+0003, Model B Rev 1 ECN0001 (no fuses, D14 removed), 256MB
+0004, Model B Rev 2, 256MB
+0005
+0006
+0007, Model A, 256MB
+0008
+0009
+000d, Model B Rev 2, 512MB
+000e
+000f
+0010, Model B+, 512MB
+0013
+900032
+0011, Compute Module, 512MB
+0014 (Embest, China), Compute Module, 512MB
+0012, Model A+, 256MB
+0015 (Embest, China), Model A+, 256MB
+0015 (Embest, China), Model A+, 512MB
+a01041 (Sony, UK), Pi 2 Model B v1.1, 1GB
+a21041 (Embest, China), Pi 2 Model B v1.1, 1GB
+a22042, Pi 2 Model B v1.2, 1GB
+900092 (no camera connector), Pi Zero v1.2, 512MB
+900093 (camera connector), Pi Zero v1.3, 512MB
+9000C1, Pi Zero W, 512MB
+a02082 (Sony, UK), Pi 3 Model B, 1GB
+a22082 (Embest, China), Pi 3 Model B, 1GB
+a020d3 (Sony, UK), Pi 3 Model B+, 1GB
+----
+
+Source:
+https://www.raspberrypi-spy.co.uk/2012/09/checking-your-raspberry-pi-board-version/
+
+Linked from:
+https://www.raspberrypi-spy.co.uk/2012/09/raspberry-pi-board-revisions/
+
+
+/sys
+----
+
+It is unclear since when this method will be working. At least it works with current model/kernels (2018).
+
+----
+$ cat /sys/firmware/devicetree/base/compatible
+raspberrypi,3-model-bbrcm,bcm2837
+
+$ cat /sys/firmware/devicetree/base/model
+Raspberry Pi 3 Model B Rev 1.2
+
+$ cat /sys/firmware/devicetree/base/serial-number
+0000000012345678
+----
+
+Those nicely formatted values do not come from the hardware itself, but rather from the DeviceTree-BLOBs that have been installed on /boot as part of the Raspbian kernel package.
+
+Since those BLOBs have not been around since the first days of the RPi but have rather been added later, it can be expected that the above /sys-entries will be missing for Raspis with very old kernels that have not been updated since.
+
+
+Chips
+-----
+
+Raspberry Pi 4:: BCM2711

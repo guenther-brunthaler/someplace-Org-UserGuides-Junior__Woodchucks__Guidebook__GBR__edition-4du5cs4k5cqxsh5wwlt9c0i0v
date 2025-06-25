@@ -1,0 +1,576 @@
+﻿Source Package Building on Debian
+=================================
+v2025.9
+
+
+Abstract
+--------
+
+This guide explains how to build binary packages from source packages.
+
+It does *not* explain the various ways to create packages manually or extract further information from them. (Use the link:Debian%20Package%20Management.html[Debian Package Management] guide for that instead.)
+
+
+Install basic build tools
+-------------------------
+
+----
+$ sudo apt-get install build-essential fakeroot devscripts
+----
+
+
+Preparing
+---------
+
+Before to actually start to build or download anything, create a base directory somewhere where this shall take place:
+
+----
+$ mkdir -p src/debian && cd src/debian
+----
+
+But most important, set a variable to the name of the Debian package you want to build yourself:
+
+----
+$ PKG=some_package_name
+----
+
+Then it might be best to create a separate download directory for the package and go there:
+
+----
+$ mkdir -- "$PKG" && cd -- "$PKG"
+----
+
+
+The official way
+----------------
+
+This is the officially recommended way to build a package yourself.
+
+It requires Internet access and lots of download bandwidth, because everything needed will be downloaded directly to the local machine.
+
+This approach will download all files automatically as a consequence of the various official package management commands.
+
+But this has the disadvantage that an additional set of package lists for the source packages need to be updated every time "`apt-get update`" is run.
+
+This will increase the total download volume required considerably, approximately twice the amount required for the alternative way of searching manually for the download URLs using a web browser.
+
+As a preparation, add "`deb-src`"-lines to your "`/etc/apt/sources.list`", unless already there. Normally, "`deb`"-lines can be duplicated as "`deb-src`"-lines by copying the line, replacing "`deb`" by "`deb-src`".
+
+Then make sure that the downloaded source packages lists are up to date:
+
+----
+$ sudo apt-get update
+----
+
+If some `apt`-related command like the above reports a “Release file expired” problem on a local mirror, add this option to the failed command:
+
+....
+-o Acquire::Check-Valid-Until=false
+....
+
+After resolving this issue, if any, the source files and build dependencies of the package to be build need to be downloaded.
+
+
+Variant 1: Download immediately
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is simple:
+
+----
+$ apt-get source $PKG
+----
+
+All source and metadata files required for building $PKG will be downloaded to the current directory.
+
+In addition to that, a new subdirectory will be created for the build and the downloaded files will be extracted to it.
+
+
+Variant 2: Download mostly offline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This will only download very small build description files, and download everything else on a different host.
+
+A shell script will be constructed to be run there for performing the actual download.
+
+Then the downloaded files need to be transferred to the local machine using some unspecified means of transport, such as a USB stick.
+
+First, get the information what source files to download from where:
+
+----
+$ apt-get source --print-uris -qq $PKG | sort | tee sources.txt
+----
+
+Next, we define some temporary helper shell functions for converting the output of the above commands in a shell script for performing the actual download:
+
+----
+mkdls() { while read -r u f r; do echo "wget -q -c -O $f $u"; done; }
+
+mkverbose() { sed ${1+"-i"} 's/wget -q /wget /' ${1+"$@"}; }
+
+mkcps() { s=${1:?"source dir?"} && test -d "$s" && while read -r r f r; do echo "cp -iv $s/$f ."; done; }
+----
+
+The second helper function can be used to make a generated script verbose rather than silent. It can either be used as a filter or for modifying an existing silent script.
+
+The third script is a replacement for the first and can be used to copy the files from some local cache directory rather than downloading them again.
+
+Now make use of the helper function to create a download script for the relatively small build description files and execute that script:
+
+----
+$ grep '.dsc ' sources.txt | mkdls | mkverbose | tee get-$PKG-dscs.sh
+$ grep -v '.dsc ' sources.txt | mkdls | mkverbose | tee get-$PKG-srcs.sh
+$ sh -ex get-$PKG-dscs.sh
+----
+
+Of course, it would also be possible to execute that script on a different host and transfer back the downloaded files from there later, in case no online access is available at all.
+
+Anyway, execute both scripts generated above on some host and transfer the dowloaded files to the current directory somehow.
+
+After you are done, run
+
+----
+$ apt-get source $PKG
+----
+
+in order to verify that all source archives and metadata files have been downloaded already. This command should not have anything to download left, and report that 0 files need to be downloaded.
+
+However, as a side effect of running the command, the source files shall be unpacked into a new build subdirectory.
+
+
+The alternative way
+-------------------
+
+This requires more manual work, but has the advantage that no `deb-src` entries are required in your `sources.list`, thus approximately halving the data traffic volume for running "`apt-get update`".
+
+Another advantage is the fact that the build dependencies as well as the source files can be downloaded separately from the actual build steps in advance.
+
+First, use a web browser to visit
+
+`https://www.debian.org/distrib/packages`
+
+and enter the name of the package to be built in the search field (not that at the top of the page but rather the one more down towards the middle of the page).
+
+Then select for which distribution release suite (such as `stable`) the source files are intended. This will eventually lead to a web page such as
+
+`https://packages.debian.org/bullseye/keepassx`
+
+for information about the `keepassx` binary package (just as an example).
+
+Now launch your text editor in the current directory and create a new file `URLs.txt` where to copy the source download URIs into.
+
+Look at the web page mentioned above in the case of this example and search for a section looking like this:
+
+....
+Links for keepassx
+
+Debian Resources:
+
+    ...
+
+Download Source Package keepassx:
+
+    [keepassx_2.0.3+git20190121.1682ab9-2.2.dsc]
+    [keepassx_2.0.3+git20190121.1682ab9.orig.tar.gz]
+    [keepassx_2.0.3+git20190121.1682ab9-2.2.debian.tar.xz]
+
+Maintainer:
+    ...
+....
+
+Now use your browser to select the download links for all the files in the "`Download Source Package`"-section and copy the link URLs into your new text document.
+
+After this, actually perform the source downloads via
+
+----
+$ wget -i URLs.txt
+----
+
+in order to create a script `dls.sh` in the current directory for downloading those dependencies.
+
+If you do not have the script `apt-get-print-updates-uris`, it can be downloaded via
+
+----
+$ wget https://raw.githubusercontent.com/guenther-brunthaler/usr-local-sbin-xworld-debian-i7plqrb7887azjcnxws0tsve0/master/apt-get-print-updates-uris
+----
+
+Next, run the script for actually performing the required downloads:
+
+----
+$ sh dls.sh --verbose
+----
+
+This can also be done on a different machine, as long as the downloaded files are transferred back to the local machine somehow.
+
+
+[[debdiff]]
+Create and apply source version deltas
+--------------------------------------
+
+Usually a Debian source package consists of an original source archive file, a Debian-specific patch archive file, and a *`.dsc` build description file.
+
+Frequently when a bug in a packages is fixed by the Debian maintainers, the source archive stays the same, but the contents of the other files change a little (slightly different package version number, additional or modified patches in the patch archive file).
+
+If an older version of the source package files is already available, it can be easier to transfer/download/archive only a space-saving small delta file between the old and new source package and reconstruct the new source package files from this later.
+
+Let's assume we have an old build description file `${pn}_$ov.dsc` and a newer version `${pn}_$nv.dsc` of it (plus all the source archive files referenced by the description files). We can then create a source package delta file `${pn}_${ov}_to_$nv.debdiff.gz` as follows:
+
+----
+ls ${pn:?}_${ov:?}.dsc ${pn:?}_${nv:?}.dsc
+
+debdiff "${pn:?}_$ov.dsc" "${pn:?}_$nv.dsc" | gzip -9c > "${pn:?}_${ov:?}_to_$nv.debdiff.gz"
+----
+
+Should the debdiff command fail due to an expired key, just edit the *.dsc files and remove the GPG signature blocks (including any empty lines left at the top or bottom of the files after the signature block removals).
+
+Later we can reconstruct all the new source packages files from the old ones and the single delta file as follows:
+
+----
+$ zcat < "${pn:?}_${ov:?}_to_$nv.debdiff.gz" | debdiff-apply "${pn:?}_$ov.dsc"
+----
+
+
+Install the build dependencies
+------------------------------
+
+At this point we either have all the files needed for the actual build or at least the build description files.
+
+However, the build may depend on additional development packaged or build tools in order to succeed. Those are call 'build dependencies' and we have to install them before the build can commence.
+
+As with downloading of the actual source files, there are two variants.
+
+
+Variant 1: Download immediately
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is simple:
+
+----
+$ sudo apt-get build-dep $PKG
+----
+
+The build dependencies, if any, will be downloaded as well as being installed.
+
+
+Variant 2: Download mostly offline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We start this by getting a list with download information:
+
+----
+$ apt-get --print-uris -qq build-dep $PKG | tee bdeps.txt
+----
+
+Now we use our helper functions defined above for creating a download script from this information:
+
+----
+$ cat bdeps.txt | mkdls | mkverbose | tee get-$PKG-bdeps.sh
+----
+
+Now run that script on some host with a suitable Internet connection as
+
+----
+$ sh -ex get-$PKG-bdeps.sh
+----
+
+and transfer the downloaded files back to the build host into some temporary directory `$DLTEMP`.
+
+Then create a script for copying the downloaded files into the system's package download cache and run it as superuser:
+
+----
+$ echo cd /var/cache/apt/archives | tee copy-$PKG-bdeps.sh
+$ mkcps "$DLTEMP" | tee -a copy-$PKG-bdeps.sh
+$ sudo sh -xe "$PWD/copy-$PKG-bdeps.sh"
+----
+
+This should have transferred the downloaded build dependency package files to the package cache.
+
+Now run
+
+----
+$ apt-get build-dep $PKG
+----
+
+as for the first variant. This should not find anything left to be downloaded, and will actually install the build dependency packages.
+
+
+Install build dependency metapackage
+------------------------------------
+
+Although the build dependencies are installed now and we could start the actual build, there is still one problem: How to track those build dependencies, so we can uninstall them later if desired.
+
+This problem can be solved by creating and installing a new metapackage which depends on all the build dependencies of $PKG.
+
+Now that you have the source files (including the `*.dsc` build control file), you need to make sure the build dependencies are installed.
+
+In order to do that, first, create a temporary subdirectory for the metapackages and create them there. Then install them. Finally, remove the temporary directory after successfully installing the metapackages.
+
+----
+$ mkdir bdeps && cd bdeps
+$ mk-build-deps ../*.dsc
+$ sudo dpkg -i *.deb
+$ cd .. && rm -rf bdeps
+----
+
+Note that the `mk-build-deps` does not need `fakeroot` - it invokes it itself internally.
+
+
+Actually building the packages
+------------------------------
+
+This assumes the source files including the `*.dsc` build control files have already been downloaded and that metadata packaged for all required build dependencies have also already been installed.
+
+Now execute (without `fakeroot`)
+
+----
+$ ls -d *.dsc > builds_left
+----
+
+This will populate a new work file with a list of builds left.
+
+Then repeat for all builds:
+
+[[repeat_builds]]
+----
+head -n 1 builds_left > this_build && sed -i '1d' builds_left && IFS= read -r dsc < this_build || echo "*** Everything has already been built!" >& 2
+----
+
+Unless this command displayed a message that we are done, continue with the following commands.
+
+
+[[unpack_debsrc]]
+Unpacking the debsrc package
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Other than Debian binary `*.deb` and `*.udeb` packages, Debian source packages ("debsrc") consist of several files.
+
+At the very minimum, they consist of a `*.dsc` file and a `*.debian.tar.*` file which use the package version as part of their file names.
+
+But usually a debsrc package also includes at least one additional source archive file, containing the actual source code of the package to be built or to be just installed (in case of scripts or static files such as man pages).
+
+Which files excactly represent a debsrc package can be determined by looking into the `Files:` section of its `*.dsc` file. This section lists all the package's individual files except for the `*.dsc` file itself which is always part of the debsrc package.
+
+The following command unpacks the contents of such a debsrc package into a new build directory:
+
+----
+# If there are still builds left:
+echo "Next build: $dsc"
+rm -rf build
+dpkg-source -x "$dsc" build
+----
+
+This unpacks the sources and applies all patches. `build` can be omitted and defaults to the current directory. In both cases, the files will be unpacked into a subdirectory named after the package.
+
+If you have modified or renamed the source archives before building, add `--no-check` in order to ignore checksum and digital signature mismatches. This will also ignore any PGP signature blocks and the name of the `*.debian.tar.*` file listed in the `Files:` and `Checksums-*:` sections of the `*.dsc` file.
+
+The `--no-check` option is also necessary if the build dependencies shall be changed after unpacking and cannot be satiesfied before that change.
+
+
+[[running_debuild]]
+Performing the build
+~~~~~~~~~~~~~~~~~~~~
+
+. Change into the package source directory
++
+--
+----
+$ cd build
+----
+
+You might want to add your custom patches now.
+
+CAUTION: When using `quilt` for this, be sure to get rid of any pre-existing `~/.pc` directory first. Also `export QUILT_PATCHES` in order to store your patches somewhere outside the build directory.
+--
+
+. Rebuild without changes to test validity of build setup:
++
+----
+$ debuild -b -uc -us
+----
+
+. Create the patch using dpatch or quilt.
+
+. Consider to run
++
+----
+$ fakeroot dch -n
+----
++
+for updating the changelog file
+
+. Build again as a debugging version
++
+----
+$ DEB_BUILD_OPTIONS='nostrip noopt debug' fakeroot dpkg-buildpackage -b -uc -us
+----
+
+Available `$DEB_BUILD_OPTIONS` depend on individual `dh_`* helper executables which have separate `man` pages, but here are some of the most useful ones:
+
+* `nocheck`: Suppress running unit tests. This is especially useful if some unit test tries to access the Internet, but this has been blocked by a firewall. Then the build will fail without this option.
+
+After the package has been build successfully, move back to the parent directory
+
+----
+$ cd ..
+----
+
+and then continue after the "Repeat for all builds"-<<repeat_builds,instructions>> until all packages have been built.
+
+
+Creating a Debian version number for an upstream project
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two types of Debian packages:
+
+* native: Developed by Debian developers internally. For example "apt".
+
+* non-native: All normal packages (not specifically developed by and for the Debian platform).
+
+All non-native packages use a Debian version number which is comprised of the parts "`<UpstreamVersion>-<DebianRevision>`".
+
+The upstream version is defined by the upstream developers and might only be modified slightly to fit the syntax requirements of Debian version numbers.
+
+The Debian revision number normally starts at `1` for the initial Debian version based on that exact upstream version. The Debian revision will increment for follow-up versions of the Debian package (which will typically apply additional patches) based on the same upstream version.
+
+Whenever the upstream version number changes, the Debian revision number needs to be be reset (typically to `1`).
+
+The Debian revision number must contain only alphanumerics and "`+`", "`.`", "`~`".
+
+When a Debian package already exists for an upstream project but you want to release your own version of such a package (typically a pre-release of a newer upstream version), the Debian revision number should "<MaintainerRevision>.<YourSubRevision>" instead.
+
+This is also called a 'Non-Maintainer Upload' (NMU). That is, use "`1.1`" rather than just "`1`" as the Debian revision in such cases.
+
+
+[[change_ver_num]]
+Changing the package version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You probably also want to change the version number of the package in order to avoid for the modified package to be overwritten with the original package at the next upgrade.
+
+First you need to decide on a new version.
+
+It is recommended to append one of the following strings to the extracted contents of the package version field from the original `*.dsc` file:
+
+* "`+debug1`" when recompiling existing package version
+
+* "`~pre1-1`" when compiling unreleased version of a package which does not exist in Debian yet. This must be appended to the upstream version number, which has not been released yet. The "`~pre1`" means it is the first pre-release of the upcoming upstream version. Only upstream can create pre-releases. The "`-1`" means this is first revision of the Debian package based on this exact upstream pre-release. There may be later revisions, applying additional patches on the exacted original source tarball of the pre-release.
+
+* "`~pre1-1.1`" when compiling an unreleased version of a package which already exists in Debian. Works like "`~pre1-1`" as described before, except that the Debian revision number consists of 2 components instead of a single one. The single-component case is reserved for the official Debian package maintainer. As you are not the official maintainer, only the second component is used to increment your revisions of that particular upstream version. That is later revisions will be "`-1.2`", "`-1.3`" etc. In other words, the namespace reserved for the official package maintainer is sub-divided in order to release your own Debian revision numbers for the same package.
+
+* "`you1`" when modifying an existing package, typically be applying custom patches to it, assuming "`you`" specifies yourself, your company, or the organisation responsible for the package, and "`1`" is the revision of your patch for this specific package version. This also assumes the current package version already ends with a numeric digit. If this is not the case, append a "`+`" sign before adding the suffix recommended at the beginning of this paragraph.
+
+By adding one of those strings to the original version, the new version will appear newer than the original version when both versions are compared. Which means your package will be considered more recent than the original package version by `apt-get upgrade`.
+
+In order to actually use the resulting new version string by creating a new `*.dsc` file for it:
+
+* <<unpack_debsrc,Unpack the original>> `*.dsc` file using `dpkg-source -x` into a new build directory. This step is necessary to ensure that the build directory will be clean.
+
+* Change into the extracted build directory.
+
+* Set and `export` the `DEBEMAIL` and optionally also the `DEBFULLNAME` environment variable (see `man dch` for details). `DEBEMAIL` is the e-mail address that will be filled in automatically for the new changelog entry to be created in the next step. `DEBFULLNAME` will be filled in as the user name, but will default to the full name of the user if one has already been set with `chfn`. There does not seem to be any Debian-specific configuration file where those environment variables can be set permanently. Some people set those variables in their shell startup files, such as `~/.profile`.
+
+* Run `fakeroot dch -n` in order to edit the `debian/changelog` file, automatically adding a new section at the beginning with a suggested new version string. Replace this suggested version with your desired new version. Also fill in the missing changelog text, describing what you have changed (or intend to change) in the new version.
+
+* If any package dependencies shall be changed, also edit the `debian/control` file. Note that this file might contain instructions to build more than one output package, so similar or identical dependency declarations might be repeated in multiple sections of this file. Don't forget to change them all where applicable.
+
+* Change back from the build directory to the parent directory.
+
+* <<create_debsrc,Build>> the `*.dsc` and `*.debian.tar.*` files for the new package version. This step requires a clean build directory, i.e. no other modifications than the ones mentioned above since the build directory has been unpacked.
+
+* The original `*.dsc` and `*.debian.tar.*` files (using the original version string as part of their filenames) are not needed any longer for building the new package version. They can be archived or deleted. The remaining actual source archive files are still needed, though. If in doubt, consult the `Files:` section of the new `*.dsc` file. It lists all required files for building the package, except for the `*.dsc` file itself which is required in any case.
+
+* At this point, you might want to actually <<running_debuild,build the new package>>.
+
+* If everything built as expected, you might want to <<debdiff,create a 'debdiff' version delta archive>> isolating your changes against the original debsrc package. This file will normally be much shorter than the new debsrc package, and also make it easier to determine which changes against the original have been made by you. However, in order to re-create your new debsrc package from this debdiff archive, the original debsrc package also needs to be present.
+
+
+Customized build flags
+~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to build packages with modified `CFLAGS`, `CXXFLAGS` etc.
+
+For instance, in order to build the (already unpacked) source files optimized for source-level debugging and with disabled unit tests during the build:
+
+----
+DEB_CFLAGS_APPEND='-ggdb3 -O0' DEB_CXXFLAGS_APPEND=$DEB_CFLAGS_APPEND DEB_BUILD_OPTIONS='nocheck nostrip noopt debug' fakeroot dpkg-buildpackage -b -uc -us
+----
+
+See `man dpkg-buildflags` for other environement variables which can be set.
+
+
+Repackaging debsrc files
+------------------------
+
+Sometimes after unpacking the source files with
+
+----
+$ dpkg-source -x *.dsc build
+----
+
+you want to change some of the files in the "`debian`"-subdirectory of the extracted build directory, and then recreate the `*.dsc` and `*.debian.*` files from this.
+
+For instance, you might have re-packaged the archive containing the original source files so that the checksums in the original `*.dsc` file do no longer match.
+
+First, edit the `changelog` file and add a new section at the top with a new version number. (See <<change_ver_num,here>> except that the version number is not written to the `*.dsc` file in this case.)
+
+----
+$ "${EDITOR:-$VISUAL}" build/debian/changelog
+----
+
+You can change other things in the `build/debian/*` directory, too.
+
+Sometimes, when trying to build an outdated source package with a much newer Debian release, it might refuse to do so because of some outdated compatibility level. In this case, it sometimes helps to edit file `"build/debian/compat"` and replace the number there with the compatibility level required according to the error message.
+
+[[create_debsrc]]
+Finally, after you have tested the package to build properly, re-create the `*.dsc` and `*.debian.*` files:
+
+----
+$ dpkg-source -b build
+----
+
+The new files will have a different name as the original files, because they will use the version number from the new section of the `changelog` file which is different.
+
+However, the source archive needs to have the same name (and it also needs to exist!) as before, except that it is allowed to use different compression (i. e. `*.xz` instead of `*.gz`).
+
+
+Summary
+-------
+
+These are the important commands you'll need to remember:
+
+----
+$EDITOR URLs.txt
+wget -i URLs.txt
+mk-build-deps $FILE.dsc
+sudo dpkg -i $BUILD_DEPS.deb
+sudo apt-get install -f
+----
+
+or
+
+----
+apt-get source $PKG
+sudo apt-get build-dep $PKG
+----
+
+and then, in both cases,
+
+----
+fakeroot debian/rules binary
+sudo dpkg -i $PKG-*.deb
+fakeroot dpkg-buildpackage -us -uc
+debdiff package-blabla.dsc package-blabla.1.dsc > another_debdiff.diff
+----
+
+
+Debugging
+---------
+
+After getting and unpacking the source code with +apt-get source $PKG+, you need to install the debugging package and tell +gdb+ how to match things up with +directory+ and +set substitute-path+ statements (see the +gdb+ documentation for details).
+
+
+More details
+------------
+
+Especially for posting <<debdiff,debdiffs (see above)>> to the bug tracker see:
+
+https://wiki.debian.org/BuildingTutorial

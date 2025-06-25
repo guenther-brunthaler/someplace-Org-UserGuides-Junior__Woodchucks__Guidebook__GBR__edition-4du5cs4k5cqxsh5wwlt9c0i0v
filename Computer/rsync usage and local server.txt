@@ -1,0 +1,72 @@
+General usage once a server has been set up, assuming it is using the standard rsync:
+
+View a list of the server's modules
+
+$ rsync -prtl --inplace --progress $SERVER_IP::
+
+or list the contents of a particular module
+
+$ rsync -prtl --inplace --progress $SERVER_IP::$MODULE
+
+or download all the files in a module
+
+$ rsync -prtl --inplace --progress $SERVER_IP::$MODULE/ ./
+
+or upload all files in the current directory (if uploads have been allowed), substituting any symlinks with their targets:
+
+$ rsync -prtL --inplace --progress ./ $SERVER_IP::$MODULE/
+
+Replace the -prtl with -a if you want to copy owner IDs and special files as well.
+
+Add a -n to preview what would be done, but don't actually do anything.
+
+If you want to run your own server as an unprivileges user instead, use the following rsync configuration file which also includes usage instructions for setting up and accessing by clients:
+
+$ openssl base64 -d << EOF | tar -zvxO
+H4sIANOVnlsAA+2UW2vbMBTH8+xPcdoGeqHOrUnTBfzYscFKR9sVyihFsU8cMVsy
+kpzgb78j5bJslI7RQhmc34uNpHP+5yYZ26g0iy2aBcZpbQwq95RJ00m1mrXehh5x
+fj703/541Nv9egaD8bjVPzsbjkf9wWg0aPX6wyF9oPdG+i9SWycMQCufvnzub/v/
+KQdg/ASAyOK5TsF3XeZwj8ZKrWDQ6190BqMP0UF0AF8NVsIgTBuw6JxUObQNOA1u
+jlAJNwc9g5O7T59vT2AmC5yQTRtM0ul0gn0QWk2aDTbrcQMaN0ydNg3MtIFML1Wh
+Reb9a1U0XkHTcQMV6mrrNkQdx5nAkgKNY6XjDJ1I5/S/yiLZb5v9f1Guq+6u+Kt0
+Ib6CQ4MiCzkkSh+GSK53HEIqFCi9hIXEJQgopHW+hI2uDZQ6qwu0v2lW2rik37sY
+n0FcGVfQklRVIVL0m0bnBq2F9u3lzf3lzdOn69u7ySSoUm7BeUhdK0epW68kqG3G
+ybQuxEbx1YKbCtqN8mYBRFGECPxsWJCK5N9aswud7ka3rraqW8Xne38kZ+vTFuZi
+QROOqLyhXmJ2fErubD21Tro6DL1QdAGaspDqh4WlpLn3bkXqajJpwOAMSSDFDOhl
+ydHZyUsJfnk+wU73jxzXAXajyDuABIKLqNB5SI8WuhkuutZlaExUW0p0brT2J5WO
+ylrl+CvqBBqarXBnE+hEGc0EDUZZBekETqLo+7amj9F2jNd2dLL0FUzgYyis31/d
+IP8Xh5MZFnKBJtzeh+tve+RxncHjjv2DrsMtWPdq1SeyuLoEuicIRyU9z9QOep5K
+qWJUYlpgdkoF13U+P96L3vv5ZBiGYRiGYRiGYRiGYRiGYRiGYRiGYRiGeXd+Aqxi
+wR4AKAAA
+EOF
+
+This will just show the contents of the rsync config files which could be extracted.
+
+Replace the "x" with "t" in order to view the file and its permission which would be extracted.
+
+Remove the "O" in order to actually extract the file. The file can be stored anywhere.
+
+Then change to the directory you want to serve for up- or downloads, e. g.
+
+$ cd ~/my_shared_files
+
+set shell variable "r" to the path of the rsync configuration file, e. g.
+
+$ r=../rsyncd-serve-current_dir.conf
+
+and then do a
+
+$ cat "$r"
+
+to view the detailed instructions how to run your rsync server on the local machine and how to other people can access it.
+
+
+Accessing an rsync server via a proxy
+-------------------------------------
+
+Exporting $RSYNC_PROXY will make rsync automatically use the proxy. Set it up like this:
+
+----
+RSYNC_PROXY="$proxy_ip_address:$proxy_port"
+export RSYNC_PROXY="${USER}:${PASSWORD}@${RSYNC_PROXY}"
+----

@@ -1,0 +1,343 @@
+﻿Shell Scripting Expert advice
+=============================
+Günther Brunthaler
+v2023.8
+
+
+Use arithmetic expansion for speed
+----------------------------------
+
+POSIX does define arithmetic expansion and it is a huge speed gain compared to "`expr`":
+
+----
+$ { time sh -c 'i=100000; while test $i != 1; do i=`expr $i - 1`; done'; } 2>& 1 | grep user
+user    1m23,868s
+
+$ { time sh -c 'i=100000; while test $i != 1; do i=$(expr $i - 1); done'; } 2>& 1 | grep user
+user    1m23,562s
+
+$ { time sh -c 'i=100000; while test $i != 1; do i=$(($i - 1)); done'; } 2>& 1 | grep user
+user    0m0,166s
+----
+
+Shell expansion is normally built into the shell, while "`expr`" needs to be run as a new process.
+
+Note that the syntax `$(($x + 1))` will be slightly faster than `$((x + 1))` in many implementations even though both do the same. Of course the difference only matters if such an expansion is performed many times in a loop.
+
+However, arithmetic expansion also has some disadvantages:
+
+* Not all historical shells (pre-dating the POSIX standard) do support it. Which means using "`expr`" makes the script more portable. This is especially important in 'GNU autoconf' `configure` scripts which are supposed to be extremely portable.
+
+* The numeric range supported by arithmetic expansion varies with shell implementations. While most modern "`expr`" implementations provide 64-bit arithmetic, some shells still use 32-bit arithmetic for arithmetic expansion. Which means "`expr`" should be preferred where operand values may become very large, such as when dealing with file sizes of unknown origin. Modern database files can easily become larger than 2 GiB. The largest portable operand value or result of arithmetic expansion is +2^31^ - 1+.
+
+* Arithmetic expansion is invisible to debug tracing via "`sh -x`". Only the expanded results show up. When using "`expr`" instead, both the command and its arguments as well as the expanded result will be shown in the debugging output.
+
+
+Don't overdo backwards compatibility
+------------------------------------
+
+'GNU autoconf' requires very backwards-compatible shell code to be used.
+
+This enforces use of `expr` instead of arithmetic expansion or putting `do`, `then` and `else` as the first statement in a line only. Also, any "`[` ... `]`" shell conditionals must be replaced with `test` in fully-compliant 'autoconf' code.
+
+It can be tempting to use such code in regular shell scripts as well, because then the code can be re-used in 'autoconf' scripts.
+
+However, note that 'autoconf' must not make use of shell functions either.
+
+Every script making use of shell functions will therefore not be able to be used in 'autoconf' without changes being made (replace the shell functions by `m4` macros).
+
+Therefore, every POSIX-compliant shell script which makes use of shell functions will not be 'autoconf'-compliant anyway. So there is no point of attempting 'autoconf'-compliance by omitting other POSIX features not supported by 'autoconf'. It will not work and only make the script harder to read and slower to execute.
+
+
+Use `case` for string comparisons
+----------------------------------
+
+----
+$ { time sh -c 'i=10000000; while test $i != 1; do i=$(($i - 1)); done'; } 2>& 1 | grep user
+user    0m16,251s
+
+$ { time sh -c 'i=10000000; while case $i in 1) false; esac; do i=$(($i - 1)); done'; } 2>& 1 | grep user
+user    0m9,462s
+----
+
+`case` is normally built into the shell, while `test` needs to be run as a new process. 
+
+Some shells have a built-in `test`, then the difference is not as big. But even then, using `case` is typically still somewhat faster.
+
+However, beware that `case` interprets the comparison literals as shell globs. Be sure to put the literals within double quotes when they might contain characters like `*` or `?` which have special meaning in shell globs.
+
+
+Avoid `true`
+------------
+
+Use "`:`" instead of "`true`" where speed matters.
+
+Both have the same effect. But "`:`" is normally a built-in command, whereas "`true`" is an external command which needs to be run as a new process. Some shells have "`true`" as a built-in, then it does not matter, but it won't hurt either.
+
+The only obvious disadvantage of "`:`" is that it is less legible.
+
+Another advantage of "`:`" is that it allows arguments which will be ignored even if they look like options.
+
+Although "`true`" seems to do the same in all implementations I have seen so far, POSIX does not forbid that "`true`" might recognize options and complain about unsupported ones. Which means that
+
+----
+: -unknown
+----
+
+will always ignore its argument while I am not so sure about "`true`" doing the same in all implementations.
+
+Also note that "`:`" is quite useful for debugging shell scripts. When running a script in trace mode (using the "`-x`" option), comments are not displayed. But "`:`" commands and their arguments are. Yet they have no actual effect, just like comments. (Except for affecting the return code).
+
+Which means one can use
+
+----
+: I reached THIS line
+----
+
+instead of
+
+----
+echo I reached THIS line >& 2
+----
+
+with the added bonus of not showing up in the output when the script is run without "`-x`".
+
+This is especially important for debugging built-in control structures like "`case`" which are invisible to "`sh -x`" in most implementations.
+
+[NOTE]
+"`:`" was a no-op used to define labels as destinations for a built-in `goto` command provided by some historic shells. `sed` still supports such labels today.
+
+
+Check named parameters
+----------------------
+
+It is frequently comfortable to use named parameters (also known as 'shell variables') like `$name` in shell commands. The user can then set those parameters once, and use them in multiple commands that follow.
+
+However, there is a big danger lurking here: The user might recall the commands using the shell parameters at a later time from the shell's command history, although the named parameters might not be set any longer. (For instance, the user might run a new or different shell instance.)
+
+For that reason, it is recommended to refer to named parameters in a command line via `${name:?}` rather than just `$name`.
+
+As long as the parameter is set and has a non-empty value, both expressions will do the same.
+
+But otherwise, the first syntax will make the shell display an error message and stop processing the remaining commands in the current command line or script immediately.
+
+It is therefore not necessary to use the longer syntax everywhere in a command line. For instance, the following will still be safe:
+
+----
+$ : ${name:?}; cp "$name" "$name.bak"
+----
+
+Even though the statements are combined unconditionally via "`;`" rather than success-bound via "`&&`", the second statement will not be executed if the parameter `$name` is unset of empty because of the first statement.
+
+Note that this works even though the "`:`" is a null statement doing nothing with its arguments. But the evaluation of its arguments will be enough to make the shell abort the remaining statements of the command line if the parameter is empty or unset.
+
+Of course, it is not necessary to use a null statement for checking only once. The following command line will have the same effect as the one before:
+
+----
+$ cp "${name:?}" "${name:?}.bak"
+----
+
+However, there is more parameter checking than necessary.
+
+
+Avoid `local`
+-------------
+
+Although very useful, "`local`" has not been standardized by POSIX yet, so there is no guarantee all modern POSIX shells will support it (although most seem to).
+
+Avoid it where strict POSIX-compliance might matter.
+
+In simple cases, it is possible to replace `local` by positional arguments passed to a helper function.
+
+For instance, replace
+
+----
+is_newer() {
+        local f
+        case $1 in
+                -*) f=./$1;;
+                *) f=$1
+        esac
+        test `find -H "$f" -prune -newer "$2" | wc -l` = 1 || return
+}
+----
+
+with
+
+----
+is_newer_helper() {
+	test `find -H "$1" -prune -newer "$2" | wc -l` = 1 || return
+}
+
+is_newer() {
+	case $1 in
+		-*) is_newer_helper "./$1" "$2";;
+		*) is_newer_helper "$1" "$2"
+	esac
+}
+----
+
+In more complicated cases, replace `local` with support functions like the following:
+
+----
+
+push() {
+        eval "stack_$stack_pointer=\$1"
+        stack_pointer=$(($stack_pointer + 1))
+}
+stack_pointer=1
+alias finally=push
+alias scope=push
+
+pushvar() {
+        eval "stack_$stack_pointer=\$$1"
+        stack_pointer=$(($stack_pointer + 1))
+}
+
+pop() {
+        stack_pointer=$(($stack_pointer - 1))
+        eval "$1=\$stack_$stack_pointer; unset stack_$stack_pointer"
+}
+
+var() {
+        for var_3g68nwejh2pzvlw1kzu3hn0br; do
+                if eval "
+                        case \${$var_3g68nwejh2pzvlw1kzu3hn0br+set} in
+                                '') false
+                        esac"
+                then
+                        pushvar $var_3g68nwejh2pzvlw1kzu3hn0br
+                        finally "pop $var_3g68nwejh2pzvlw1kzu3hn0br"
+                else
+                        finally "unset $var_3g68nwejh2pzvlw1kzu3hn0br"
+                fi
+        done
+}
+
+unwind() {
+        while :
+        do
+                pop var_3g68nwejh2pzvlw1kzu3hn0br
+                case $var_3g68nwejh2pzvlw1kzu3hn0br in
+                        '') case $1 in '') break; esac;;
+                        *) eval "$var_3g68nwejh2pzvlw1kzu3hn0br"
+                esac
+        done
+}
+----
+
+Note that the above shell snippet is not compatible for usage with 'GNU autoconf'. It uses multiple constructs not supported by very old pre-POSIX shells that are supposed to be supported by 'autoconf'-generated `configure` scripts, such as `alias`, shell functions and arithmetic expansion.
+
+Then, instead of
+
+----
+somefunc() {
+	local a b c
+	...
+}
+----
+
+You can write
+
+----
+somefunc() {
+	scope
+		var a b c
+		...
+	unwind
+}
+----
+
+which has quite the same effect, but is POSIX-compliant and more portable.
+
+It is obviously slower than the built-in "`local`", but has the adavantage of also being much more powerful. For instance, one can do things like this:
+
+----
+somefunc() {
+	scope
+		var tmpf
+		tmp=`mktemp -- "${TMPDIR:-/tmp}"/XXXXXX.tmp`
+		finally 'rm -- "$tmp"'
+		...
+	unwind
+}
+----
+
+Here the "`finally`" schedules a command for later execution at the time when "`unwind`" is run for the matching `scope`, so it cannot be forgotten to be done by the following code.
+
+Which means, the above helper functions provide a simple form of 'destructors' for the shell script with zero additional cost (compared to just providing a "`local`"-replacement).
+
+
+Note that the `rm` command in `finally` can still see the local contents of variable `$tmp`, because `finally` commands will be run before the affects of an earlier `var` in the same scope have been undone.
+
+
+One important difference between "`local`" and "`scope`" needs to be considered, though: You must make sure to invoke "`unwind`" in order to restore the saved old variables values before returning from the function. "`local`" does not need this.
+
+This is especially important when using "`return`" for early returns from the function. One needs to make sure that "`unwind`" is also called prior to every such early return.
+
+Also note that "`scope`" works independent from the actually function call mechanism, which means several "`scope`/`unwind`"-blocks may be nested or be used serially within the same function:
+
+----
+somefunc() {
+	scope
+		var v1
+		...
+		# local $v1 visible here
+		...
+		scope
+			var v2
+			...
+			# local $v1 and $v2 visible here
+			...
+			scope
+				var v2
+				...
+				# $v1 from above but a new $v2 visible here
+				...
+			unwind
+			...
+			# same $v1 and $v2 visible here as before the nested previous scope
+			...
+		unwind
+		...
+		# only local $v1 visible here
+		...
+	unwind
+	scope
+		var v3
+		...
+		# only local $v3 visible here
+		...
+	unwind
+}
+----
+
+Which means "`scope`"/"`unwind`" work very much like the curly braces in "`C`"-like languages, and are not restricted to function scope like the (sometimes) built-in "`local`" or local variables in `JavaScript`/`Python`.
+
+However, a notable difference to actual 'C' curly braces is the fact that `scope` creates a dynamic scope rather than a lexical one. This allows something like this:
+
+----
+create_tmpfile() {
+	result=`mktemp -- "${TMPDIR:-/tmp}"/XXXXXX.tmp`
+	finally 'rm -- "$result"'
+}
+
+somefunc() {
+	scope
+		var result t1 t2 t3
+		...
+		create_tmpfile; t1=$result
+		create_tmpfile; t2=$result
+		create_tmpfile; t3=$result
+		...
+		# work with the three temporary files here
+	unwind
+	# All three temporary files have been deleted
+}
+----
+
+Here, `create_tmpfile` can see (and modify) all local variables created by its callers.
+
+Note how `create_tmpfile` assigns the pathname of the newly created file to the `$return` variable allocated by the caller.
+
+Also note how it schedules a destructor even though it does not have its own `scope`. The destructor will be added to the `scope` of the caller and will thus be invoked when the caller invokes its own `unwind`.

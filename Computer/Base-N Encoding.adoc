@@ -1,0 +1,207 @@
+﻿BASE-N Encodings
+================
+v2024.108
+
+
+RFC 3548
+--------
+
+base16
+~~~~~~
+
+Converts blocks of 1 octet into 2 output characters.
+
+Alphabet:
+
+----
+$ perl -e 'print("0".."9", "A".."F")'; echo
+----
+
+No padding is necessary or possible.
+
+
+base32
+~~~~~~
+
+Converts blocks of 5 octets into 8 output characters.
+
+Alphabet:
+
+----
+$ perl -e 'print("A".."Z", "2".."7")'; echo
+----
+
+If the last output block is shorter than 4 characters, pad it with `=` characters.
+
+
+base64
+~~~~~~
+
+Converts blocks of 3 octets into 4 output characters.
+
+Alphabet:
+
+----
+$ perl -e 'print("A".."Z", "a".."z", "0".."9", "+/")'; echo
+----
+
+If the last output block is shorter than 4 characters, pad it with `=` characters.
+
+
+The "URL and Filename safe" Base 64 Alphabet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This encoding is the same as base64 except that the last two characters of the alphabet have been replaced:
+
+----
+$ perl -e 'print("A".."Z", "a".."z", "0".."9", "-_")'; echo
+----
+
+
+Base-32 "DUDE" Encoding
+-----------------------
+
+Alphabet := "a".."z", "0".."9" EXCEPT digits "0" and "1" and the letters "o" (oh) and "l" (ell).
+
+----
+$ perl -e 'print lc join "", grep /[^01OL]/, ("A".."Z", "0".."9")'; echo
+----
+
+DUDE is case-insensitive when decoding.
+
+However, there is an *optional* "Mixed-Case Annotation" usage for for DUDE where the letter-case of the encoded characters will determine the letter case of the corresponding decoded UNICODE character for display purposes only (because it contradicts the case-insensitivity).
+
+
+Two suggested non-standard base-32 encodings
+--------------------------------------------
+
+Uses only upper-case characters and avoids letters resembling digits zero and one:
+
+----
+$ perl -e 'print join "", grep /[^01OI]/, ("A".."Z", "0".."9")'; echo
+$ base32 | tr -d = | LC_COLLATE=C tr A-Z2-7 2-9A-HJ-NP-Z
+----
+
+Uses only lower-case characters and avoids letters resembling digits one and nine:
+
+----
+$ perl -e 'print join "", grep /[^19lg]/, ("a".."z", "0".."9")'; echo
+$ base32 | tr -d = | LC_COLLATE=C tr A-Z2-7 02-8a-fh-km-z
+----
+
+Before you use any of the above commands, first verify that `base32` behaves as expected:
+
+----
+$ test "`printf %s AIOZ2367 | base32 -d | cksum | cut -c -6`" = 143895 && echo OK || echo BAD
+----
+
+
+Base-85
+-------
+
+The 'PDF' standard defines an `ASCII85Decode` filter, which decodes a base-85 ASCII representation of binary data.
+
+The associated encoding encodes 4 octets into 5 ASCII characters using the alphabet
+
+----
+$ perl -e 'print join "", (grep /[[:graph:]]/, map chr, 0 .. 127)[0 .. 84]'; echo
+$ perl -e 'print join "", map chr, (ord "!" .. ord "u")'; echo # Same.
+----
+
+with big-endian byte order (for both the encoding input and output).
+
+As a speciality of the `ASCII85Decode` filter, the encoding result "`!!!!!`" will be replaced by "`z`".
+
+If the input size `n` is not a multiple of 4 octets, the missing octets shall be filled with binary zeros before the encoding step, the special "`z`" encoding rule shall not be applied, and only the first `n + 1` characters of the conversion result shall be output.
+
+PDF also defines an 'end-of-data' marker "'~>'" which terminates an `ASCII85Decode` substream within a larger PDF data stream.
+
+
+Base-91
+-------
+
+This encoding converts 3 octets into 4 characters. No specific alphabet is defined, and neither is the endianness of the conversion.
+
+Three input octets are converted into two 13-bit integers first. Then each integer is converted into a pair of base-91 characters.
+
+A useful variant might exclude the same 3 characters as 186-encoding does, but from the alphabet used by base-94 encoding:
+
+----
+$ perl -e 'print join "", grep /[^.>+]/, grep /[[:graph:]]/, map chr, 0 .. 127'; echo
+----
+
+I recommend big-endian encoding, because this is the traditional network byte order and e-mails are supposed to be sent over a network.
+
+This is probably the best possible encoding for sending e-mails using plain ASCII as the transport encoding.
+
+An existing 3rd-party base-91 implementation written by Joachim Henke providing three utilites "`base91`", "`b91enc`" and "`b91dec`" omits the three characters 'dash' (`0x2d`), 'apostrophe' (`0x27`) and 'backslash' (`0x5c`) from the base-94 alphabet. It also maps ASCII code ranges to its alphabet in a different order: Upper case letters first, then lower case latters, then decimal digits, then the remaining characters.
+
+
+Base-94
+-------
+
+This uses all printable non-space ASCII characters as the alphabet.
+
+----
+$ perl -e 'print join "", grep /[[:graph:]]/, map chr, 0 .. 127'; echo
+----
+
+
+Base-95
+-------
+
+This uses all printable ASCII characters as the alphabet, including ASCII SPACE.
+
+----
+$ perl -e 'print join "", grep /[[:print:]]/, map chr, 0 .. 127'; echo
+----
+
+This is the largest possible alphabet based on ASCII characters which avoids the inclusion of control characters.
+
+
+Base-182
+--------
+
+This is actually a stripped-down version of base-186 (see below), because I could not find any efficiently to calculate groupings for the latter encoding.
+
+Base-182 drops 4 additional characters compared to base-186:
+
+* "`_`" (underscore) because it is hard to see in some fonts
+* "`\`" (backslash) because it is used as an escape character in some contexts
+* "+`+" (backquote) because it is a combining character on some keyboard layouts
+* "`¸`" ('LATIN1' character "`\270`") because it looks like a flyspeck
+
+----
+$ perl -e 'binmode stdout; print join("", grep /[^>+.\x7f_\\`\270]/, map chr, grep {($_ & 0x7f) > 0x20} 0 .. 255), "\n"' | iconv -f LATIN1
+----
+
+There are several interesting groupings possible with base-182:
+
+* Encode 15 bit into 2 base-182 characters - requires only 16-bit arithmetic
+* Encode 30 bit into 4 base-182 characters - requires only 32-bit arithmetic
+* Encode 45 bit into 6 base-182 characters
+* Encode 60 bit into 8 base-182 characters - 64-bit arithmetic is sufficient
+
+The 45-bit case is probably pointless because it requires 64-bit arithmetic, too, but is less efficient than the 60-bit case.
+
+The encoding efficiency of the 15 and 30 bit cases is the same, but the 30-bit case requires fewer divisions and will be faster on 32-bit machines.
+
+A problem when sending such a text as e-mail, however, is the MIME "Content-Transfer-Encoding: quoted-printable" which will recode LATIN1 into 7 bit, losing all the advantages of the base-182 encoding. Unless a MUA can be configured to disable "quoted-printable" encoding, base-182 will be pretty useless when sending new e-mails.
+
+
+Base-186
+--------
+
+This uses all printable characters from the 'LATIN1' ('ISO-8859-1') character set, except for 3 the characters which might cause trouble in plaintext e-mails:
+
+* "`>`" may be displayed as quoted text within an e-mail.
+* "`.`" on a single line marks the end of an e-mail and would need to be quoted.
+* "`+++`" is used as an escape command by many modems using the AT command set.
+
+----
+$ perl -e 'binmode stdout; print join("", grep /[^>+.\x7f]/, map chr, grep {($_ & 0x7f) > 0x20} 0 .. 255), "\n"' | iconv -f LATIN1
+----
+
+E-mails using this encoding need to be sent in 'MIME'-Format over 8-bit clean connections, specifying 'ISO-8859-1' as the character set.
+
+The only useful grouping would encode 98 bit into 13 base-187 characters. Unfortunately, 98-bit arithmetic is quite slow.

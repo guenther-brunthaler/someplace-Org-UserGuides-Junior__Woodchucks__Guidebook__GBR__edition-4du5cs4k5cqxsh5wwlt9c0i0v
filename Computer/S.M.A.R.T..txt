@@ -1,0 +1,91 @@
+﻿S.M.A.R.T.
+$ smartctl -a $DISK_DEV
+
+RAW_VALUE is the actual value reported by the drive
+VALUE is the RAW_VALUE normalized into a defined value range as a "goodness value".
+WORST is the *worst* VALUE encountered so far
+THRESH: if VALUE < THRESH, then there is a severe problem
+
+Kurz gesagt: Große VALUEs sind besser, kleinere schlechter. Kleiner als THRESH ist katastrophal.
+
+Ein THRESH von 0 bedeutet dass dieses Attribut niemals so kritisch werden kann dass die Festplatte nur deswegen komplett versagt.
+
+https://www.thomas-krenn.com/en/wiki/SMART_tests_with_smartctl
+
+SMART offers two different tests, according to specification type, for and SCSI devices. Each of these tests can be performed in two modes:
+
+* Foreground Mode
+* Background Mode
+
+In Background Mode the priority of the test is low, which means the normal instructions continue to be processed by the hard disk. If the hard drive is busy, the test is paused and then continues at a lower load speed, so there is no interruption of the operation.
+
+In Foreground Mode all commands will be answered during the test with a "CHECK CONDITION" status. Therefore, this mode is only recommended when the hard disk is not used. In principle, the background mode is the preferred mode.
+
+https://hddfaqs.com/smart-test-never-finishes/
+
+SMART-Test never finishes [...] When running SMART-Tests using smartmontools, they NEVER finish. I always get “Interrupted (host reset.)” on various different systems and disks, including Debian in x86 and ARM, OS X on x64, with external and internal drives [...] A captive test should theoretically keep the drive online. Yet the hardware command send by smartctl may time out before the test completes, causing the kernel to reset the link and ending up in the same situation as above (bug #303).
+
+https://www.thomas-krenn.com/en/wiki/SMART_tests_with_smartctl
+
+ATA/SCSI Tests
+
+Short Test
+
+The goal of the short test is the rapid identification of a defective hard drive. Therefore, a maximum run time for the short test is 2 min. The test checks the disk by dividing it into three different segments. The following areas are tested:
+
+* Electrical Properties: The controller tests its own electronics, and since this is specific to each manufacturer, it cannot be explained exactly what is being tested. It is conceivable, for example, to test the internal RAM, the read/write circuits or the head electronics.
+
+* Mechanical Properties: The exact sequence of the servos and the positioning mechanism to be tested is also specific to each manufacturer.
+
+* Read/Verify: It will read a certain area of ​​the disk and verify certain data, the size and position of the region that is read is also specific to each manufacturer.
+
+Long Test
+
+The long test was designed as the final test in production and is the same as the short test with two differences. The first: there is no time restriction and in the Read/Verify segment the entire disk is checked and not just a section. The Long test can, for example, be used to confirm the results of the short tests.
+ATA specified Tests
+
+All tests listed here are only available for ATA hard drives.
+
+Conveyance Test
+
+This test can be performed to determine damage during transport of the hard disk within just a few minutes.
+
+Select Test
+
+During selected tests the specified range of LBAs is checked. The LBAs to be scanned are specified in the following formats:
+
+$ sudo smartctl -t select,10-20 /dev/sdc #LBA 10 to LBA 20 (incl.)
+$ sudo smartctl -t select,10+11 /dev/sdc #LBA 10 to LBA 20 (incl.)
+
+It is also possible to have multiple ranges, (up to 5), to scan:
+
+$ sudo smartctl -t select,0-10 -t select,5-15 -t select,10-20 /dev/sdc
+
+Test procedure with smartctl
+
+Before performing a test, an approximate indication of the time duration of the various tests are displayed using the following command:
+
+$ sudo smartctl -c /dev/sdc
+
+Example output:
+
+[...]
+Short self-test routine 
+recommended polling time: 	 (   2) minutes.
+Extended self-test routine
+recommended polling time: 	 (  83) minutes.
+Conveyance self-test routine
+recommended polling time: 	 (   5) minutes.
+[...]
+
+The following command starts the desired test (in Background Mode):
+
+$ sudo smartctl -t <short|long|conveyance|select> /dev/sdc
+
+https://www.smartmontools.org/wiki/test_offline
+
+Offline Test
+
+Despite its name offline is a short foreground test of less than 2 minutes that all devices should support. The default self test makes no entry into the self test log. Most devices perform a default self test when they are being powered up.
+
+Note that the SMART automatic offline test command is listed as Obsolete in every version of the ATA and ATA/ATAPI Specifications. It was originally part of the ​SFF-8035i Revision 2.0 specification, but was never part of any ATA specification. However it is implemented and used by many vendors.

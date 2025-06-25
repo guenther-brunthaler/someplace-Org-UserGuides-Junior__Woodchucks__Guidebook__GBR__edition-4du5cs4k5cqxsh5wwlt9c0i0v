@@ -1,0 +1,73 @@
+Paper Scanning with OCR
+=======================
+v2023.116
+
+General Procedure:
+
+* Run `scan-and-autonumber` script to scan papers and save as `*.tif` files
+
+* Noise reduction with edge protection
+
+* Use `scantailor` for postprocessing (multipage separation, rotation, cropping, dust removal) and save as FAX Group 4 compressed B/W files
+
+* Convert to TIFF files into a single PDF document
+
+* OCR-processing with `ocrmypdf`
+
+* Sort/distribute PDF pages with `pdfarranger` (save pre-existing PDF attachments first)
+
+* Re-attach destroyed PDF attachments and possible add new ones
+
+First, separate the TIFF and JPEG2000 files into separate directories:
+
+* Files which shall be converted into B/W images with JBIG2 lossy compression and then be OCR processed
+
+* Files which shall be converted into B/W images with JBIG2 lossless compression and then be OCR processed. Use this for files with important text content where it would be unacceptable that lossy JBIG2 compression can visually change existing letters and digits.
+
+* Files containing color images or B/W images that are not text and shall not be recompressed but shall be OCR-processsed.
+
+* Files containing color images or B/W images that are not text and shall neither be recompressed nor be OCR-processsed.
+
+Create B/W copies of JPEG-2000 files as placeholder dummies during OCR processing replacements:
+
+----
+$ find . -name '*.jp2' | while IFS= read -r f; do convert "$f" -colorspace gray  +dither -colors 2 -normalize -depth 1 -compress Group4 "${f%.*}-bw.tif"; done
+----
+
+In the resulting PDF file, the placeholders should be replaced by the corresponding color image.
+
+Combine TIFF and JPEG-2000 files into corresponding single PDFs:
+
+----
+$ find . -name cache -prune -o -name '*.tif' -print | sort | scans-convert-losslessly-into-multipage-pdf
+$ sleep 2; find . -name cache -prune -o -name '*.jp2' -print | sort | scans-convert-losslessly-into-multipage-pdf
+----
+
+OCR with lossy JBIG2 B/W recompression:
+
+----
+$ f=20220626-122828.pdf
+$ ocrmypdf -l deu --output-type pdf --sidecar ocr.txt --jbig2-lossy -O 3 "$f" "${f%.pdf}"-lossy-ocr.pdf
+----
+
+Use `deu+eng` or `eng` instead of `deu` in case of mixed / English contents.
+
+OCR with mostly lossless JBIG2 B/W recompression:
+
+----
+$ f=20220626_122828-important.pdf
+$ ocrmypdf -l deu --output-type pdf --sidecar ocr.txt -O 3 "$f" "${f%.pdf}"-lossless-ocr.pdf
+----
+
+OCR without recompression (mostly untested yet):
+
+----
+$ f=20220626_122828-asis.pdf
+$ ocrmypdf -l deu --output-type pdf --sidecar ocr.txt -O 1 "$f" "${f%.pdf}"-lossless-ocr.pdf
+----
+
+`pdfarranger` destroys the embedded LibreOffice document in case of LO-generated 'hybrid'-PDFs. It also generally destroys any attachments of edited PDF files when they are saved. So make sure to make backups of any such attachment before processing the files with `pdfarranger`.
+
+Use `pdfattach` and `pdfdetach` for saving/restoring/adding PDF-attachments. Note that file names must be encoded as LATIN-1 for `pdfattach` to correctly save the names of the attachments into the PDF files. Use `iconv` to convert filenames where needed and create symbolic-links encoded as LATIN-1 using the converted names.
+
+When moving pages across document boundaries with `pdfarranger`, note that only marked pages can be moved or copied. Selected pages are tinted with a lighter color and marked pages are tinted with a darker tint color, while the remaining pages are not tinted at all.

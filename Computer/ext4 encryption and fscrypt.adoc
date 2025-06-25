@@ -1,0 +1,353 @@
+﻿Fscrypt Linux Filesystem-Level Encryption
+=========================================
+Guenther Brunthaler <gb@emgenxx69lwyn5ctlr4nl64ul.local>
+2022.81, distribution is permitted under the terms of the GFDL 1.3.
+
+This document is about the "'fscrypt'" filesystem-integrated encryption of the Linux kernel.
+
+'Fscrypt' can transparently encrypt selected files and directories with a particular encryption key.
+
+Only the following filesystems are currently (2019-02) supported: 'ext4', 'f2fs' and 'ubifs'.
+
+
+Quick preview: 'ext4' encryption
+--------------------------------
+
+Although the 'ext4' filesystem can also use the general-purpose fscrypt utilities described in the remaining document, it ships its own utility "`e4crypt`" which can be used instead.
+
+The required primary utiltity "`/usr/sbin/e4crypt`" is part of the 'e2fsprogs' package, at least on Debian Linux.
+
+Also required is the utilty "`keyctl`" which is part of 'keyutils' package on Debian Linux.
+
+In the following it will be assumed that "`$PASSWORDFILE.psw`" is the pathname of a text file containing the secret pass phrase for unlocking the encrypted directory "`$ENC_DIR_PATHNAME`".
+
+
+Unlocking an encrypted directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+----
+$ tr -d '\n' < "$PASSWORDFILE.psw" | /usr/sbin/e4crypt add_key -k @u "`$ENC_DIR_PATHNAME`"
+
+$ keytool link @u @us
+----
+
+The `e4crypt` utility loads the encryption key into the kernel 'per-user' keyring ("`@u`").
+
+Without the "`-k`" option in the example above, the loaded key would have been lost when the current session ends. The longer-lived 'per-user' keyring will be kept alive as long as any process of that user is still alive.
+
+However, the 'per-user' keyring is not automatically searched for 'ext4' encryption. In order to ensure this, the 'per-user' keyring is linked into the 'user-session' keyring ("`@us`").
+
+The latter keyring will be searched in addition of the current session keyring by 'ext4' encryption, ensuring the key will always be found until the last process owned by the user terminates.
+
+Note that specifying the `$ENC_DIR_PATHNAME` argument in the above command is optional, because 'ext4' will always find the key in the kernel keyings when it is needed.
+
+But specifying `$ENC_DIR_PATHNAME` will verify that the specified key actually matches the encryption key of the specified directory. Otherwise a wrong loaded key would not be detected before actually trying to access files within the encrypted directory.
+
+
+Locking an encrypted directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For this, the encryption key needs to be removed and the page cache as well as the directory cache needs to be flushed.
+
+----
+$ keyctl show | grep ext4
+1070088039 --alsw-v  25835 25835       \_ logon: ext4:da54427b0fe30f8e
+
+$ keyctl unlink 1070088039
+
+$ sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'
+----
+
+
+Creating an encrypted directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This works exactly the same as unlocking, except that the key will be set for `$ENC_DIR_PATHNAME` rather than being checked for being the right one.
+
+The directory to be encrypted must already have been created as a normal empty directory.
+
+The `e4crypt` utility will then mark the directory as encrypted and also set a hash of the encryption key (called the "policy") in the directory metadata. Only a loaded key matching this hash will later be selected for encryption/decryption of that directory's contents.
+
+
+Encryption options
+~~~~~~~~~~~~~~~~~~
+
+Note that the `add_key` subcommand of the `e4crypt` utility also supports additional options when creating the encrypted directory.
+
+The first option is "`-p`" which will somewhat obfuscate the lengths of the encrypted filenames by rounding them up to the next multiple of the option argument value. Only the values `4`, `8`, `16` and `32` are supported for this.
+
+The other option is "`-S`" for specifying an encryption salt to be associated with the encrypted directory.
+
+Without a salt, the same files would be encrypted completly identical in different directories using the same key. A salt "tweaks" the encryption key and ensures that this will not be the case.
+
+There are different ways in which form to specify the salt, but the most simple and straightforward is a UUID. This also ensures that the salt will be unique.
+
+Although specifying a salt is not necessary if the same key is never reused for a different instance of an encrypted directory, it is nevertheless a good idea to always specify a salt when creating a directory.
+
+
+Unresolves issues
+^^^^^^^^^^^^^^^^^
+
+It is not yet clear what is actually stored as part of the encrypted directory's metadata and what is not.
+
+The only thing certain to be part of the metadata is the hash of the key.
+
+The `-S` option value does not need to be specified when unlocking, but accessing the directory will not work unless the same salt has been specified for unlocking as well as for the initial creation.
+
+It seems that the `-S` value is just combined with the specified key in order to yield the actual encryption key. This also means that different salts used with the same encryption key yield different key hashes as part of the directories' metadata.
+
+The `-p` option on the other hand value needs only to be specified when creating the directory. Suspicion: This parameter only effects the current unlocking instance. The amount of padding used for a filename can obviously be detected and will be removed automatically before displaying the file names, because it works no matter what `-p` option has been specified when unlocking the current instance of an encrypted directory.
+
+Another thing is that identical directory contents do not encrypt to the same files even without `-S`. So optionally there is more involved in encryption rather than just the password and salt. My supspicion: Maybe the encryption also depends on the inode number. This would make it quite unlikely (yet not impossible) that different instances of encrypted directories sharing the same encryption key actually encrypt their contents in exactly the same way.
+
+Either way, it seems that the same `-S` as well as the -`p` options need to be specified for unlocking as well as for creating the encrypted directories. And of course the same keys need to be used.
+
+In other words, all three possible encryption paramaters need to be the same.
+
+
+Changing encryption options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The encryption key, salt and obfuscation padding parameter can only be set once for an encrypted directory.
+
+The only way to change any of them later is to create a new encrypted directory, move over all the existing files from the old encrypted directory, remove the old directory, and finally rename the new directory to the name of the old one.
+
+
+Overview of operation
+---------------------
+
+First, encryption must be enabled for the filesystem as a whole by setting an attribute. In the case of 'ext4', this is done with `tune2fs`.
+
+Fscrypt can encrypt arbitrary directories by setting an encryption policy for the (still empty) top-level directory of a new directory tree.
+
+This policy defines which encryption algorithm should be used for the file contents. Another one is defined for encrypting the file names in the encrypted directory tree. Finally, the policy defines which encryption key should be used.
+
+Setting the policy requires administrative privileges, but the encryption key itself is not required (only its key identifier - some sort of hash over its contents - is required) by the administrator.
+
+Now any user with access to the key can use the encrypted directory, provided filesystem permissions do not contradict such usage.
+
+First the user has to load the required encryption key into the kernel-maintained keyring of the user's session or the user itself.
+
+Now the user has access to the encrypted directory: New data will be encrypted automatically, and existing encrypted data (including directory listings) will be decrypted on the fly as the user accesses it.
+
+When the user is done working with the encrypted directory tree, the encryption key can be unloaded (and the cashes need also to be flushed).
+
+Then the encrypted volume is "locked", i. e. the user (any anyone else) can only see the encrypted files, but neither their decrypted contents. Also all filenames and subdirectory names are encrypted and displayed as such.
+
+
+Differences to other encryption options
+---------------------------------------
+
+* LUKS, cryptsetup, dmcrypt, truecrypt and veracrypt encrypt complete block devices. In contrary, fscrypt only encrypts individual directory trees within another already existing filesystem. The encrypted and non-encrypted directories in the filesystem share the same available storage space.
+
+* eCryptFS is very similar to fscrypt in terms what it can do. The difference is that fscrypt is built into the filesystem driver, while eCryptFS is an additional layer and the filesystem does not need to know about or support encryption directly. eCryptFS therefore works for many Linux filesystems, while fscrypt is only supported by very few ones. The drawback of eCryptFS is that it requires additional space on the filesystem driver's kernel stack. This stack is quite limited, and eCryptFS might thus overflow the filesystem's stack and crash the filesystem driver. This is very dangerous and could damage the filesystem as well as lose data.
+
+* EncFS is also very similar in purpose to eCryptFS and fscrypt, but it is a FUSE filesystem and is therefore effectively restricted to a single user at the same time. It is also impossible to use SUID-executables and similar features on FUSE filesystems. An advantage of EncFS is its portability: It works on top of every filesystem, even on FAT. Also no administrative privileges are required, provided the user has been granted access to the /dev/fuse device node. The biggest disadvantage of EncFS is that severe cryptographic security flaws have been found in its design. A successor is in development, but it is not yet finished as of 2019-02.
+
+* OriFS is another FUSE filesystem, but has a better cryptographic design than EncFS. It has been developed for encrypting Cloud Storage, such files shares via Dropbox. The problem with OriFS is that it is still in development and not all features (such as integrity checking) have been implemented yet. One problem of OriFS is its storage overhead. Internal re-blocking of data leads to massive storage overhead especially for small files, while the overhead for large files is neglectible. In this regard, OriFS seems to be the opposite of ReiserFS. Because of its development status, OriFS is not yet recommended for production data. Also there are severe doubts about continued commitment by its only developer, because no new versions have come out for quite some time yet.
+
+
+Installing the required tools
+-----------------------------
+
+First, two tools need to be installed: "fscryptctl" for loading keys and controling the encryption, and "keyctl" for unloading encryption keys.
+
+The fist can just be installed:
+----
+$ command -v keyctl || sudo apt-get install keyutils
+----
+
+The second one might have to be built from source:
+----
+$ git clone --single-branch --depth=1 https://github.com/google/fscryptctl
+$ cd fscryptctl
+# Set compiler flags for release builds:
+$ export CPPFLAGS="-D NDEBUG -D _GNU_SOURCE" CFLAGS="-std=c99 -pipe -fno-stack-protector -O3 -fomit-frame-pointer -fno-stack-check" LDFLAGS="-s -Wl,-O1,--as-needed,--hash-style=gnu"
+# Build the release version of "fscryptctl":
+$ make -e
+# Install tool manually:
+$ sudo install fscryptctl /usr/local/bin
+# Clean up to save space:
+$ make clean
+----
+
+
+Preparing an ext4 volume for fscrypt
+------------------------------------
+
+The other supported filesystems will likely require a different procedure. For ext4, however, it is as follows:
+
+----
+# One-time preparation of ext4 volume:
+$ EXT4DEV=/dev/vg0/fscrypt_test_volume
+$ MOUNTPOINT=~/mnt/fscrypt_testing
+$ umount ­-- "$MOUNTPOINT"
+$ sudo tune2fs -O encrypt "$EXT4DEV"
+$ mount ­-- "$MOUNTPOINT"
+----
+
+
+Create key key file for encryption
+----------------------------------
+
+Before an encryption key can be loaded into a user's kernel keyring and used for encryption, it needs to be created as a key file first.
+
+It is very important to store that key file in a secure location, such as another encrypted volume directory.
+
+Alternatively, the key can be stored encrypted on disk using utilities like openssl or gpg, which allow to encrypt individual files with a password.
+
+----
+# Create the key file (needs to be stored somewhere secure):
+$ KEYFILE=/tmp/my_secret_fscrypt.key
+$ > "$KEYFILE"
+$ chmod 600 "$KEYFILE"
+$ dd if=/dev/random bs=1 count=64 > "$KEYFILE"
+----
+
+
+Creating an encrypted directory tree
+------------------------------------
+
+fscrypt does not seem to support mixing encrypted and unencrypted files in the same directory tree.
+
+Therefore, it is best to start with an empty directory, enable encryption for it, load the encryption key, and then populate it with files and subdirectoires.
+
+Note that access to the actual key is not necessary for creating a directory to be encrypted with it. Instead, only knowledge of the key descriptor (some sort of hash over the key's contents) is required.
+
+----
+# Create the directory to be encrypted (must reside inside $MOUNTPOINT):
+$ mkdir -m700 fscrypt_test
+
+# Learn the key's descriptor value (which acts as some sort of key ID).
+$ fscryptctl get_descriptor < "$KEYFILE"
+53f104c79f40fc58
+
+# Use descriptor value to declare key to be used for encryption of directory.
+$ sudo fscryptctl set_policy 53f104c79f40fc58 fscrypt_test
+----
+
+Note that "fscryptctl set_policy" supports options which allow to specify different encryption algorithms.
+
+But as of 2019-02, only different configurations of the same algorithm, AES, are supported.
+
+This will make the NSA very happy, because they always like to point out how totally secure AES supposedly is.
+
+It also means there is no point in selecting different algorithms, because one has to trust AES anyway. In addition, the default settings already seem to be the best of the available configuration options.
+
+
+Unlocking the encrypted directory tree for work
+-----------------------------------------------
+
+Unlocking is performed by loading the key associated with the encrypted directory into the kernel's keyring.
+
+Then the contents of the encrypted directory tree become accessible and the filesystem will transparently encrypt or decrypt its contents.
+
+By default, fscryptctl will load the specified key file's contents into the session keyring of the current user. Which means the key ring will be deleted when the user log's out completely.
+
+However, the filesystem will also find the key in the kernel keyring of the user (which survives when the user logs out and destroys the current session).
+
+The keyctl utility can be used for that by linking the loaded key from the user's session keying into the normal user's keyring which can remain there until the next reboot.
+
+----
+# Actually load they key for transparent encryption/decryption.
+$ fscryptctl insert_key < "$KEYFILE"
+53f104c79f40fc58
+
+$ keyctl show
+Session Keyring
+ 887544545 --alswrv   1000 65534  keyring: _uid_ses.1000
+ 639325962 --alswrv   1000 65534   \_ keyring: _uid.1000
+ 198479233 --alsw-v   1000   413   \_ logon: fscrypt:53f104c79f40fc58
+----
+
+
+Using the encrypted directory
+-----------------------------
+
+This does not require any special instructions. Just create and use files there as usual:
+
+----
+# Create encrypted data inside of directory:
+$ echo supersecret > fscrypt_test/private_file.txt
+----
+
+Locking the encrypted directory
+-------------------------------
+
+Locking means that no more access to the encrypted data (in unencrypted form) is possible any longer.
+
+This is achieved by removing the encryption key from the kernel keyring and then flushing the filesystem caches.
+
+----
+# Remove the loaded encryption key (not its key file) from kernel keyring:
+$ keyctl purge logon fscrypt:53f104c79f40fc58
+logon 'fscrypt:53f104c79f40fc58'
+purged 1 keys
+
+# They key is gone:
+$ keyctl show
+Session Keyring
+ 887544545 --alswrv   1000 65534  keyring: _uid_ses.1000
+ 639325962 --alswrv   1000 65534   \_ keyring: _uid.1000
+
+# But decrypted file is still here even without key because of caching:
+$ ls -n fscrypt_test
+insgesamt 4
+-rw-rw-r-- 1 1000 413 12 Feb 12 02:59 private_file.txt
+
+# Drop all caches to get rid of the cached data:
+$ echo 3 | sudo tee /proc/sys/vm/drop_caches
+
+# Now directory is encrypted as it should be without a loaded key:
+$ ls -n fscrypt_test
+insgesamt 4
+-rw-rw-r-- 1 1000 413 12 Feb 12 02:59 F4gGRRNtkZt,iJAJ,CYtnaWmIigd0erKZp2b9SpxI7P
+
+# The file cannot be displayed either:
+$ LANG=C cat fscrypt_test/F4gGRRNtkZt,iJAJ,CYtnaWmIigd0erKZp2b9SpxI7P 
+cat: fscrypt_test/F4gGRRNtkZt,iJAJ,CYtnaWmIigd0erKZp2b9SpxI7P: Required key not available
+
+# Neither is it possible to create new files in the encrypted directory:
+$ LANG=C tee fscrypt_test/new_file
+tee: fscrypt_test/new_file: Required key not available
+
+# Show that the encrypted directory has special attributes set:
+$ lsattr -d fscrypt_test
+---------E----e---- fscrypt_test
+
+# But not even this can be done for the files in the encrypted directory:
+$ LANG=C lsattr -d fscrypt_test/F4gGRRNtkZt,iJAJ,CYtnaWmIigd0erKZp2b9SpxI7P
+lsattr: Required key not available While reading flags on fscrypt_test/F4gGRRNtkZt,iJAJ,CYtnaWmIigd0erKZp2b9SpxI7P
+
+# Look up what the attributes mean:
+$ man chattr | fmt -w 999 | sed 's/[[:space:]]\{1,\}/ /g; s/^ //' | grep "'[eE]' attribute"
+The 'e' attribute indicates that the file is using extents for mapping the blocks on disk. It may not be removed using chattr(1).
+The 'E' attribute is used by the experimental encryption patches to indicate that the file has been encrypted. It may not be set or reset using chattr(1), although it can be displayed by lsattr(1).
+
+# However, it is still possible to delete the encrypted file:
+$ rm fscrypt_test/F4gGRRNtkZt,iJAJ,CYtnaWmIigd0erKZp2b9SpxI7P
+
+$ ls -n fscrypt_test
+insgesamt 0
+
+# Also, it is still possible to look at the encryption settings for the directory:
+$ fscryptctl get_policy fscrypt_test
+Encryption policy for fscrypt_test:
+        Policy Version: 0
+        Key Descriptor: 53f104c79f40fc58
+        Contents: AES-256-XTS
+        Filenames: AES-256-CTS
+----
+
+
+Disadvantages of using 'ext4' encryption
+----------------------------------------
+
+There seems to be an internal optimization in 'ext4' that files not larger than 60 bytes can be stored directly within their inode metadata and do not need to allocate an extra cluster from the available storage space in the file system. This optimization will not occur for encrypted files. (Probably because they will always be actually be larger due to metadata overhead imposed by the encryption.)
+
+Another restriction is that the MMU page size needs to match the cluster size of the 'ext4' file system in order for the existing implementation to work - which means a cluster size of 4 KiB is mandatory.
+
+Also, there is only a single choice of encryption algorithms (one for file contents encryption and the other for file name encryption) available for every 
+'ext4' volume. It is stored in the filesystem's superblock. There is also a per-filesystem salt also stored there. (This salt is used to tweak all encryption keys used within the file system in addition to the user-provided per-encrypted-directory-hierarchy salt.)
+
+Every 'ext4' encrypted filesystem object seems to allocate one cluster more (4 KiB) of filesystem overhead than in the unencrypted case.

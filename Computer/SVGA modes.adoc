@@ -1,0 +1,78 @@
+﻿SVGA modes
+==========
+
+Those modes include and extend the set of standard display modes.
+
+
+The standard modes
+------------------
+
+.Standard text modes
+[cols="^,^,^,^,^",options="autowidth,header"]
+|===
+.3+| Character 4+| Resolution
+                 | since CGA: | since EGA: | since VGA: |
+                 | 640 × 200  | 640 × 350  | 640 × 400  | 640 × 480
+   | 8 × 8       | *80 × 25*  | *80 × 43*  | *80 × 50*  | 80 × 60
+   | 8 × 14      |  80 × 14   | *80 × 25*  |  80 × 28   | 80 × 34
+   | 8 × 16      |  80 × 12   |  80 × 21   | *80 × 25*  | 80 × 30
+|===
+
+The above table describes the cell size for a single character and the dimension of the whole display, using standard built-in fonts on CGA/EGA/VGA-grapics cards. All values are in pixels. Only the *emphasized* values are supported by the cards' built-in BIOS extension ROM.
+
+
+SVG modes
+---------
+
+.SVGA ID number range regions
+[options="autowidth"]
+|===
+| 0x0000 to 0x00ff | menu item references. 0x0000 is the first item. Don't use outside the menu.
+| 0x0100 to 0x017f | standard BIOS modes. The ID is a BIOS video mode number (as presented to INT 10, function 00) increased by 0x0100.
+| 0x0200 to 0x08ff | VESA BIOS modes. The ID is a VESA mode ID increased by 0x0100. All VESA modes should be autodetected and shown on the menu.
+| 0x0900 to 0x09ff | Video7 special modes. Set by calling INT 0x10, AX=0x6f05. (Usually 940=80x43, 941=132x25, 942=132x44, 943=80x60, 944=100x60, 945=132x28 for the standard Video7 BIOS)
+|===
+
+
+0x0f00 to 0x0fff - additional special modes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+They are set by various tricks - usually by modifying one of the standard modes. Currently available:
+
+.Special modes
+[options="autowidth"]
+|===
+| 0x0f00 | standard 80x25, don't reset mode if already set (=FFFF)
+| 0x0f01 | standard with 8-point font: 80x43 on EGA, 80x50 on VGA
+| 0x0f02 | VGA 80x43 (VGA switched to 350 scanlines with a 8-point font)
+| 0x0f03 | VGA 80x28 (standard VGA scans, but 14-point font)
+| 0x0f04 | leave current video mode
+| 0x0f05 | VGA 80x30 (480 scans, 16-point font)
+| 0x0f06 | VGA 80x34 (480 scans, 14-point font)
+| 0x0f07 | VGA 80x60 (480 scans, 8-point font)
+| 0x0f08 | Graphics hack (see the CONFIG_VIDEO_HACK paragraph below)
+|===
+
+
+0x1000 to 0x7fff - modes specified by resolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The code has a "0xRRCC" form where RR is a number of rows and CC is a number of columns. E.g., 0x1950 corresponds to a 80x25 mode, 0x2b84 to 132x43 etc.
+
+This is the only fully portable way to refer to a non-standard mode, but it relies on the mode being found and displayed on the menu (remember that mode scanning is not done automatically).
+
+.Special modes
+[options="autowidth"]
+|===
+| 0xff00 to 0xffff | aliases for backward compatibility:
+| 0xffff           | equivalent to 0x0f00 (standard 80x25)
+| 0xfffe           |equivalent to 0x0f01 (EGA 80x43 or VGA 80x50)
+|===
+
+If you add 0x8000 to the mode ID, the program will try to recalculate vertical display timing according to mode parameters, which can be used to eliminate some annoying bugs of certain VGA BIOSes (usually those used for cards with S3 chipsets and old Cirrus Logic BIOSes) - mainly extra lines at the end of the display.
+
+....
+video=vesa:ywrap,mtrr
+vga=791
+791 means 1024x768@16, 788 means 800x600@16
+....

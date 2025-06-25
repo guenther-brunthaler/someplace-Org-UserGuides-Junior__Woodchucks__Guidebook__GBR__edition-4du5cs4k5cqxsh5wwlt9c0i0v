@@ -1,0 +1,235 @@
+﻿GnuPG Command Line Usage
+========================
+Günther Brunthaler
+Version 2025.66
+
+GnuPG, the "GNU Privacy Guard", is an OpenSource implementation of the OpenPGP standard for encryption and signing.
+
+The OpenPGP standard has been created to standardize the data formats used by the now-obsolete and once very popular original OpenSource program "PGP" (short for "Pretty Good Privacy"), which lost much of its popularity once it became commercial and was extended with controversial features like key escrow.
+
+This document summarizes the most imporant GnuPG commands because it is a real pain to look them up in the very long (and incomplete) `--help` output (or man page).
+
+At the time of this writing, there are two major versions of GnuPG: v1 and v2.
+
+This document applies to v2, which uses a command named `gpg2` at least on Debian (where plain `gpg` might refer to the v1 command).
+
+If your Linux distribution does not support or provide a command for v1 any more, chances are that the v2 command is just named `gpg`. When in doubt, try both commands
+
+----
+$ gpg --version | head -n 1
+$ gpg2 --version | head -n 1
+----
+
+in order to find out which commands are available and which GnuPG version they actually refer to. An output of one of the beforementioned commands like
+
+----
+gpg (GnuPG) 2.1.18
+----
+
+indicates this is actually the v2 command, because the first (major) component of the version number happens to be "2".
+
+
+"No dirmngr"
+------------
+
+You might encounter this error message when tryping to download keys from a public keyserver.
+
+First, add the following options to your `~/.gnupg/gpg-agent.conf` (unless they are already present there):
+
+----
+$ cat >> ~/.gnupg/gpg-agent.conf << EOF
+disable-dirmngr 
+auto-key-retrieve
+EOF
+----
+
+Next, start the GnuPG Assistent (`gpa`) and navigate to the "Backend Preferences" in the "Edit" menu. There you need to switch the "Level" to "Expert" and uncheck the "disable-dirmngr" check box.
+
+Now the commands for accessing keyservers should work, as well as the commands for remote certificate checking and general all network-related functions of GnuPG.
+
+Once you are done, go back to the `gpa` setting mentioned above and check the box "disable-dirmnr" this time. Then close the `gpa` application.
+
+Finally, kill the running `dirmng` process with
+
+----
+$ killall dirmngr
+----
+
+if you want. It is not needed unless network-related functions of GnuPG are used.
+
+Of course, if you do not mind wasting RAM, you can also leave the checkbox checked permanently, and keep the `dirmngr` process running indefinitely.
+
+
+Encrypt
+-------
+
+Before encrypting anything, one needs to find an available public key associated with the intended recipient.
+
+----
+$ gpg2 --list-keys "$SEARCH_STRING"
+----
+
+will list all available public keys which contain $SEARCH_STRING as substrings in their names (or key IDs). Use the e-mail-address of the recipient as a starting point for the searchj. If only a single key matches, the e-mail-address can directly us used to specify the target user ID. Otherwise, use the key ID (a string of hexadecimal digits) displayed with the appopriate entry as the target user ID.
+
+Now that the target user ID is known, encrypt already-compressed file `$file` so that target user `$target_user` will be able to decrypt it and sign the whole thing with your local default user ID, creating the binary output file `$file.pgp`:
+
+----
+$ gpg2 --encrypt --compress-algo=none -r "${target_user:?}" --sign "${file:?}"
+----
+
+By omitting "`--sign`" the file will only be encrypted but not also be signed (usually a bad idea, unless the encrypted files cannot be tampered with):
+
+----
+$ gpg2 --encrypt --compress-algo=none -r "${target_user:?}" "${file:?}"
+----
+
+If you want to encypt and sign, but sign using a different private key `$signer` rather than with the default user ID:
+
+----
+$ gpg2 --encrypt --compress-algo=none -r "${target_user:?}" --sign --local-user "${signer:?}" "${file:?}"
+----
+
+If `$file` is not already compressed, remove the `--compress-algo=none` option from the commands above. This will gpg's default zlib compression.
+
+
+Decrypt/Verify
+--------------
+
+Decrypt an encrypted file `$file.pgp` and save it as `.pgp`, also verifying the signature (if any is present) as part of the operation:
+
+----
+$ gpg2 "${file:?}".pgp
+----
+
+This will also write information about the used keys to standard error.
+
+It the message has been signed, details about the signature and whether it is valid will also be written to standard error.
+
+It is also possible to use the same command for a file which has just been signed (containing the signature within the file itself) but not been encrypted at all. In this case, the original signed contents (minus the signature data) will be saved as he output file.
+
+Note that there is no command present - this is the default operation of GnuPGv2. Unfortunately, this will also trigger a warning because of the missing command. Even more unfortunately, there seems to be no command to explicitly request the default operation, so the warning cannot be avoided.
+
+Also note that just specifying an unknown file name this way is dangerous - if `$file` starts with "`-`" this could be mis-interpreted as an option or as a reference to standard input/output.
+
+For that reason, scripts should check whether `$file` starts with a "`-`" and prefix it with "`./`" in such a case.
+
+Same, but save the output to a particular file `$output_file` rather than just `$file`:
+
+----
+$ gpg2 --decrypt -o $output_file "${file:?}".pgp
+----
+
+Same, but restore to the original file name:
+
+----
+$ gpg2 --use-embedded-filename "${file:?}".pgp
+----
+
+Note that this is *dangerous*! It might maliciously overwrite local files. *Never* use this option unless the encrypted file was created by yourself on the local machine and has not been tampered with since then.
+
+
+Just view the encrypted/signed contents
+---------------------------------------
+
+Same as before, but just write the decrypted contents to standard output rather than writing it to any file (although output redirection may still be applied of course):
+
+----
+$ gpg2 --decrypt "${file:?}".pgp
+----
+
+
+Create signature
+----------------
+
+Binary signature file
+~~~~~~~~~~~~~~~~~~~~~
+
+Do not encrypt `$file` but just create a detached binary `$file.sig` signature for it using signing key `$signer`:
+
+----
+$ gpg2 -b --local-user ${signer:?} "${file:?}"
+----
+
+(Omit the "`--local-user ${signer:?}`" to sign with your default key.)
+
+"Detached" means that the output file contains just the signature data, and not also a copy of the data contents to be signed.
+
+Detached signature files can be used as a superior replacement for checksum files, because they are tamper-resistant due to the signature. The only option an attacker has to conceal a modification is to delete the signature file.
+
+The binary signature file is more compact and thus shorter than a text-format signature (see below).
+
+This only applies when locally archiving the signature file, however, because in e-mails the base-64 encoding of binary attachments nullifies the size advantage.
+
+
+Text-format Signature
+~~~~~~~~~~~~~~~~~~~~~
+
+Create a single output file `$file.asc` containing the unencrypted original file contents as well as the signature data (both in text format):
+
+----
+$ gpg2 --clearsign --local-user ${signer:?} "${file:?}"
+----
+
+Create a detached signature as `$file.asc` in text format (requires more storage space when stored outside of e-mails, but signature data can be pasted easily as text if needed):
+
+----
+$ gpg2 -b --armor --local-user ${signer:?} "${file:?}"
+----
+
+Sign `$file` and create a binary output file `$file.pgp` for it containing both the unencrypted original file contents as well as the binary signature data:
+
+----
+$ gpg2 --sign --local-user ${signer:?} "${file:?}"
+----
+
+
+Signing a public keys
+~~~~~~~~~~~~~~~~~~~~~
+
+After importing a foreign public key which cannot be verified by other key signatures already present in the local user's keyring, that key needs to be signed by the local user before it will be trusted for signature verifications.
+
+Before this signing occurs, all signatures created using the imported key will be rejected as "bad".
+
+
+Exportable
+^^^^^^^^^^
+
+Creating an exportable key-signature will include the signature when exporting the signed public key from the local keyring. This is normally a good thing, because people who trust your key may then trust the signed key automatically, based on their trust settings.
+
+In order to sign the imported foreign public key $foreign_id with the signing key $signer (one of the keys of the local user) as an exportable signature:
+
+----
+$ gpg2 --sign-key --local-user ${signer:?} ${foreign_id:?}
+----
+
+
+Non-exportable
+^^^^^^^^^^^^^^
+
+Creating a non-exportable key-signature will exclude the signature when exporting the signed public key from the local keyring. This is useful if you don't want other people to know that you signed that public key. It is also useful for creating temporary signatures before you are completely certain that the public keys actually belongs to the alleged owner, but need the signature in order to verify signatures made by that key.
+
+In order to sign the imported foreign public key $foreign_id with the signing key $signer (one of the keys of the local user) as a non-exportable signature:
+
+----
+$ gpg2 --lsign-key --local-user ${signer:?} ${foreign_id:?}
+----
+
+
+List public keys
+----------------
+
+Display all public keys in the local key ring. (You may optionally adding a search pattern as an additional argument.)
+
+----
+$ gpg2 --list-keys
+----
+
+
+List private keys
+-----------------
+
+Similar to `--list-keys`, but only displays private keys:
+
+----
+$ gpg2 --list-secret-keys
+----

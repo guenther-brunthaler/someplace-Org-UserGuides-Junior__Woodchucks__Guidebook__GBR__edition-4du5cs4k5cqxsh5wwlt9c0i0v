@@ -1,0 +1,337 @@
+﻿VLC Media Player
+================ 
+v2023.214
+
+
+Keyboard maps
+-------------
+
+Add the following entries to `~/.config/vlc/vlcrc` (key assignments seem to support multiple values by separating them with an ASCII horizontal tabulation control character):
+
+[[preferred_keybindings]]
+----
+[core]
+playlist-enqueue=1
+extrashort-jump-size=4
+key-pause=c	Browser Stop
+key-next=b	Media Next Track
+key-prev=y	Media Prev Track
+key-stop=x	Media Stop
+key-jump-short=Left
+key-jump+short=Right
+key-jump-medium=Down
+key-jump+medium=Up
+key-jump-long=Page Down
+key-jump+long=Page Up
+key-frame-next=.	Browser Next
+key-vol-up=+	Volume Up
+key-vol-down=-	Volume Down
+key-audio-track=#
+key-subtitle-track=j
+key-subtitle-toggle=v
+key-snapshot=s
+----
+
+Note that ASCII HT (horizontal tabulation character) is present in the above listing between alternate key combinations for the same function.
+
+Remove (assign empty strings to) all other mapped keys using the VLC GUI, unless you actually want to keep some of them.
+
+For default keys, the easiest way to do this is to remove assignments using the `Del` key within the VLC player's GUI settings dialog.
+
+Alternatively, you can use <<reconfig_script,this script>> to automate the process - it integrates the above assignments into VLC's configuration file.
+
+
+Display Filename in Playlist
+----------------------------
+
+Put `$F` or `$U` in `Preferences`, `All`, `Input/Codecs`, `Advanced`, `Change title according to current media`.
+
+* `$F` shows the full file path
+* `$U` shows just the filename
+
+After changing this setting, you have to restart VLC.
+
+Unfortunately, the above changes only affect the initial display for entries. As soon as playback for the title starts, the display for this item is reverted to displaying other metadata (if available) than the filename.
+
+
+Factory Presets
+---------------
+
+Equalizer
+~~~~~~~~~
+
+* 2 Pass: `[-]`
+* Preamp: 12 dB
+* (All other sliders): 0 dB
+
+Note that the above settings are the same as loaded by the "Flat" preset.
+
+Also note that the "2 Pass" setting is not affected by loading a preset.
+
+
+Compressor
+~~~~~~~~~~
+
+* RMS/peak: 0.2
+* Attack: 25 ms
+* Release: 100 ms
+* Threshold: -11 dB
+* Ratio: 4.0 : 1
+* Knee radius: 5 dB
+* Makeup Gain: 7 dB
+
+
+Spatializer
+~~~~~~~~~~~
+
+* Size: 8
+* Width: 10
+* Wet: 4
+* Dry: 5
+* Damp: 5
+
+
+Stereo Widener
+~~~~~~~~~~~~~~
+
+* Delay time: 20 ms
+* Feedback gain: 0.3 %
+* Crossfeed: 0.3 %
+* Dry mix: 0.8 %
+
+
+Advanced Preferences / Audio
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+General audio settings
+^^^^^^^^^^^^^^^^^^^^^^
+
+* Audio gain: 1
+* Audio output volume step: 12.8
+* Replay gain mode: None
+* Replay preamp: 0
+* Default replay gain: -7
+
+
+Filters
+^^^^^^^
+
+Audio Filters: `[-]`
+
+(No filters are enabled by default.)
+
+
+Filters / Audio pitch changer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Stride length: 30
+* Overlap length: 0.2
+* Search length: 14
+* Pitch shift: 0
+
+
+Filters / Delay
+^^^^^^^^^^^^^^^
+
+* Delay time: 20
+* Sweep Depth: 6
+* Sweep Rate: 6
+* Feedback gain: 0.5
+* Wet mix: 0.4
+* Dry mix: 0.4
+
+
+Filters / Gain
+^^^^^^^^^^^^^^
+
+* Gain multiplier: 1
+
+Filters / Headphone effect
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Characteristic dimension: 10
+* Compensate delay: `[-]`
+* No decoding of Dolby Surround: `[-]`
+
+
+Filters / Parametric Equalizer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Low freq: 100
+* High freq: 10000
+* Freq 1: 300
+* Freq 2: 1000
+* Freq 3: 3000
+
+Same for all frequencies:
+
+* Gain: 0
+* Q: 3
+
+
+Filters / Stereo Enhancer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Delay Time: 20
+* Feedback gain: 0.3
+* Crossfeed: 0.3
+* Dry mix: 0.8
+
+
+Filters / Volume normalizer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Number of audio buffers: 20
+* Maximal volume level: 2
+
+
+Dynamic range compression
+-------------------------
+
+You find the thing in VLC under Tools, Effects and Filters, Audio Effects, Compressor. Or simply just press Ctrl+E.
+
+
+Factory Preset
+~~~~~~~~~~~~~~
+
+Statement 1
+~~~~~~~~~~~
+
+Following are some good initial settings you can use.
+
+* RMS/peak 0.0: If threshold should apply to peaks (machine-like) or RMS values (human-ear-like)
+
+* Attack 50 ms: How quick to react
+
+* Release 300 ms: How slow to release
+
+* Threshold -20.0 dB: When to react
+
+* Ratio 20.0:1: How much to compress levels above the treshold
+
+* Knee radius 1.0 dB: How soft the compressor should kick in. Zero will apply ratio immediately when level hits threshold. Higher values leads to softer compression closer to the threshold.
+
+* Makeup gain 12.0 dB: Fixed audio boost
+
+
+Statement 2
+~~~~~~~~~~~
+
+VLC's compressor is a bunch of confusing sliders with labels that might as well be moon language to your average joe unless they have a background in audio production.
+the guy in OP's video is a moron who doesn't know what he's doing [...] it's probably better to have the ratio about halfway up, max the knee radius, and then put your threshold all the way up and slowly lower it to adjust it to taste.
+this will result in a more natural sound than having the ratio maxed and kicking in suddenly, with zero knee to boot.
+
+
+Statement 3
+~~~~~~~~~~~
+
+Think of a compressor as a little robot hand that automatically turns down the volume knob whenever the sound volume goes above a certain threshold. 
+
+Essentially a compressor dampens the loudest parts, and then you use the makeup gain to turn everything back up, essentially making the quiet parts "louder".
+
+The volume level where anything above it gets turned down is the "threshold". If you have the threshold maxed, the compressor won't do anything because the volume will never reach that point.
+
+The ratio of how much it turns down the knob as the volume level rises above the threshold is the "ratio" control the attack is how long it takes before the compressor kicks in.
+
+Say for example you were compressing drums. You'd add a little delay, or "attack" to the compressor to allow some of the initial punch to get through before the compressor kicks in.
+
+Release is similar, it makes the compressor take longer to stop compressing. I'm not sure why you'd want to turn this up unless you're going for that pumping/breathing effect that a lot of electronic dance tracks use.
+
+deadmau5 is a queef but he's the most blatant example I could think of knee radius sort of "smudges" or softens the point where the compressor kicks in at the threshold. turning up the knee averages the point where the compressor kicks in and gives a more natural sound.
+
+The compressor ultimately makes the final product quieter, since all the loud peaks have been dampened. to get the volume level back up to normal you turn up the "makeup gain", or you can just turn your speakers/headphones up, whichever.
+
+
+Statement 4
+~~~~~~~~~~~
+
+A dynamic compressor works by bringing down the volume of the source audio when it gets higher than a certain threshold. It doesn't do anything until the volume hits said threshold, where it gets bring down with certain parameters. You can see some of those here.
+
+RMS/Peak:: Those a pretty much methods for calculating the volume. Peak is "real" volume. It's what you see on those kind of meters on various audio equipment around you, or in your favorite media player. RMS is a mathematical scale that's closer to how our ear perceives volume changes. Our ears are not accurate, so real volume is different than perceived volume. It's closer to an average, and doesn't represent the volume at every moment. Those VU meters you've maybe seen on older consumer audio equipment are based on that scale. Here, being it at 0.0 means it's 100% RMS-based, so it will compress basically much more on loud parts, and less on quieter parts, instead of applying every time the volume jumps over the threshold for a second.
+
+Attack:: The time the compressor takes to entirely kick in. Here it's at 1,4ms, so it kicks in almost instantly.
+
+Release:: The time the compressor takes to completely remove it's effect after the audio goes under the threshold. 1.9ms is really fast, so it will release almost instantly when volume goes back under the threshold.
+
+Threshold:: The volume where the effect kicks in. Below, does nothing. Over, boom. -20dB usually means it will kick in all over the place, but that depends on the source material's volume. The "Attack/Threshold/Release" combination is pretty well explained by this graphic. The blue line represents the volume of the original signal, the red dotted line is the audio after compression.
+
+Ratio:: How much the volume is brought down when it is higher than this level. Here, 20:1 means it takes 20dB at the input to output a 1dB volume increase. To give you an idea, 3dB is technically twice the power (4dB is 4x, etc... getting exponentially bigger) and 10dB is perceived as twice louder by human ear, so it's a pretty drastic effect.
+
+Knee radius:: This setting is a bit weird. A 0dB knee means the compression hits exactly at the threshold, while a softer knee means the compression will progressively come into play a little bit before the threshold and build up to full ratio after it. Here is a simple image that puts it simply enough. The knee being at 1dB means that this is almost not used at all here, so 20:1 compression is close to instantly in effect when of threshold.
+
+Makeup gain:: This is basically a volume knob for the output of the processor. Here, independently of everything else, it will permanently push the volume up of 12dB.
+
+Those settings basically sets the VLC compressor to act as a brickwall limiter. Does what its name says. It's pretty extreme and will squish everything, leaving basically no dynamics. Yeah, spoken volume will be a lot louder, but music and everything else will be compressed to hell and will lose impact.
+
+I think you can push this to 4:1, 8:1 for crappy laptop speakers, maybe, but those settings basically are garbage if you care about audio quality. Don't use them if you are listening on a good audio system - turn up the volume.
+
+
+Statement 5
+~~~~~~~~~~~
+
+There are two types of compression, downward and upward. Both downward and upward compression reduce the dynamic range of an audio signal.
+
+Downward compression reduces the volume of loud sounds above a certain threshold. The quiet sounds below the threshold remain unaffected. This is the most common type of compressor. A limiter can be thought of as an extreme form of downward compression as it compresses the sounds over the threshold especially hard. 
+
+Upward compression increases the volume of quiet sounds below a certain threshold. The louder sounds above the threshold remain unaffected. 
+
+Threshold timing behavior is subject to attack and release settings (see below). When the signal level goes above threshold, compressor operation is delayed by the attack setting. For an amount of time determined by the release after the input signal has fallen below the threshold, the compressor continues to apply dynamic range compression.
+
+The amount of gain reduction is determined by ratio: a ratio of 4:1 means that if input level is 4 dB over the threshold, the output signal level is reduced to 1 dB over the threshold. The gain and output level has been reduced by 3 dB. Another way of stating this is that any input signal level over the threshold will, in this case, be output at a level which is only 25% (i.e. 1 over 4) as much over the threshold as its input level was.
+
+Another control a compressor might offer is hard knee or soft knee selection. This controls whether the bend in the response curve between below threshold and above threshold is abrupt (hard) or gradual (soft). A soft knee slowly increases the compression ratio as the level increases and eventually reaches the compression ratio set by the user. A soft knee reduces the potentially audible transition from uncompressed to compressed, and is especially applicable for higher ratio settings where the changeover at the threshold would be more noticeable.
+
+A peak-sensing compressor responds to the peak level of the input signal. While providing tighter peak level control, peak level sensing does not necessarily relate to human perception of loudness. Some compressors apply a power measurement function (commonly root mean square or RMS) on the input signal before comparing its level to the threshold. This produces a more relaxed compression that more closely relates to human perception of loudness. 
+
+Because a downward compressor only reduces the level of the signal, the ability to add a fixed amount of make-up gain at the output is usually provided so that an optimum output level is produced.
+
+Compression and limiting are identical in process but different in degree and perceived effect. A limiter is a compressor with a high ratio and, generally, a fast attack time. Compression with ratio of 10:1 or more is generally considered limiting.
+
+Brick wall limiting has a very high ratio and a very fast attack time. Ideally, this ensures that an audio signal never exceeds the amplitude of the threshold. Ratios of 20:1 all the way up to ∞:1 are considered brick wall. The sonic results of more than momentary and infrequent brick-wall limiting are harsh and unpleasant, thus it is more common as a safety device in live sound and broadcast applications. 
+
+
+[[reconfig_script]]
+Keyboard remapping script
+-------------------------
+
+This section provides a POSIX shell script which updates the existing VLC configuration files with the <<preferred_keybindings,settings mentioned earlier>> in this document.
+
+This script can be called from anywhere in the filesystem, but the pathname of *this document* must either be provided as the only argument to the script, or *this document* must be fed to the script via standard input.
+
+In both cases, the script will extract the keyboard definitions <<preferred_keybindings,mentioned earlier>>, and update the user's VLC configuration file with it.
+
+But before performing any changes, it will save a patch next to the configuration file which, when applied to the updated version, restores the previous contents of the configuration file.
+
+The script will be unpacked to the current directory by the following command:
+
+----
+$ tar -xvz << EOF
+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
+EOF
+----

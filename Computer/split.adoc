@@ -1,0 +1,55 @@
+split
+=====
+v2023.271
+
+In order to split binary data stream from standard input into parts `PREFIX.a`, `PREFIX.b` etc. where every file `PREFIX.*` is 'BYTES' bytes long:
+
+----
+$ split -a 1 -b BYTES - PREFIX.
+----
+
+where the `-a` option specifies the width of the generated suffix letters (default is `2` characters - "`aa`" through "`az`", "`ba`" through "`bz`", and so on).
+
+Alternatively, the argument of the `-b` option may have size suffix "`k`" for KiB or "`m`" for MiB (instead of bytes).
+
+Alternatively, `-l LINES` (or just `-l` which means `-l 1000` and does nothing because it is the default splitting mode) can be used instead of `-b` to split by line count rather than size. If the last line is not terminated with a newline, no newline will be added but it will count as a complete line regarding the splitting.
+
+So far for the POSIX and BusyBox versions of "`split`".
+
+GNU `split` has an extension: `-d` makes the generated suffixes decimal numbers, starting with `0` (or with `N` when using `-dN`).
+
+
+Example 1
+---------
+
+Split standard input into 2 GB (decimal) parts `out-0`, `out-1` etc. with GNU split, and create checksum files ready for later comparison:
+
+----
+$ split -d -a 1 -b 2000000000 - out-
+$ cksum out-* | sort > out.cks
+----
+
+Note that `-a 1` restricts to 10 output files, Use `-a 2` for up to 100 output files, `-a 3` for up to 1000, and so on.
+
+After downloading/transfering the files, the checksums can be compared as follows:
+
+----
+$ cksum out-* | sort | comm -3 - out.cks && echo all ok || echo differences found
+----
+
+
+Example 2
+---------
+
+Use GNU `split` in order to split standard input into 500 MB parts.
+
+Use 2-digit segment numbers and use the current date as the fixed part of the filenames.
+
+After splitting, create a checksum file sorted for use with `comm` and also create 'PAR 2' forward error correction information with 1 % redundancy.
+
+----
+$ n=`date +%Y%m%d`
+$ cat some_big_file | split -d -a 2 -b 500000000 - ${n:?}-
+$ cksum ${n:?}-?? > ${n:?}.cks
+$ rm -f ${n:?}.par2 && par2 c -qqr1 ${n:?} ${n:?}[-.]*
+----

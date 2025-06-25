@@ -1,0 +1,59 @@
+qalc
+----
+v2020.150
+
+`qalc` is the command-line utility shipped with the 'Qalculate!' GUI desktop calculator.
+
+Typical usages:
+
+----
+$ qalc -t -set 'max_decimals 2' '5000 + 20 %'
+$ qalc -t -set 'exact 1' -set 'min_decimals 2' '5000 / 13 %'
+----
+
+where the "`-t`" suppresses showing the interpreted input (typically a repetition) in the output.
+
+----
+$ qalc -set 'base 16' -set 'precision 30' 256/3
+----
+
+Some properties to "`-set`"
+
+* +min_decimals *N*+
+* +max_decimals *N*+
+* +fractions 1+
+* +exact 1+
+* +precision *N*+
+* +base *N*+
+
+Some functions/features to use in the expression to be evaluated:
+
+----
+add(1, 2, 3, 4, 5) = sum(element([1, 2, 3, 4, 5], "i"), 1, 5, "i")
+multiply(1, 2, 3, 4, 5) = 5!; 5! = factorial(5)
+cos(pi); 4*atan(1)
+log(e); log(2^8, 2)
+integrate(expr, var); diff(expr, var)
+----
+
+Some predefined special variables:
+----
+Yesterday; Tomorrow; Today; Now
+----
+
+Convert result of all expressions to units, sharing the same single conversion specification:
+----
+40 MtTNT to kcal
+2 ^ 64 bytes to exbibytes
+lightyear / c to mixed
+----
+
+Variables `x`, `y` and `z` are recognized directly as such. Other variable names have to be wrapped within double quotes or they might get mismatched with unit name abbreviations (an unquoted name `a` would be interpreted as 'Ampere').
+
+Find out more by running
+
+----
+$ LANG=en_US.UTF-8 LANGUAGE= qalculate &
+----
+
+then insert some function using the menus, and see how it was named.

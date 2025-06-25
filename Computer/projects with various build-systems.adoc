@@ -1,0 +1,299 @@
+﻿Projects with various build-systems
+===================================
+v2025.36
+
+
+Meson
+-----
+
+It's easier than in most other build systems. Meson development consists of the following phases:
+
+* `meson init`: Create project file from list of source files. For project authors only.
+* `meson setup`: Use project file to create and configure a build directory.
+* `meson compile`: Build the project from within a build directory.
+* `meson install`: Install the built files from within a build directory.
+
+First, create the source code and a Meson project file:
+
+----
+$ echo 'int main(){return 42;}' > rc42.c
+$ meson init --name myprog42 *.c
+$ ls -F
+meson.build  rc42.c
+----
+
+Next, create up a build directory (Meson enforces build directories to be kept separate from source directories):
+
+----
+$ meson setup --buildtype=release mybuild
+
+$ ls -F
+meson.build  mybuild/  rc42.c
+----
+
+Now we enter the build directory, configure (optional) then build the project:
+
+----
+$ cd mybuild/
+$ meson compile # Build the project
+
+$ file -i * | grep executable
+myprog42:              application/x-executable; charset=binary
+
+$ ls -og myprog42
+-rwxrwxr-x 1 8448 13. Jän 18:02 myprog42
+
+$ ./myprog42; echo $?
+42
+----
+
+Finally, we can install it into a staging directory for packaging (or into the real filesystem by omitting the `--destdir` option, if desired):
+
+----
+$ meson install --destdir stage
+$ find stage
+stage
+stage/usr
+stage/usr/local
+stage/usr/local/bin
+stage/usr/local/bin/myprog42
+----
+
+The builtin "--help" explains most of the commands and arguments in sufficient detail to get a project started. For simple projects like this, no additional documentation is required.
+
+In order to build a Meson project, not only Meson itself needs to be installed, but also Ninja and Python. It cannot create Makefiles.
+
+
+CMake
+-----
+
+Create the source code and a cmake project file:
+
+----
+$ echo 'int main(){return 42;}' > rc42.c
+
+$ progname=myprog42 sources="`ls *.c`" # Temporary helper variables.
+
+$ cat > CMakeLists.txt << EOF # Create project files from variables.
+cmake_minimum_required(VERSION 3.10)
+project($progname)
+add_executable($progname $sources)
+EOF
+
+$ ls -F
+CMakeLists.txt  rc42.c
+----
+
+Create the build directory and generate a Makefile:
+
+----
+$ cmake -B mybuild
+$ ls -F
+CMakeLists.txt  mybuild/  rc42.c
+----
+
+Enter build directory, configure and build the project:
+
+----
+$ cd mybuild
+$ make edit_cache # Interactive configuration editor, "h" shows help for current entry
+$ make # Build the configured project.
+----
+
+Now,
+
+----
+$ make
+$ file -i * | grep executable
+myprog42:            application/x-executable; charset=binary
+
+$ ls -og myprog42 
+-rwxrwxr-x 1 7640 13. Jän 18:22 myprog42
+
+$ ./myprog42; echo $?
+42
+----
+
+Finally, we can install it into a staging directory for packaging. Run the following command from within the build directory:
+
+----
+$ pn=`cd .. && basename -- "$PWD"` pv=`git describe --tags HEAD` finaldest=$HOME/.local
+$ echo cmake --install . --prefix "stage/${pn:?}-${pv:?}/${finaldest:?}"
+----
+
+Review the resulting command. If it looks right, remove the `echo` from the command line and execute it again
+
+If this does not do anything, most likely the project maintainer forgot to define installation rules. If you happen to know the names of the executables created by the project which need to be installed, append something like this to `CMakeLists.txt`:
+
+----
+install(TARGETS some_executables)
+----
+
+and replace `some_executables` by the name(s) of the built executable(s) to be installed.
+
+CMake is harder to use than Meson. But it has more useful output backends, such as Makefiles and OpenSource IDEs.
+
+For building a CMake project, `cmake` needs to be installed, even when using Makefiles as a backend. (This is because the rules in those Makefiles invoke the `cmake` executable.)
+
+But at least neither Python nor Ninja need to be installed. (However, if Ninja is installed anyway it should be preferred as a backend.)
+
+In addition, CMake project files can be written in a way so that they depend on no external helper utilities, particularly no UNIX- or Windows-specific commands. The CMake language has built-in commands which are provided on every platform for which CMake has been ported to, and those commands can replace all commonly required platform-specific command line utilities.
+
+On the other hand, the CMake executable has dozens of library depencies which are normally dynamically linked. Which means that tons of other library packages need to be installed as runtime dependencies unless cmake has been built statically linked.
+
+Finding documentation how to write CMake project files seems to be hard at the first glance. The man page does not explain much, and even though there are thousand of Web pages explaining how to use CMake, they might describe a different version of CMake than is locally installed. However, it turns out that
+
+----
+$ cmake --help-full | less
+----
+
+explains everything that is really needed.
+
+
+Autotools
+---------
+
+Create the source, and a helper script for generating more source file:
+
+----
+$ echo 'int main(){return 42;}' > rc42.c
+$ cat > sharfile << 'EOF'
+# Generated by shar_barebones v2022.147.4
+cat > Makefile.am << '====='
+bin_PROGRAMS = maintpl
+EXTRA_DIST = autogen.sh
+maintpl_CPPFLAGS = $(SOMELIB_CFLAGS)
+maintpl_LDADD = $(SOMELIB_LIBS)
+=====
+
+cat > autogen.sh << '====='
+#! /bin/sh
+
+# Run this script in order to generate the ./configure script!
+#
+# v2023.127
+
+set -e
+trap 'test $? = 0 || echo "\"$0\" failed!" >& 2' 0
+
+cd -- "`dirname -- "$0"`"
+for f in NEWS README AUTHORS ChangeLog
+do
+        test -e $f && continue
+        > "$f"
+done
+autoreconf -i
+=====
+chmod +x autogen.sh
+
+EOF
+----
+
+Now lets run this script to generate two additional files:
+
+----
+$ ls -F
+rc42.c  sharfile
+
+$ sh sharfile && ls -F
+autogen.sh*  Makefile.am  rc42.c  sharfile
+
+$ cat Makefile.am
+bin_PROGRAMS = maintpl
+EXTRA_DIST = autogen.sh
+maintpl_CPPFLAGS = $(SOMELIB_CFLAGS)
+maintpl_LDADD = $(SOMELIB_LIBS)
+----
+
+Customize the `Makefile.am`:
+
+----
+$ sed -i 's/maintpl/myprog42/; /SOME/d' Makefile.am
+$ sed -i '/myprog42$/{p; s/.*/myprog42_SOURCES = '`ls *.c`'/}' Makefile.am 
+
+$ cat Makefile.am
+bin_PROGRAMS = myprog42
+myprog42_SOURCES = rc42.c
+EXTRA_DIST = autogen.sh
+----
+
+This would suffice for `automake`, but we also need a `configure.ac` file for `autoconf`. Create it like this:
+
+----
+$ autoscan
+$ mv configure.scan configure.ac
+$ sed -i '/^AC_INIT/{p; s/.*/AM_INIT_AUTOMAKE/}' configure.ac
+$ grep AC_INIT configure.ac 
+AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
+AM_INIT_AUTOMAKE
+----
+
+Now we customize `configure.ac`:
+
+----
+$ sed -i 's/^\(AC_INIT.*\)FULL-PACKAGE-NAME/\1''myprog42/' configure.ac
+$ sed -i 's/^\(AC_INIT.*\)VERSION/\1''1.0/' configure.ac
+
+$ grep AC_INIT configure.ac 
+AC_INIT([myprog42], [1.0], [BUG-REPORT-ADDRESS])
+----
+
+Now we are done creating all Autotool configuratin files: Only the following 3 files are required for building the project: `autogen.sh`, `Makefile.am`, `configure.ac` and 
+
+Now generate, configure, build and install the project:
+
+----
+$ ./autogen.sh # Generate "./configure"
+$ ./configure # Generate "Makefile"
+$ make
+$ make install DESTDIR=stage
+
+$ find stage
+stage/
+stage/usr
+stage/usr/local
+stage/usr/local/bin
+stage/usr/local/bin/myprog42
+
+$ stage/usr/local/bin/myprog42; echo $?
+42
+
+$ make dist-xz
+$ ls -og *.xz
+-rw-rw-r-- 1 77212 13. Jan 19:33 myprog42-1.0.tar.xz
+----
+
+The last step created a distribution tarball containing the configure script as well as the sources.
+
+The receiver does not need Autotools installed and can build and install the project like this:
+
+----
+$ ls -F
+myprog42-1.0.tar.xz
+
+$ tar xf myprog42-1.0.tar.xz
+$ ls -F
+myprog42-1.0/  myprog42-1.0.tar.xz
+
+$ cd myprog42-1.0
+$ ./configure --prefix="$HOME"/.local # Request per-user installation.
+
+$ make # build it
+
+$ make install # Install it
+
+$ myprog42; echo $? # Run it.
+42
+
+$ make uninstall # Uninstall it.
+----
+
+Autotools are great for UNIX-like platforms, including CygWin on Microsoft Windows.
+
+Especially users like them, because the `./configure && make && make install` mantra is easy to remember and mostly works out of the box. The user does not need to install anything other than `make` and a C compiler, which are pre-installed on many UNIX systems.
+
+In particular, the user does not need to install Autotools for using the Autotools-generated ./configure and Makefile. This is in contrast to CMake, which can also generate Makefiles, but those Makefiles still need cmake to be installed in order to work.
+
+However, Autotools suck on other platforms, because the generated ./configure script depends on POSIX-defined standard command line utilties like "ls", "mkdir", "make" etc. CMake is better for addressing proprietary target platforms as well as OpenSource-platforms (which are mostly UNIX-based).
+
+Also, creating Autotools projects is a steep learning curve. For going beyond the basics, one needs to master the m4 macro processor besides knowing how to write POSIX shells scripts.

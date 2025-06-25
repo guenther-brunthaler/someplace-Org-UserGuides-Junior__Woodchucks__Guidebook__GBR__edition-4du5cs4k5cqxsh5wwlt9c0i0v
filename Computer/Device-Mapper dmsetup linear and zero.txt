@@ -1,0 +1,17 @@
+echo 0 $length zero | dmsetup create $mapping
+dmsetup remove $mapping
+
+# Map a single range.
+echo 0 $length linear $backing_device 0 | dmsetup create $mapping
+
+# Represent four distinct source ranges as a single mapping.
+{
+   echo 0 $len1 linear $backing_device $off1
+   echo $len1 $len2 linear $backing_device $off2
+   echo $((len1 + len2)) $len3 linear $backing_device $off3
+   echo $((len1 + len2 + len3)) $len4 linear $backing_device $off4
+} |  dmsetup create $mapping
+
+All offsets and lengths are in units of 512-byte blocks.
+
+$backing_device can be a full path to a block device special file or a $MAJOR:$MINOR device number (using decimal numbers).

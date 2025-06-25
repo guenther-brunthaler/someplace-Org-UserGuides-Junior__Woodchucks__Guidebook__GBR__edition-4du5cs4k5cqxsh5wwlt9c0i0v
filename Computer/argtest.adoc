@@ -1,0 +1,12 @@
+Argument-Testing Script
+-----------------------
+v2022.350
+
+Create a script `argtest` which displays its arguments:
+
+----
+(a=argtest && tr -d '\n' << 'EOF' | tr NTS '\n\t ' > $a && chmod +x $a)
+#!S/bin/shNsetS--S"$0"S${1+"$@"}Ni=0NwhileStestS$#S!=S0NdoNTechoS"Argume
+ntS$i:S>>>$1<<<"NTi=$((i+1))NTshiftNdoneN
+EOF
+----

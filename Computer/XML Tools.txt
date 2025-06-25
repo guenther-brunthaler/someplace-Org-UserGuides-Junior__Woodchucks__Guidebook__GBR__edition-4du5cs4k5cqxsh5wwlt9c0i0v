@@ -1,0 +1,15 @@
+Convert HTML file into XMTML:
+
+$ #sudo apt-get install tidy
+$ tidy -asxml file.html > file.xml
+
+Display streamed/unformatted XML as tab-indented structured layout:
+
+$ #sudo apt-get install xmlstarlet
+$ xmlstarlet fo -t file.xml
+
+...or just open it with Mozilla Firefox, which can even syntax-highlight it.
+
+Transform XML file into a UNIX-friedly flat line-based format:
+
+$ xmlstarlet pyx file.html > file.pyx

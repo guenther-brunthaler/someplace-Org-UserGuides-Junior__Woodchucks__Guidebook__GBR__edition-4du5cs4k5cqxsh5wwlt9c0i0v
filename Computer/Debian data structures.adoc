@@ -1,0 +1,175 @@
+Debian Data Structures
+======================
+v2020.98
+
+
+Metadata format
+---------------
+
+All descriptions below assume a specific metadata format, which can be displayed with:
+
+----
+$ cat /var/lib/dpkg/info/format
+1
+----
+
+Be sure to verify the output is the same on your system, or the descriptions below may not match the data structures actually used by your installation.
+
+
+Description of installed packages
+---------------------------------
+
+The `status` file contains the concatenated Debian `control` package description files from all currently installed packages.
+
+----
+$ head -n 15 /var/lib/dpkg/status
+Package: 0wn
+Status: install ok installed
+Priority: extra
+Section: knoppix
+Installed-Size: 137
+Maintainer: Klaus Knopper <knoppix@knopper.net>
+Architecture: i386
+Version: 0.7-4
+Depends: grub-legacy, parted, gparted, reiserfsprogs, dialog, zenity
+Description: Zero Work needed - a simple installer for KNOPPIX
+ 0wn unpacks and installs the KNOPPIX filesystem on
+ harddisk.
+
+Package: accountsservice
+Status: install ok installed
+----
+
+This is a text file with empty lines separating entries, and every entry describes a currently installed package.
+
+The entry format is basically the same "`key: value`"-format as for RFC-822 e-mails, including the folding long of lines (like the `Description` field in the example above).
+
+See
+
+----
+$ man deb-control
+----
+
+for more information on that file format.
+
+There is a specialized `grep`-command called `grep-dctrl` which can search text files in this format. It searches entry records rather than lines, and allows to restrict which fields are searched/output. It can also combine multiple match criteria with boolean operators.
+
+Example: Show the first 5 installed packages not containing dashes in the package names from the "editors" section:
+
+----
+$ grep-dctrl -F section editors -a -F package -r '^[^-]*$' -s package /var/lib/dpkg/status | head -n 5
+Package: ed
+Package: emacs
+Package: emacspeak
+Package: hexedit
+Package: kate
+----
+
+
+Details for installed packages
+-------------------------------
+
+The `info`-subdirectory contains additional files with information about installed packages. All file names related to a package start with the name of the package and then have a type-specific file extension added:
+
+----
+$ ls /var/lib/dpkg/info/accountsservice.*
+/var/lib/dpkg/info/accountsservice.conffiles
+/var/lib/dpkg/info/accountsservice.list
+/var/lib/dpkg/info/accountsservice.md5sums
+/var/lib/dpkg/info/accountsservice.postinst
+/var/lib/dpkg/info/accountsservice.postrm
+/var/lib/dpkg/info/accountsservice.prerm
+----
+
+Now a quick overview of what's contained in those files:
+
+----
+$ for f in /var/lib/dpkg/info/accountsservice.*; do echo --- $f ---; head -n 15 $f; echo; done
+--- /var/lib/dpkg/info/accountsservice.conffiles ---
+/etc/dbus-1/system.d/org.freedesktop.Accounts.conf
+
+--- /var/lib/dpkg/info/accountsservice.list ---
+/.
+/etc
+/etc/dbus-1
+/etc/dbus-1/system.d
+/etc/dbus-1/system.d/org.freedesktop.Accounts.conf
+
+--- /var/lib/dpkg/info/accountsservice.md5sums ---
+4921454bddcf290452477bca1007cd63  lib/systemd/system/accounts-daemon.service
+3dcead8cfccd6a03d27028542dfe638c  usr/lib/accountsservice/accounts-daemon
+b108af541c19403758bfa93f348b07ed  usr/share/dbus-1/interfaces/org.freedesktop.Accounts.User.xml
+3b3933f2e4f2d0aaa73488486fb3d558  usr/share/dbus-1/interfaces/org.freedesktop.Accounts.xml
+14b6c530f6d42b253ac34610211b7ba2  usr/share/dbus-1/system-services/org.freedesktop.Accounts.service
+
+--- /var/lib/dpkg/info/accountsservice.postinst ---
+#!/bin/sh
+
+set -e
+
+get_pid() {
+
+--- /var/lib/dpkg/info/accountsservice.postrm ---
+#!/bin/sh
+set -e
+# Automatically added by dh_systemd_start/12.1.1
+if [ -d /run/systemd/system ]; then
+        systemctl --system daemon-reload >/dev/null || true
+
+--- /var/lib/dpkg/info/accountsservice.prerm ---
+#!/bin/sh
+
+set -e
+
+get_pid() {
+----
+
+Summing up the available file extensions:
+
+*.conffiles:: The list of configuration files installed by the package. Those are the files which `apt-get purge` would delete.
+
+*.config:: Scripts which seem to be run by `dpkg-reconfigure`.
+
+*.list:: The absolute pathnames of everything installed by the package, minus the configuration files listed in `/var/lib/dpkg/info/*.conffiles`. The list not only includes files, but symlinks, directories, device nodes etc. as well.
+
+*.md5sums:: This the output of the `md5sum` command applied to all entries of `/var/lib/dpkg/info/*.list` which are actually files. Note that the `md5sum` utility has been run in text mode rather than binary mode. However, there is no difference between those modes in Linux.
+
+*.postinst:: A script which will be run when installing the package after installation of the package's files. Typically this will create or update the configuration files, or perform some registration tasks.
+
+*.postrm:: A script which will be run when deinstalling the package after removal of the package's files.
+
+*.preinst:: A script which will be run when installing the package before actual installation of the package's files.
+
+*.prerm:: A script which will be run when deinstalling the package before actual removal of the package's files.
+
+*.shlibs:: Seems to track dependencies between some (not all) shared libraries related to the package. Yet unclear what this is actually used for.
+
+*.symbols:: A list of versioned symbol named from selected libraries. Purpose unknown.
+
+*.templates:: Texts to be used by interactive queries made by the packages, such as via `dpkg-reconfigure`. Also contains translations for said texts into multiple languages.
+
+*.triggers:: Triggers registered by the package. I have no clue yet how they work.
+
+Note that not all metadata files are available for every package. Several are only installed if the package needs them.
+
+
+Auto-installed dependencies
+---------------------------
+
+The following file tracks whether an installed package has been manually installed, or has been automatically installed because it is a required dependency of another installed package.
+
+----
+$ head -n 10 /var/lib/apt/extended_states
+Package: libgtk2.0-common
+Auto-Installed: 1
+Architecture: i386
+
+Package: libatk1.0-0
+Auto-Installed: 1
+Architecture: i386
+
+Package: libpixman-1-0
+Auto-Installed: 1
+----
+
+The packages where the `Auto-Installed`-setting is `1` will be uninstalled by `apt-get autoremove` when they are no longer required as dependencies.

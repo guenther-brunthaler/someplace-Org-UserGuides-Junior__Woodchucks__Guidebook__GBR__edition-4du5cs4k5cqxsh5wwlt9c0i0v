@@ -1,0 +1,20 @@
+How to disable XDG autostart entries
+====================================
+v2020.89
+
+This creates autostart-blocking symlinks for all autostart services. It will not overwrite any existing files.
+
+----
+: ${XDG_CONFIG_DIRS:=/etc/xdg} ${XDG_CONFIG_HOME:=$HOME/.config}
+cd -- "$XDG_CONFIG_HOME"/autostart
+test -e DISABLED.desktop || cat > DISABLED.desktop << 'EOF'
+[Desktop Entry]
+Hidden=true
+EOF
+ls -- "$XDG_CONFIG_DIRS"/autostart \
+| while IFS= read -r f; do
+	test ! -e "$f" && ln -s "$f" DISABLED.desktop
+done
+----
+
+After this, delete the autostart-blocking symlinks for which the autostarts should *not* be disabled.

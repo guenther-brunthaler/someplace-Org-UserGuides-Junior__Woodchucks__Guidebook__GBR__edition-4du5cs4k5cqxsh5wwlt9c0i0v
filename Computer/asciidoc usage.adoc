@@ -1,0 +1,272 @@
+asciidoc Usage notes
+====================
+v2022.104
+
+
+Basic structure
+---------------
+
+[listing]
+--
+Level 0, The Document Title
+===========================
+author <email>
+revision, date
+
+(all optional except for the title)
+
+Level 1
+-------
+
+Level 2
+~~~~~~~
+
+Level 3
+^^^^^^^
+
+Level 4                     (bottom level)
++++++++
+--
+
+
+Line control
+------------
+
+Normal flowed-text is written as paragraphs. Paragraphs consist of one or more lines of text terminated by an empty line (or the end of the whole text).
+
+----
+This is
+a
+paragraph.
+
+Next
+paragraph.
+----
+
+Line breaks can be forced by appending `+` like this:
+
+----
+Some paragraph +
+Forced new line in same paragraph.
+----
+
+
+Character style formatting
+--------------------------
+
+[listing]
+--
+*bold* - proportional font, boldface style, *+further process+* asciidoc markup
+
+'emphasized' - proportional font, normally italics, '*further process*' asciidoc markup
+
+_emphasized_ - proportional font, normally italics, _*no further processing*_ of asciidoc markup
+
++monospaced+ - fixed-width font, +*further process*+ asciidoc markup
+
+`monospaced` - fixed-width font, `*no further processing*` of asciidoc markup
+
+base^superscript^ - render as superscript
+
+base~subscript~ - render as subscript
+--
+
+renders as
+
+*bold* - proportional font, boldface style, *+further process+* asciidoc markup
+
+'emphasized' - proportional font, normally italics, '*further process*' asciidoc markup
+
+_emphasized_ - proportional font, normally italics, _*no further processing*_ of asciidoc markup
+
++monospaced+ - fixed-width font, +*further process*+ asciidoc markup
+
+`monospaced` - fixed-width font, `*no further processing*` of asciidoc markup
+
+base^superscript^ - render as superscript
+
+base~subscript~ - render as subscript
+
+
+Enumerated sections
+-------------------
+
+Sometimes it use to display sections as a bulleted or numbered list, without putting any text after the bullet points. This can be achieved by placing asciidoc comments (`//`) instead of the bullet point text.
+
+For instance, the following will just create a list of two one-liner commands:
+
+[listing]
+--
+. //
++
+----
+$ command1
+----
+
+. //
++
+----
+$ command2
+----
+--
+
+which renders as
+
+. //
++
+----
+$ command1
+----
+
+. //
++
+----
+$ command2
+----
+
+
+Including literal asciidoc source text
+--------------------------------------
+
+Sometimes you might want to include literal asciidoc source text (or generally any kind of source code) within an asciidoc document.
+
+You can do this by nesting different block types, e. g.
+
+[listing]
+....
+[listing]
+--
+----
+This is is supposed to be preformatted
+source text.
+----
+--
+....
+
+which renders as
+
+[listing]
+--
+----
+This is is supposed to be preformatted
+source text.
+----
+--
+
+
+Including literal preformatted text
+-----------------------------------
+
+Use this for README files which should not be word-wrapped.
+
+[listing]
+....
+[literal]
+--
+This is is supposed to be preformatted
+general text.
+--
+....
+
+which renders as
+
+[literal]
+--
+This is is supposed to be preformatted
+general text.
+--
+
+
+Internal Hyperlinks
+-------------------
+
+This is how you create internal hyperlinks for jumping to different parts of your document:
+
+[listing]
+--
+[[my_label_123]]
+A section to be referred to
+---------------------------
+
+This section is the hyperlink target.
+
+
+A section to refer to the above one
+-----------------------------------
+
+Here is a hyperlink to the <<my_label_123,above>> section.
+--
+
+External Hyperlinks
+-------------------
+
+This is how you create external hyperlinks for jumping to different documents:
+
+[listing]
+--
+link:filename#id[caption]   (link to external HTML file)
+http:address[caption]       (link to web page)
+mailto:address[caption]     (link to mail recipient)
+--
+
+The "`link:`"-variant links to an external HTML file. It also works for Internet hyperlinks for referencing other HTML documents on the same server. Note that 'filename' is a normal absolute or relative UNIX pathname and not a URL. However, the "`%`"-based URL-encoding scheme can still be used, which is actually necessary if the filename contains space characters. Replace all spaces in the pathname by "`%20`" in such cases.
+
+and in the same (or a deeper nested) directory as the (already formatted) HTML file which contains the hyperlink.
+
+The "`http:`"-variant can only be used for absolute hyperlinks which refer to some networked URL.
+
+The "`mailto:`"-variant represents hyperlinks to e-mail-addresses. When clicking on such a hyperlink on the formatted document, the mail program will start up and display a "send new mail"-compose window where the hyperlinked e-mail address will have been preset as the receiver.
+
+Also note that in addition what has been explained above, `asciidoc` also seems to recognize other kinds of URI, such as "`file://`"-URIs and create hyperlinks for them. However, I'm not sure whether this is documented behavior or just luck. Better do not count on that feature.
+
+
+Including images
+----------------
+
+This is how you create references to external image files, which will then be displayed as part of the formatted document:
+
+[listing]
+--
+image:filename[caption]
+image::filename[caption]
+--
+
+The "`:`"-variant embeds the image visually as part of the running paragraph text. This is mainly intended for icons or symbols which might not be present in every font, and maybe also for short pre-rendered equations.
+
+The "`::`"-variant sets the image visually apart of the running text, such as in its own paragraph. Use this for normal pictures and diagrams.
+
+
+Special comment paragraphs
+--------------------------
+
+The tokens
+
+* NOTE
+* TIP
+* IMPORTANT
+* WARNING
+* CAUTION
+
+can either be placed as the first word of a paragraph with a colon ("`:`") appended like this
+
+----
+IMPORTANT: Some important comment.
+----
+
+or used as a section name like this
+
+----
+[IMPORTANT]
+
+Some important comment.
+----
+
+in order to be specially formatted as 'Admonition Paragraphs'.
+
+
+Protecting against unwanted formatting
+--------------------------------------
+
+Sometimes, asciidoc interprets some character sequencing as formatting instructions when it shouldn't because those characters are intended to be literal ones.
+
+In such cases, enclosing them within hash marks ("`#`") often does the trick. Those are no-op formatting instructions.

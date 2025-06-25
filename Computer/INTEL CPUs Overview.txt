@@ -1,0 +1,6 @@
+Core i3, Celeron: Cheap
+Core i5: Mainstream
+Core i7: High-End
+Core i9: Enthusiasts (many cores, draw much power)
+
+There are desktop-, server- and laptop-variants of the above are available in some cases.

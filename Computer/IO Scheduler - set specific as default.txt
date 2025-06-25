@@ -1,0 +1,46 @@
+How to enable and use the BFQ scheduler?
+
+BFQ is a blk-mq (Multi-Queue Block IO Queueing Mechanism) scheduler, so you need to enable blk-mq at boot time, edit your /etc/default/grub file and add scsi_mod.use_blk_mq=1 to your GRUB_CMDLINE_LINUX, this is my grub file, as an example:
+
+GRUB_TIMEOUT=3
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=false
+GRUB_HIDDEN_TIMEOUT_QUIET=true
+GRUB_TERMINAL_OUTPUT="console"
+GRUB_CMDLINE_LINUX="quiet vt.global_cursor_default=0 scsi_mod.use_blk_mq=1"
+GRUB_DISABLE_RECOVERY="true"
+
+After that, you must update your grub. On Fedora we have to use sudo grub2-mkconfig -o /path/to/grub.cfg, which varies depending on the boot method. On Ubuntu, you can simply run:
+
+sudo update-grub
+
+Reboot, and if you get this:
+
+cat /sys/block/sda/queue/scheduler
+[mq-deadline] none
+
+Probably your kernel was compiled with BFQ as a module, and this can be the case also for Kyber.
+
+sudo modprobe bfq
+sudo cat /sys/block/sda/queue/scheduler
+[mq-deadline] bfq none
+
+You can add it at boot time by adding a /etc/modules-load.d/bfq.conf file containing bfq.
+
+It is important to note that enabling blk_mq turn it impossible to use non blk_mq schedulers, so you will lose noop cfq and the non mq deadline
+
+Apparently blk_mq scheduling system is not supporting elevator flags in grub, udev rules can be used instead, with a bonus of offering a more grained control.
+
+Create /etc/udev/rules.d/60-scheduler.rules if it did not exist and add:
+
+ACTION=="add|change", KERNEL=="sd*[!0-9]|sr*", ATTR{queue/scheduler}="bfq"
+
+As pointed here if needed you can distinguish between rotational (HDDs) and non-rotational (SSDs) devices in udev rules using the attribute ATTR{queue/rotational}. Be aware that Paolo Valente, BFQ developer, pointed in LinuxCon Europe that BFQ can be a better choice than the noop or deadline schedulers in terms of low latency guaranties, what makes a good advice to use it for SSDs too.
+
+Paolo's comparison: https://www.youtube.com/watch?v=1cjZeaCXIyM&feature=youtu.be
+
+Save it, and reload and trigger udev rules:
+
+sudo udevadm control --reload
+sudo udevadm trigger

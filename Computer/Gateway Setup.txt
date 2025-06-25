@@ -1,0 +1,29 @@
+Setting up a forwarding IP Gateway
+==================================
+
+This is the listing of a mimimalistic gatway, which accepts outbound traffic from network 10.157.0.0/16 and forwards it using the configured routes of the local system.
+
+----
+$ iptables -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain FORWARD (policy DROP)
+target     prot opt source               destination
+ACCEPT     all  --  10.157.0.0/16        anywhere             ctstate NEW
+ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+----
+
+In sddition, for every network interface which shall make use of the above forwarding rules, it needs to be enabled in sysctl:
+
+----
+net.ipv4.conf.ethlan.forwarding = 1
+net.ipv4.conf.ppp0.forwarding = 1
+----
+
+would enable interfaces ppp0 and ethlan to take part in the forwarding process.
+
+The forwarding is bi-directional due to reply packets, and therefore both incoming and outgoing interfaces need forwarding to be enabled.

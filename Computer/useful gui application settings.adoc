@@ -1,0 +1,22 @@
+Useful GUI Application Settings
+===============================
+v2025.29
+
+
+GTK+ File Chooser Dialog
+========================
+
+The `StartupMode` setting in the `gtkfilechooser.ini` file determines which directory is shown when the GTK+ file chooser dialog appears. There are two known choices:
+
+* `recent`: Show the same directory as last time. This is the initial preset.
+* `cwd`: Show the current directory of the GUI application which invoked the file chooser
+
+For many users, `cwd` turns out to be a better choice than `recent`. Use the following commands to switch the setting to `cwd`:
+
+----
+$ mode=cwd
+$ #mode=recent
+$ sed -i 's/^\(StartupMode=\).*/\1'"${mode?:}/" ~/.config/gtk-2.0/gtkfilechooser.ini
+----
+
+By un-commenting the commented-out command, the initial `recent` preset can be restored.

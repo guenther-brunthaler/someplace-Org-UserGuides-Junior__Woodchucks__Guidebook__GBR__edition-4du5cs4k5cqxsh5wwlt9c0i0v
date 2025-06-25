@@ -1,0 +1,13 @@
+
+Ctrl+Alt+Backspace
+ Immediately kills the server
+Ctrl+Alt+Keypad-Plus
+ Change to next video mode
+Ctrl+Alt+Keypad-Minus
+ Change previous video mode
+Ctrl+Alt+Keypad-Multiply
+ If the AllowClosedownGrabs xorg.conf(5) file option is specified, this key sequence kills clients with an active keyboard or mouse grab as well as killing any application that may have locked the server
+Ctrl+Alt+Keypad-Divide
+ If the AllowDeactivateGrabs xorg.conf(5) file option is specified, this key sequence deactivates any active keyboard and mouse grabs.
+Ctrl+Alt+F1...F12
+ Switch to virtual terminals 1 through 12, respectively.

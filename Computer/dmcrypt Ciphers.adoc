@@ -1,0 +1,121 @@
+dm-crypt Ciphers
+================
+v2025.44
+
+
+Table entry format
+------------------
+
+Format: `$bytes $cipherspec`
+
+where "$bytes" is the number of binary bytes required for the dmcrypt-table key field (expanded as lower-case hex numbers there with 2 digits per byte; includes the encryption key as well as any additionally required tweak keys).
+
+....
+16 aes-cbc-essiv:md5
+16 aes-cbc-plain64
+16 aes-ctr-plain64
+16 cast5-cbc-plain64
+16 cast5-ctr-plain64
+24 aes-cbc-plain64
+24 aes-ctr-plain64
+24 des3_ede-cbc-plain
+24 des3_ede-cbc-plain64
+24 des3_ede-ecb-plain64
+32 aes-cbc-essiv:sha256
+32 aes-cbc-plain64
+32 aes-ctr-essiv:sha256
+32 aes-ctr-plain64
+32 aes-pcbc-plain64
+32 aes-xts-benbi
+32 aes-xts-plain64
+32 blowfish-pcbc-essiv:sha256
+64 aes-xts-benbi
+64 des3_ede-ctr-plain64
+64 serpent-xts-benbi
+32 xchacha20,twofish-adiantum-plain64
+32 xchacha12,aes-adiantum-plain64
+....
+
+The dmcrypt table setup is as follows:
+
+----
+$ echo "$startsec $nsecs crypt $cipherspec $key $ivoff $dev $startdevsec 1 allow_discards" | dmsetup create my_crypto
+----
+
+where $ivoff will be added to the sector number in order to create a sector IV.
+
+$startdevdec is the offset into the container device $dev where the encrypted sectors actually start.
+
+$cipherspec has the format $cipher[-$chainmode]-$geniv[:$genivopts], where $cipher is the name of the encryption algorithm. They key size is not specified here because it follows from the length of $key. The components of ciperspec like `$chainmode` can be extracted by breaking down the `name` or `driver` fields of `/proc/crypto`-entries into their sub-expressions. $chainmode is a block cipher chaining mode like "cbc" and may be missing for stream ciphers. $geniv is the sector IV mode, see below. Sometime it needs a parameter like the name of a hash function, this may be specified as $genivopts then. Review `/proc/crypto` for currently loaded ciphers (field "`module`" contains the name of the containing kernel module - or "`kernel`" for ciphers compiled directly into the kernel image). Only entries of type "`skcipher`" based on some chaining mode and with an "`ivsize`" of at least 8 and a "`min keysize`" of at least 16 should normally be used as `dm-crypt` ciphers. The "`name`" entry should normally be used as the basis for the $cipherspec which will automatically select the best loaded implementation based on the "`priority`" field, unless a specific implementation is desired (in which case the "`driver`" entry can be used as the basis for the $cipherspec).
+
+$key must be a hex key (lower-case hex digits preferred) for $ciperspec. For IV-modes which need a tweak, $key must be the concatenation of the actual key and the tweak. The key sizes specified in the list above are not exhaustive. `/proc/crypto` shows the actually allowed minimum and maximum key sizes for every loaded cipher module. However, many ciphers additionally restrict key sized to multiples of some value.
+
+`1` is the count of optional parameters following. This component of the `$cipherspec` is also optional itself: If it is missing, it is assumed to be `0`.
+
+`allow_discards`: This is one possible optional parameter which can be specified, and it is used as the only optional parameter in this example of a `$cipherspec`. In particular, `allow_discards` enables pass-thru support for SATA TRIM ("discard") commands from the encryption mapping block device to the underlying block device.
+
+
+Alternative cipherspec
+~~~~~~~~~~~~~~~~~~~~~~
+
+It seems since Linux kernel 4.12, there is an alternative syntax for specifying the same cipherspecs as shown above:
+
+----
+capi:cbc(aes)-essiv:sha256
+capi:xts(aes)-plain64
+capi:gcm(aes)-random
+capi:authenc(hmac(sha256),xts(aes))-random
+capi:rfc7539(chacha20,poly1305)-random
+----
+
+The advantage of this syntax is that it uses functional notation, which makes it clearer what is an algorithm and what is a parameter for an algorithm.
+
+
+Sector-IV modes
+~~~~~~~~~~~~~~~
+
+`plain64`:: The IV is the 64-bit little-endian version of the sector number, padded with zeros if necessary.
+
+`plain`:: The IV is the 32-bit little-endian version of the sector number, padded with zeros if necessary. Same as "plain64", but only the 32 least significant bits of the sector number are used. The remaining bits are treated as if they were 0 and thus do not affect IV generation.
+
+`plain64be`:: The IV is the 64-bit big-endian version of the sector number, padded with zeros if necessary.
+
+`benbi`:: 64-bit big-endian narrow-block 1-based index. Needed for LRW-32-AES and possible other narrow block modes. Does not use sector-numbers at all, but rather slice the volume into stripes of the same size as the cipher block size. Every cipher block gets its own IV. The first cipher block gets an IV of 1, expressed as a big-endian number of the required IV size. Note that "benbi" still requires a chaining mode, because only those make use of IVs at all.
+
+`essiv:$HASH`:: The IV is created from the 64-bit big-endian version of the sector number, padded with zeros if necessary, being encrypted reusing the same bulk-encryption cipher as for the actual data, and a constant key which is derived by hashing the block cipher encryption key for the volume with hash algorithm $HASH. The size of the hash digest must be the same as one of the supported key sizes of the block cipher and will be typically the same as the key size actually used by bulk encryption cipher. "essiv" does not need a "tweak" - so the dmsetup table only contains the key and will thus be only half the size of, for example, "xts". Available (loaded) hash-algorithms can be found by searching `/proc/crypto` for entries with type `shash` or `ahash`.
+
+`xts`:: The IV is created by combining sector number with a "tweak key". This tweak key has the same size as the block cipher key and must be appended to it. Therefore the key field specified in the dmcrypt table entry has twice the size of the actual block cipher encryption key to be used.
+
+`null`:: The IV consists of all binary zeroes for every sector.
+
+`lmk`:: Compatible implementation of the block chaining mode used by the Loop-AES block device encryption. It operates on full 512 byte sectors and uses CBC with an IV derived from the sector number, the data and optionally extra IV seed. This means that after decryption the first block of sector must be tweaked according to decrypted data. Loop-AES can use three encryption schemes: Version 1: is plain aes-cbc mode. Version 2: uses 64 multikey scheme with lmk IV generator. Version 3: the same as version 2 with additional IV seed (it uses 65 keys, last key is used as IV seed).
+
+`tcw`:: Compatible implementation of the block chaining mode used by the TrueCrypt device encryption system (prior to version 4.1). It operates on full 512 byte sectors and uses CBC with an IV derived from initial key and the sector number. In addition, whitening value is applied on every sector, whitening is calculated from initial key, sector number and mixed using CRC32. Note that this encryption scheme is vulnerable to watermarking attacks and should be used for old compatible containers access only. A custom IV (of the cipher block size) and a 16-octet whitening pattern need to be appended to the specified key.
+
+`eboiv`:: Encrypted byte-offset IV (used in Bitlocker in CBC mode). The IV is encrypted little-endian byte-offset (with the same key and cipher as the volume).
+
+`elephant`:: The extended version of eboiv with additional Elephant diffuser used with Bitlocker CBC mode. This mode was used in older Windows systems.
+
+`random`:: Generate a random IV for every sector. This effectively turns all write operations (typically writing only zero bytes) into random sector-contents generators. Using "plain64" with a random key and CTR mode will achieve the a similar result faster, but "random" IV mode can be expected to pass more randomness tests.
+
+
+`$cipherspec` construction
+--------------------------
+
+cipherspecs are based on the `name` field (auto-selects an implementation based on the priority) or `driver` field (use a specific implementation) of `/proc/crypto` entries.
+
+Only algorithms from kernel modules which have already been loaded are shown there, and even then only a subset of actually supported operations.
+
+When searching for all possible combinartion, you need to analyze the available templates (function-like expressions such as "`cbc()`") and their argument types.
+
+For instance, if you see "`essiv(cbc(aes),sha256)`", search further for "`cbc(aes)`" and  "`sha256`" in order to find out of what type they are.
+
+In the case of "`cbc(aes)`", this needs further to be deconstructed in order to find out of what type the "`aes`"-argument is.
+
+This process of deconstruction will eventually come to an end where only primitive arguments like "`sha256`" are present.
+
+Then you know, that `essiv()` is something which takes a chaining mode as its first argument (which in turn takes a cipher as its argument), and a hash-algorithm as its second argument).
+
+Using this knowledge, `essiv()` can now be instantiated with other chaining modes and hash algorithms as well. Templates usually adapt to their arguments, which means that they inherit properties like key size from them. However, some templates may place additional restrictions on their argument - which usually only studying the source code will reveal.
+
+For instance, the `aes` implementation only allows three actual key sizes between the "`min keysize`" and "`max keysize`" values shown in its `/proc/crypto` entry.

@@ -1,0 +1,180 @@
+﻿GDB, the GNU Debugger
+=====================
+Günther Brunthaler
+v2025.152
+
+Enable automatic loading of `./.gdbinit` GDB scripts in all subdirectories below +/home/joe/prj+ for user 'joe':
+
+----
+$ addpath=$HOME/prj
+$ echo "add-auto-load-safe-path ${addpath%%/}/" >> ~/.gdbinit; \
+  unset addpath; \
+  mkdir -p ~/.config/git \
+  && { echo .gdb_history; echo .gdbinit; } >> ~/.config/git/ignore
+----
+
+A typical such script:
+
+----
+$ cat << 'EOF' > .gdbinit
+file ./sum
+b *main
+# Example how to set arguments and redirection:
+r 1 2 3 > sum_output.txt
+# Alternative to redirection in "run" command, also redirects stdin and stderr:
+#tty /dev/pts/17
+#set directories /basepath/to/src/files
+set history size 500
+set history save on
+set scheduler-locking on
+#layout asm
+layout src
+focus cmd
+EOF
+----
+
+It is then enough to just run `gdb` without arguments in order to use the values from the `.gdbinit` script, in this case debugging the following invocation of the executable:
+
+----
+$ ./sum 1 2 3 > sum_output.txt
+----
+
+Note that the argument to `file` does not need to be an absolute or relative path. If it does not contain any path separator slashes, `gdb` will search `$PATH` for it.
+
+If you want to temporarily enable loading a `.gdbinit` file outside of the allowed directory trees defined in `~/.gdbinit`, override `gdb` with an alias:
+
+----
+$ alias gdb="gdb -iex 'add-auto-load-safe-path $PWD'"
+----
+
+
+Building debug executables
+--------------------------
+
+It is necessary to compile your programs with additional options in order to be able to use it suitably with `gdb`.
+
+Be sure to add at least the following to `CFLAGS`:
+
+----
+-ggdb3 -O0
+----
+
+and be sure the following are *not* part of `CPPFLAGS` (or `CFLAGS`):
+
+----
+-D NDEBUG
+----
+
+and also be sure the following are *not* part of `LDFLAGS` (or `CFLAGS`) either:
+
+----
+-s
+----
+
+Hint: If `-O0` results in a program that runs too slow for useful debugging, use `-Og` instead.
+
+NOTE: Some very old versions of `gcc` did not like `-O0` for debugging. In those cases, `-O1` had to be used for debug builds.
+
+Other possibly useful flags for debug executables:
+
+----
+-Wall -Wextra -Wpedantic
+-D _FORTIFY_SOURCE=1 # Harmless consistency checks at runtime (-O1+ and GCC 4+)
+-D _FORTIFY_SOURCE=2 # Harder checks, might break some application
+-fstack-protector-all # Add runtime checks for stack consistency
+-fstack-check # Add code to detect stack overflow more reliably
+----
+
+Also, your program might take advantage if the `mcheck()` functions for debugging memory allocations.
+
+If your platform supports the address sanitizer feature of gcc, also consider adding the following options:
+
+----
+CFLAGS: -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fsanitize=undefined -fsanitize-address-use-after-scope
+LDFLAGS: -l asan
+ASAN_OPTIONS: detect_invalid_pointer_pairs=1
+ASAN_OPTIONS: help=1
+----
+
+Finally, consider running your program under `valgrind` for enhanced memory checks:
+
+----
+$ valgrind --show-reachable=yes --malloc-fill=aa --free-fill=ee ./my_prog arg1 arg2 ...
+----
+
+
+Setting `*FLAGS` by sourcing a shell snippet
+--------------------------------------------
+
+The following command creates a shell snippet that can be sourced for setting typical `gcc` options in `CFLAGS`, `LDFLAGS` etc. for debug or release executables:
+
+----
+$ { base64 -d 2> /dev/null || openssl base64 -d; }  << 'EOF' | gzip -dc > setflags
+H4sIAE4BqmECA61UbW/bNhD+bP2Kq2zYsRdKkYNhQAwX6PLSBUsjI263DGFmMxIt
+qZUogaTysnn/fUdJtpwtHYohX6QDeffwubvnrvsG3LtEuCuWKm514X58MPacw8Mf
+rIApDj0PEmF1VkzpRVCUi4c4T/mKZUn6NIQuSJ5y47YneZBnGRchD2GVSxC5zFgK
+peJDq9M5Prt4934+tckJXJ6c/vjpPRB/DCTTpeBTwXRyz210uzjZ+Ckgv6b7xPf2
+CWGKCM4RGO2YqZgo/ZTyaSRKEzOZ1Oz4fxL8CofD1+OgMN30f5FQr0eiyFXy+Kwv
+uUifYObPz69JVDLJhEYEyAud5EJ9rTX/oLBBD/ldGRn0ytiN9Q+ARFF4d7gbuY26
+5+k2Ch4SHUPGHpOszOCBSZGISAETIRQy1zzQuVQvQmMhsML45Y9aMvwXPMR0ksBe
+HmFAZ2kD5rA4868+np/9tpj7n66OT6eospXSLPhCtvBYNpmL6AWquzpSBQ+SVRJ8
+m4iYDOLXFtG3M1Cvx0ByxbXRRSnQAP5Y5FJD/Sgcz2aNcX1dG80z8OHdz6eVhZGS
+61KKBi/maQFrGBlIHsQ5IOoqZdjyX7hUKELAfXPgeAffOx66KBTnQK1/v7k5UgUL
++NHt7YjuOSM6HALd6xpj0LR7sDYEqQe0T/vggONuoauTjH3hQMfryTYA9ATCQcuA
+4vEaHuIk5VhgFgKR5lKjIvEmzE1Uxdnu1WgBNkFAvw+9xs2u/AS3WkdDqiqi8dtl
+ZVfvdexuc23EHJRK51nyB2bdIFbDtsWKW7Jd+PjT+RxMPe22yFyxwNpIote0iRRJ
+gSKo9/eo2t8jHI6ZPWz7NPUmE8ScIxEyA6ZgjBPIZFTiDtfNBhekwI2BgkzhrkzS
+UDkIZBrZoiwjroNcrGBxObvyj0/nc/9qvvAvLy5h/BZcnH1XlJjoeg1VUt7yeTjq
+S0JvewDfGY8qqdaJcAyqk2kdTVIdb4gCTbTVqSI6VY9Q2EZy47d98EzF11Bryn2m
+KULp3s3n9JbS4c4xpX96+5T+5YxcQA9vQCvp0GX78MCdoIy2F6gm1xm9AIH4hOSl
+LkpN1JMI8CGDiqDubnStyIpmYZYPEIVkBxYWoZm8ZuSmmxn898TVk7oZSetvZbv5
+ldEHAAA=
+EOF
+----
+
+For `git` users only, ensure `git` ignores this file locally:
+
+----
+$ echo /setflags >> .git/info/exclude
+----
+
+For C++ projects only, the snippet also needs to be modified:
+
+----
+$ # Only for C++ projects:
+$ sed -i 's/CFLAGS/++/g; s/CXXFLAGS/CFLAGS/g; s/++/CXXFLAGS/g' setflags
+----
+
+In both cases, the snippet can then be used like this in order to display its own usage instructions:
+
+----
+$ sh setflags
+----
+
+It you want to re-use the same settings in future sessions also, it might be a good idea to create another shell snippet for persisting your choice:
+
+----
+$ cat << 'EOF' > setflags.local
+set reset
+. ./setflags
+set debug
+. ./setflags
+EOF
+
+# Optionally and only when using git:
+$ test -e .git && echo /setflags.local >> .git/info/exclude
+----
+
+Following those instructions, a debug build for example can then be set up like this:
+
+----
+$ make clean && . ./setflags.local && make
+rm your_program
+cc -O0 -ggdb3 your_program.c -o your_program
+----
+
+
+More information
+----------------
+
+For more compiler flags potentially also useful look at the document about link:C%20Development.html#cc_options_ivcs6e88l8n1elarieuccw5ud[C development].

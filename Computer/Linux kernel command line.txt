@@ -1,0 +1,284 @@
+﻿
+man bootparam
+For "m": modprobe usbcore blinkenlights=1
+For "y": usbcore.blinkenlights=1
+[KNL] Is a kernel start-up parameter.
+[BOOT] Is a boot loader parameter.
+A trailing = on the name of any parameter states that that parameter will
+be entered as an environment variable, whereas its absence indicates that
+it will appear as a kernel argument readable via /proc/cmdline.
+
+console=tty<n>
+=ttyS<n>[,options]
+=ttyUSB0[,options]
+Options are of the form "bbbbpnf", where "bbbb" is the baud rate, "p" is parity ("n", "o", or "e"), "n" is number of bits, and "f" is flow control ("r" for RTS or omit it).  Default is "9600n8".
+=uart,io,<addr>[,options]
+=uart,mmio,<addr>[,options]
+Same but early, polled-mode
+
+crashkernel=nn[KMG]@ss[KMG]
+[KNL] Reserve a chunk of physical memory to hold a kernel to switch to with kexec on panic.
+
+debug
+[KNL] Enable kernel debugging (events log level).
+
+earlyprintk [IA-32,X86-64]
+=vga
+=serial[,ttySn[,baudrate]]
+Append ",keep" to not disable it when the real console takes over.
+Only vga or serial at a time, not both. The VGA output is eventually overwritten by the real console.
+
+elevator [IOSCHED]
+= {"anticipatory" | "cfq" | "deadline" | "noop"}
+
+elfcorehdr [IA-32, X86_64]
+Physical address of start of kernel core image elf header. Generally kexec loader will pass this option to capture kernel.
+
+failslab [KNL]
+fail_page_alloc
+fail_make_request
+=<interval>,<probability>,<space>,<times>
+General fault injection mechanism.
+
+hd [EIDE]
+=<cyl>,<head>,<sect>
+(E)IDE hard drive subsystem geometry
+
+highmem=nn[KMG]	[KNL,BOOT]
+Forces the highmem zone to have an exact size of <nn>.
+
+i8042.direct [HW]
+Put keyboard port into non-translated mode
+
+i8042.dumbkbd [HW]
+Pretend that controller can only read data from keyboard and cannot control its state (Don't attempt to blink the leds)
+
+i8042.noaux [HW]
+Don't check for auxiliary (== mouse) port
+
+i8042.nokbd [HW]
+Don't check/create keyboard port
+
+i8042.panicblink= [HW]
+Frequency with which keyboard LEDs should blink when kernel panics (default is 0.5 sec)
+
+i8042.reset [HW]
+Reset the controller during init and cleanup
+
+i8042.unlock [HW]
+Unlock (ignore) the keylock
+
+ide [HW]
+=nodma
+
+ide? [HW]
+=noprobe
+
+idle [HW]
+=poll
+=halt
+
+ignore_loglevel	[KNL]
+Ignore loglevel setting - this will print /all/ kernel messages to the console.
+
+init [KNL]
+=<full_path>
+Run specified binary instead of /sbin/init as init process.
+
+initcall_debug [KNL]
+Trace initcalls as they are executed.  Useful for working out where the kernel is dying during startup.
+
+initrd [BOOT]
+Specify the location of the initial ramdisk.
+
+ip [IP_PNP]
+Documentation/nfsroot.txt
+<client-ip>:[<server-ip>]:[<gw-ip>]:<netmask>:<hostname>:<device>:<autoconf>
+10.157.146.248:::255.255.0.0:xrpi3:ethlan:static
+
+isolcpus [KNL,SMP]
+=<cpu number>,...,<cpu number>-<cpu number>
+Isolate CPUs from the general scheduler.
+
+keepinitrd [HW,ARM]
+
+kstack [IA-32,X86-64]
+=N
+Print N words from the kernel stack in oops dumps.
+
+load_ramdisk [RAM]
+List of ramdisks to load from floppy. See Documentation/ramdisk.txt.
+
+loglevel
+=n
+All Kernel Messages with a loglevel smaller than the console loglevel will be printed to the console.
+0 (KERN_EMERG) system is unusable
+1 (KERN_ALERT) action must be taken immediately
+2 (KERN_CRIT) critical conditions
+3 (KERN_ERR) error conditions
+4 (KERN_WARNING) warning conditions
+5 (KERN_NOTICE) normal but significant condition
+6 (KERN_INFO) informational
+7 (KERN_DEBUG) debug-level messages
+
+log_buf_len
+=n | nk | nM
+Sets the size of the printk ring buffer, in bytes.
+
+max_loop [LOOP]
+=<1-256>
+Maximum number of loopback devices that can be mounted
+
+maxcpus [SMP]
+Maximum number of processors that an SMP kernel should make use of
+
+max_addr [KNL,BOOT,ia64]
+=[KMG]
+All physical memory greater than or equal to this physical address is ignored.
+
+max_luns [SCSI]
+=<1-2^32-1>
+Maximum number of LUNs to probe.
+
+max_report_luns [SCSI]
+=<1-16384>
+Maximum number of LUNs received.
+
+md [HW]
+RAID subsystems devices and level. See Documentation/md.txt.
+
+mem [KNL,BOOT]
+=nn[KMG]
+Force usage of a specific amount of memory
+
+memmap [KNL]
+=nn[KMG]@ss[KMG]
+Force usage of a specific region of memory
+Region of memory to be used, from ss to ss+nn.
+
+memmap [KNL,ACPI]
+=nn[KMG]#ss[KMG]
+Mark specific memory as ACPI data.
+Region of memory to be used, from ss to ss+nn.
+
+memmap [KNL,ACPI]
+=nn[KMG]$ss[KMG]
+Mark specific memory as reserved.
+Region of memory to be used, from ss to ss+nn.
+
+nfsaddrs [NFS]
+See Documentation/nfsroot.txt.
+
+nfsroot [NFS]
+nfs root filesystem for disk-less boxes. See Documentation/nfsroot.txt.
+Can be either "auto" to try to get the relevant information from
+DHCP or a string of the form NFSSERVER:NFSPATH or NFSSERVER:NFS‐
+PATH:NFSOPTS. Use root=/dev/nfs for NFS to kick to in. NFSOPTS
+can be looked up in nfs(5).
+
+nfs.callback_tcpport [NFS]
+set the TCP port on which the NFSv4 callback channel should listen.
+
+nmi_watchdog [KNL,BUGS=IA-32]
+Debugging features for SMP kernels
+
+no387 [BUGS=IA-32]
+Tells the kernel to use the 387 maths emulation library even if a 387 maths coprocessor is present.
+
+noinitrd [RAM]
+Tells the kernel not to load any configured initial RAM disk.
+
+noresume [SWSUSP]
+Disables resume and restores original swap space.
+
+nosmp [SMP]
+Tells an SMP kernel to act as a UP kernel.
+
+nousb [USB]
+Disable the USB subsystem
+
+panic [KNL]
+=<timeout>
+Kernel behaviour on panic
+
+prompt_ramdisk [RAM]
+List of RAM disks to prompt for floppy disk before loading. See Documentation/ramdisk.txt.
+
+quiet [KNL]
+Disable most log messages
+
+ramdisk_start [RAM]
+See Documentation/ramdisk.txt.
+
+ramdisk_blocksize [RAM]
+See Documentation/ramdisk.txt.
+
+ramdisk_size [RAM]
+Sizes of RAM disks in kilobytes
+
+rdinit [KNL]
+=<full_path>
+Run specified binary instead of /init from the ramdisk, used for early userspace startup. See initrd.
+
+reboot [BUGS=IA-32,BUGS=ARM,BUGS=IA-64]
+=<reboot_mode>[,<reboot_mode2>[,...]]
+Rebooting mode. See arch/*/kernel/reboot.c or arch/*/kernel/process.c
+
+reset_devices [KNL]
+Force drivers to reset the underlying device during initialization.
+
+resume [SWSUSP]
+Specify the partition device for software suspend
+
+resume_offset	[SWSUSP]
+Specify the offset from the beginning of the partition given by "resume=" at which the swap header is located, in <PAGE_SIZE> units (needed only for swap files). See  Documentation/power/swsusp-and-swap-files.txt
+
+ro [KNL]
+Mount root device read-only on boot
+
+root[KNL]
+=<device>
+Root filesystem
+
+rootdelay [KNL]
+=<seconds>
+Delay to pause before attempting to mount the root filesystem
+
+rootflags [KNL]
+=<mntopts>
+Set root filesystem mount option string
+
+rootfstype [KNL]
+=<fstype>
+Set root filesystem type
+
+rw [KNL]
+Mount root device read-write on boot
+
+S [KNL]
+Run init in single mode
+
+sysrq_always_enabled [KNL]
+Ignore sysrq setting.
+
+time
+Show timing data prefixed to each printk message line
+
+video [FB]
+=<xres>x<yres>[M][R][-<bpp>][@<refresh>][i][m]
+=<name>[-<bpp>][@<refresh>]
+=<pix>M<a>[-R]
+=<driver>:<xres>x<yres>[-<bpp>][@refresh]
+Frame buffer configuration.
+If 'M' is specified in the mode_option argument, the timings will be calculated using VESA instead of looking up from table.
+If 'R' is specified, do a 'reduced blanking' calculation for digital displays.
+If 'i' is specified, calculate for an interlaced mode.  And if 'm' is
+specified, add margins to the calculation (1.8% of xres rounded down to 8
+pixels and 1.8% of yres).
+<pix> = total amount of pixels in MB (xres x yres)
+<a>=aspect ratio (3 - 4:3; 4 - 5:4; 9 - 15:9, 16:9; A - 16:10)
+
+vga [BOOT,IA-32]
+=<mode>
+=ask
+Select a particular video mode. Decimal. Use "ask" to find out (hexadecimal).

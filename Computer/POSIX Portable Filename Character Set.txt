@@ -1,0 +1,3 @@
+The set of characters from which portable filenames are constructed:
+
+"A"-"Z", "a"-"z", "0"-"9", "." (dot), "_" (underscore), "-" (hyphen).

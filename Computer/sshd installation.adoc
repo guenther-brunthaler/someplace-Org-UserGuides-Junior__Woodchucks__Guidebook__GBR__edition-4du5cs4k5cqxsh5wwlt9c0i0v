@@ -1,0 +1,57 @@
+SSH installation tips
+=====================
+v2025.14
+
+
+Showing effective sshd configuration
+------------------------------------
+
+$ /usr/sbin/sshd -f /etc/ssh/sshd_config -T | less -S
+
+
+Clean up moduli
+---------------
+
+Getting rid of DH groups other than 4096 bit moduli:
+
+----
+cd /etc/ssh
+
+cp moduli moduli.upstream
+
+sed -i '/^[0-9]/!b; / 4095 /b; d' moduli
+----
+
+
+Removing unwanted server keys
+-----------------------------
+
+I do not trust elliptic curves. Not at all! So I want to get rid of them.
+
+But frequently, in the SSH service start script, "ssh-keygen -A" is run which will generate such keys unless they already exist. Therefore, in order to disable them:
+
+----
+cd /etc/ssh
+
+ssh-keygen -A # Create files.
+
+for k in ssh_host_*_key; do case $k in *rsa*) continue; esac;  echo > $k; rm -f $k.pub; done
+
+ls -l ssh_host_*_key* # Show keys.
+----
+
+Note that earlier versions just set the unwanted files to empty ones. Unfortunately, newer versions of `ssh-keygen -A` checked whether the files were empty, and recreated them then also. So, now one useless byte is written into the otherwise empty files, which makes `ssh-keygen` happy.
+
+
+Running the SSH server manually
+-------------------------------
+
+This is useful if the service framework for starting servers might not be working, such as in a chroot jail.
+
+----
+$ /usr/sbin/sshd -f /etc/ssh/sshd_config -4De # -p 10022
+----
+
+Stop this server with [Ctrl]+[c] when you no longer need it.
+
+Uncomment and customize the `-p` option if you want to temporarily override the listen port of the current configuration. This is especially helpful if another SSH server is already running and is listening on the port defined by the configuration file.

@@ -1,0 +1,19 @@
+btrfs
+=====
+v2025.100
+
+----
+$ mdadm --create /dev/md0 --name=my_raid_1 --homehost=any --bitmap=internal --level=1 --raid-devices=2 /dev/mapper/worse-dec --write-mostly /dev/mapper/better-dec
+
+$ mkfs.btrfs --checksum=xxhash --data=single --metadata=dup --label="my_btrfs" --uuid=`uuidgen -t` --features=extref,no-holes --runtime-features=quota,free-space-tree '/dev/disk/by-id/md-name-any:my_raid_1'
+
+$ mount -t btrfs '/dev/disk/by-id/md-name-any:my_raid_1' /media/root/my_btrfs
+$ cd /media/root/my_btrfs
+$ btrfs subvolume create boot
+$ btrfs subvolume create fsroot
+$ btrfs subvolume create usr
+$ btrfs subvolume create usr/local
+$ btrfs subvolume create var
+$ btrfs subvolume create home
+$ btrfs subvolume create srv
+----

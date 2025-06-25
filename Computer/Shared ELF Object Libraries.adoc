@@ -1,0 +1,106 @@
+Shared ELF Object Libraries
+===========================
+v2020.208
+
+A shared object library ("so") used by the GNU dynamic linker `/lib/ld-linux.so.2` normally has a pathname like
+
+....
+/usr/lib/libmyname-2.5.so.4.14.38
+....
+
+and a symlink
+
+....
+/usr/lib/libmyname-2.5.so.4
+....
+
+which points to the beforementioned file. This symlink is created by `ldconfig` on GNU systems, which takes the name for the symlink from the contents of the `SONAME` symbol found within the shared object library file itself.
+
+On developer machines only, there will also be a second symlink
+
+....
+/usr/lib/libmyname-2.5.so
+....
+
+which points to the beforementioned symlink. This symlink is only used by the C compiler driver for linking against the library. It is not required for running the already-linked application later.
+
+
+Components of the shared object library pathname
+------------------------------------------------
+
+`/usr/lib/`:: The installation directory path prefix where the library file has been installed. Other popular library directory prefixes are `/usr/local/lib/`, `/opt/lib/`, `/opt/*/lib/` and `/lib/`.
+
+`lib`:: Most library names start with the prefix `lib`, because the "`-l`"-option of the C compiler driver (a utility like `cc` or `c99`) will automatically prepend that prefix when searching for the actual library name. For instance, specifying "`-l myname-2.5.so`" will make the compiler driver actually search for a library basename `libmyname-2.5.so`.
+
+`myname`:: This is the project-specific "actual" name of the library.
+
+`-2.5`:: This component is optional and specifies the "release" version number. Library versions where this component differs are totally incompatible. The release version therefore specifies something like an /era/, a structural level above the major version number.
+
+`.so`:: All GNU shared library objects use this substring to separate the library name and optionl release version from the major version number.
+
+`.4`:: This is the "major" version number. The `SONAME` symbol field within a shared object library contains the basename of the symlink to the actual library file, and this "major" version number represents the end of the symlink's name. The dynamic linker uses only this symlink to locate the actual library file.
+
+`.14.38`:: This are the remaining version components (minor, patch, revision, etc.) which are added to the `SONAME` in order to create the actual name of the shared object library file. They are normally irrelevant for linkage, because only the SONAME is used for locating the file. However, these remaining version number components allow to specifiy different variants of the same major library version which should all be backwards-compatible.
+
+
+GNU libtool's `-version-info` version numbers
+---------------------------------------------
+
+GNU `libtool` uses the major and remaining version number components explained above in a very specific way in order to associate incremental API version numbers to library version numbers.
+
+The GNU scheme required to assign incremental API numbers to every version of the library as the API's functionality is changed in any way (adding, removing or changing interfaces or other definitions).
+
+The API numbers start with 0 for the very first version of the library.
+
+Based on those API numbers, a triplet `C:R:A` needs to be defined for every library revision, where `C` ("current"), `R` ("revision") and `A` ("age") are 3 integers.
+
+`C`:: The API number of the newest API implemented by this library revision.
+
+`R`:: The revision of `C` or 0 for a new `C`. This is a just a 0-based counter which is incremented whenever `C` stays the same but a new version of the library is created.
+
+`A`:: The difference of the newest and oldest API number implemented by this library revision. (Obviously only such different APIs can be implemented within the same library file which are either completely backwards-compatible or totally independent of one another.)
+
+Using this `C:R:A` triplet, the Linux version of `libtool` created the following major and remaining version number components:
+
+Major version number:: The difference `C - A`.
+
+Remaining version number components: `A.R`
+
+Example
+~~~~~~~
+
+Let's say `libtool` is called with (among others) the argument
+
+....
+-version-info 18:38:14
+....
+
+Then within the `C:R:A` triplet, `C := 18`, `R := 38` and `A := 14`.
+
+`libtool` for Linux then calculates:
+
+Major version number:: `C - A = 18 - 14 = 4`
+
+The remaining version number components:: `A.R = 14.38`
+
+So the major version is `4` and remaining version number components is `14.38`. Those are exactly the version numbers used in the first example above.
+
+The release number `2.5` from that same example can also be passed to `libtool` by specifying the additional option "`-release 2.5`".
+
+
+The developer symlink
+---------------------
+
+The purpose of the `/usr/lib/libmyname-2.5.so` symlink for developers is as follows: It allows the developer to link against that shared object library by just calling
+
+----
+$ c99 -o myfile myfile.c -l myname-2.5
+----
+
+The `-l` option will add `lib` to the specified name and then try all the available appropriate extensions (typically `.a` and `.so`) for constructing all possible basenames of the library. It will then search all the library search directories for matching files and used the first one found.
+
+This search process eventually find the beforementioned `/usr/lib/libmyname-2.5.so` symlink, which will be opened and its `SONAME` symbol with the contents "`libmyname-2.5.so.4`" will extracted.
+
+This is then the name which will be stored in the executable and which will be passed to the dynamic linker at runtime as the name of the library file to open.
+
+The dynamic linker will then find this file as the symlink "`/usr/lib/libmyname-2.5.so.4`", which actually refers to the actual shared object file "`/usr/lib/libmyname-2.5.so.4.14.38`".

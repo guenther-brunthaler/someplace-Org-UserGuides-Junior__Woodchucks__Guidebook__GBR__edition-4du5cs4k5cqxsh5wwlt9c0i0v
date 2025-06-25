@@ -1,0 +1,94 @@
+XDG .desktop files
+==================
+v2023.231
+
+----
+[Desktop Entry]
+Type=Application|Link|Directory (string)
+Version=1.0 (string)
+Name=Specific name of the application (localestring)
+GenericName=Generic name of the application, for example "Web Browser" (localestring)
+NoDisplay=this application exists, but don't display it in the menus (boolean)
+Comment=Tool Tip (localestring)
+Icon=Absolute path or "Icon Theme"-algorithm will be used to locate
+Hidden=Should have been called Deleted (boolean)
+TryExec=Executable file to determine if the program is actually installed (string)
+Exec=Program to execute, possibly with arguments (string)
+Path=For type Application, the working directory to run the program in (string)
+Terminal=Whether the program runs in a terminal window (boolean)
+MimeType=The MIME type(s) supported by this application (string(s))
+Categories=Categories in which the entry should be shown in a menu (string(s))
+URL=If entry is Link type, the URL to access (string)
+----
+
+
+How to refresh the caches
+-------------------------
+
+The .desktop files are parsed at some point at startup and at some occasions later by the desktop environment, but not repeatedly.
+
+After creating, removing, modifying or renaming .desktop files manually, the associated caches must be refreshed for the changes to take effekt:
+
+----
+$ xdg-desktop-menu forceupdate
+$ command -v update-menus > /dev/null 2>& 1 && update-menus # Debian-specific
+$ update-desktop-database "${XDG_DATA_HOME:-$HOME/.local/share}"/applications
+$ update-mime-database "${XDG_DATA_HOME:-$HOME/.local/share}"/mime
+----
+
+The above commands can be screwed up if references to non-existent `*.desktop` files exist in either of those (optional) files:
+
+....
+~/.config/mimeapps.list
+~/.local/share/applications/defaults.list
+....
+
+If the settings in a .desktop file are not properly honored after refreshing the caches, check their contents and remove all entries which refer to non-existent .desktop files. Then refresh the caches again.
+
+
+Setting default applications
+----------------------------
+
+----
+$ xdg-settings --list # View available settings.
+$ xdg-settings set default-web-browser firefox-esr.desktop
+$ xdg-settings set default-url-scheme-handler http firefox-esr.desktop
+$ xdg-settings set default-url-scheme-handler https firefox-esr.desktop
+----
+
+
+Entry value types
+-----------------
+
+string:: ASCII characters except for control characters
+localestring:: user displayable, encoded in UTF-8
+boolean:: either the string `true` or `false`
+numeric:: as recognized by the %f specifier for scanf in the "C" locale
+
+The escape sequences \s, \n, \t, \r, and \\ are supported for values of type string and localestring, meaning ASCII space, newline, tab, carriage return, and backslash, respectively.
+
+Some keys can have multiple values. In such a case, the value of the key is specified as a plural: for example, string(s). The multiple values should be separated by a semicolon, and the value of the key should have a semicolon as trailing character. Semicolons in these values need to be escaped using \;.
+
+
+Exec
+----
+
+The command to run. The first argument is the program name which must not contain "=". It can be absolute or will be located via path. Any number of arguments may follow. All arguments are separated by a space.
+
+The command has the same syntax and quoting rules as expected by the 'Open With...' context menu entry when a user-defined command is entered for execution.
+
+There is a separate guide about the syntax of such 'Open With...' commands, look there for details.
+
+However, an 'Open With...'-commands cannot be directly specified as the `Exec`-key. Instead, it needs to be escaped according to the quoting rules for 'localestring' values as explained above. (Most of the time, this just means doubling all backslashes.)
+
+
+NoDisplay
+---------
+
+This exists and is set to "true" for entries which just appear in the file manager's context menu for a specific MIME type.
+
+
+Terminal
+--------
+
+Means that the Exec= program will be started in a terminal window. The terminal window will not stay open but close immediately when the program terminates.

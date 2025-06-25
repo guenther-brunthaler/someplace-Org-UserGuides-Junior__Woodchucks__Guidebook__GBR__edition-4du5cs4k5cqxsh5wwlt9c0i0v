@@ -1,0 +1,87 @@
+﻿Shell-based script launchers for various languages
+==================================================
+Günther Brunthaler
+v2021.21
+
+This document contains different methods I found or have designed myself for launching scripts written in different programming languages from within a shell script embedding the actual scripts to be run.
+
+Most of the languages are scripting languages, but some are compiles languages. In this case, a temporary executable will be built in a temporary directory, then been run there, and be deleted afterwards.
+
+
+TinyScheme
+----------
+
+I created a fork of TinyScheme named `tinyscheme-trch55q0vtb6hxzlr0hgcnjpb` because I had to fix a few deficiencies. (The name suffix is just a base-35 encoded UUID, making sure the patched version cannot be mistaken for the original upstream version.)
+
+I decided to use semantic versioning, starting as usual with version `1.0` (`1` being the major version). The launcher for this major version is:
+
+----
+#! /bin/sh
+":"; exec tinyscheme-trch55q0vtb6hxzlr0hgcnjpb-1 -1 "$0" ${1+"$@"}
+(do
+  ((i 1 (+ i 1)) (a *args* (cdr a))) ((null? a))
+  (display "argv[") (display i) (display "] = \"")
+  (display (car a)) (display "\"") (newline))
+----
+
+
+Chez/Petite Scheme
+------------------
+
+This is the launcher for major version 9.5:
+
+----
+#! /bin/sh
+":"; exec petite9.5 --script "$0" ${1+"$@"}
+(do
+  ((i 0 (+ i 1)) (a (command-line) (cdr a))) ((null? a))
+  (display "argv[") (display i) (display "] = \"")
+  (display (car a)) (display "\"") (newline))
+----
+
+
+== C ==
+
+This is for the installed version of the 'C' language:
+
+----
+#! /bin/sh
+set -e
+cleanup() {
+	rc=$?
+	test "$TD" && rm -r -- "$TD"
+	test $rc = 0 || echo "\"$0\" failed!" >& 2
+}
+TD=
+trap cleanup 0; trap 'exit $?' INT QUIT HUP TERM
+bn=${0##*/}
+TD=`mktemp -d -- "${TMPDIR:-/tmp}/$bn.XXXXXXXXXX"`
+run() {
+	{
+		pfxlen=`sed '/=\{3,\}/ q' "$0" | wc -l`
+		pfxlen=`expr $pfxlen + 1`; echo "#line $pfxlen \"$0\""; cat
+	} > "$TD/$bn.c"
+	(
+		cd -- "$TD" && make -f /dev/null -s -- \
+			CFLAGS='-D NDEBUG -O' LDFLAGS='-s' "$bn"
+	)
+	"$TD/$bn" ${1+"$@"}
+}
+run ${1+"$@"} << '==='
+
+#include <stdlib.h>
+#include <stdio.h>
+
+int main(int argc, char **argv) {
+   int i;
+   for (i= 0; i < argc; ++i) {
+      if (printf("argv[%d] = \"%s\"\n", i, argv[i]) < 0) {
+         wr_err: (void)fputs("Write error!\n", stderr);
+         return EXIT_FAILURE;
+      }
+   }
+   if (fflush(0)) goto wr_err;
+}
+
+===
+----

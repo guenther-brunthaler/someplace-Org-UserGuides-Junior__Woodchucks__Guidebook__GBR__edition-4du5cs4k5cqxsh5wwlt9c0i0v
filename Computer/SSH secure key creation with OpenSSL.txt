@@ -1,0 +1,36 @@
+Create a 4096 bit private RSA key from /dev/random rather than from /dev/urandom (as would be done by ssh-keygen):
+
+$ sudo invoke-rc.d --force rng-tools start || sudo invoke-rc.d --force haveged start # (optional) We need lots of entropy!
+$ n='key name'
+$ rnd=`mktemp -- "${TMPDIR:-/tmp}"/rnd-XXXXXXXXXX.dat` && chmod 600 -- "$rnd" && dd if=/dev/random bs=1 count=2048 > "$rnd"
+$ openssl genrsa -out newkey -rand "$rnd" 4096 && rm -- "$rnd" && unset rnd
+
+Variant 1: Convert to PuTTY private format:
+
+$ puttygen newkey -C "$n" -o "$n".ppk -O private && rm newkey
+
+Variant 2: Complete OpenSSH key pair:
+
+$ ssh-keygen -yf newkey > "$n".pub && mv -i newkey "$n".prv
+$ t=`mktemp` && tr -d '\n' < "$n".pub > "$t" \
+  && printf ' %s\n' "$n" >> "$t" && mv -- "$t" "$n".pub && unset t n
+
+Hint: The latter does the same as
+
+$ ssh-keygen -t rsa -b 4096 -f newkey \
+  && ssh-keygen -yf newkey > "$n".pub \
+  && chmod 600 newkey && mv -i newkey "$n".prv
+
+but with higher-quality random numbers.
+
+Discussion: About the -rand option of "openssl genrsa".
+
+This does the same thing as the -rand option of "openssl rand", which is adding additional entropy to the CPRNG internally used by openssl from which the actual randomness data required for the algorithms will be taken.
+
+In addition, the data from any existing file $HOME/.rnd or ./.rnd (the documentation does not state in which order the files are searched for) and possibly additional entropy sources (such as time of day) will always be added. As of 2018-07, $HOME/.rnd contains 1024 bytes.
+
+If there is enough entropy left to fill in the beformentioned file (however it is selected), it is filled with new random data when openssl exits.
+
+Finding a starting point in 4096 bit space (or starting points for two 2048-bit primes) requires 512 bytes, re-filling the 1024-byte random file requires another 1024 bytes of entropy. Proving another 512 bytes for overhead just to be on the safe side, 2048 bytes of random data for option -rand seed seem to be a sound choice.
+
+In addition, 2048 bytes is exactly the amount of data which is read from /dev/urandom when executing "openssl genrsa -rand /dev/urandom", so it seems to be a good idea to read the same amount from /dev/random too. We read the data into a temporary file in order to avoid /dev/random to return only partial reads.

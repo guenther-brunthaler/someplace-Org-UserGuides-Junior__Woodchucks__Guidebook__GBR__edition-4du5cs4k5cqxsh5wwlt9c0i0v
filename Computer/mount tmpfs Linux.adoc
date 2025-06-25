@@ -1,0 +1,84 @@
+Linux tmpfs and auxiliary helper filesystems
+============================================
+v2019.359
+
+Those filesystems will be mounted automatically by a proper boot sequence. However, if things fail, it is good to know what has to be mounted manually in order to fix things temporarily.
+
+For root jails those filesystems also need to be mounted manually or via `mount --rbind`.
+
+
+Debian "buster" 10
+------------------
+
+Primary:
+
+----
+/dev "devtmpfs" devtmpfs size=20m,mode=755
+/media "tmpfs" tmpfs nosuid,nodev,noexec,size=5m
+/proc "proc" proc (none)
+/sys "sysfs" sysfs (none)
+/run "tmp" tmpfs strictatime,nosuid,nodev,mode=755,size=10%
+/run/lock "tmpfs" tmpfs nosuid,nodev,noexec,size=5m
+/run/user/0 "tmpfs" tmpfs nosuid,nodev,size=100m,mode=700
+/run/user/1000 "tmpfs" tmpfs uid=1000,gid=1000,nosuid,nodev,size=100m,mode=700
+/tmp "tmp" tmpfs nosuid,nodev,size=20%
+----
+
+where the following options are default for most types of filsystems and are thus implied: +relatime, defaults+ where +defaults+ is a macro for writing +rw, suid, dev, exec, auto, nouser, async+.
+
+In addition, +tmpfs+ filesystems default to +mode=1777+ and +50%+ (half the virtual memory available to userspace) as +size+.
+
++(none)+ is a placeholder used just here in this table in order to indicate that no options need to be specified at all.
+
+Note that the `/run/user/*`-mountpoints should be exported as `$XDG_RUNTIME_DIR` for user the users with the respective UIDs.
+
+Symlinks which need to be created:
+
+----
+$ ln -s dev/shm run/shm
+----
+
+In root jails (otherwise they have to be mounted manually), the following filesystems are usually mounted automatically as a result of `mount --rbind`:
+
+----
+/dev/mqueue "mqueue" mqueue relatime
+/dev/pts "devpts" devpts nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000
+/dev/shm "tmpfs" tmpfs nosuid,nodev,size=20%
+/sys/fs/cgroup "cgroup" tmpfs relatime,size=12k,mode=755
+/sys/fs/cgroup/devices "cgroup" cgroup nosuid,nodev,noexec,relatime,devices
+/sys/fs/cgroup/elogind "cgroup" cgroup nosuid,nodev,noexec,relatime,xattr,release_agent=/lib/elogind/elogind-cgroups-agent,name=elogind
+/sys/fs/cgroup/unified "cgroup2" cgroup2 nosuid,nodev,noexec,relatime,nsdelegate
+----
+
+
+Devuan "ascii" (based on Debian "stretch" 9)
+--------------------------------------------
+
+No information provided yet,
+
+
+Running sshd in a root jail
+---------------------------
+
+Let's say you want to run a non-daemon SSH server inside of the root jail on port '877' ('IPv4'-only) which shall listen on localhost only and write its output to standard error:
+
+----
+$ mkdir -p run/sshd # Needed for privilege separation.
+$ unshare -u chroot . /usr/bin/env -i /usr/sbin/sshd -4 -De -p 877 -o ListenAddress=127.0.0.1 -f /etc/ssh/sshd_config
+----
+
+This will serve SSH sessions until interrupted by `[Ctrl]+[c]`.
+
+Change the `ListenAddress` to `0.0.0.0` if it shall listen on all interfaces (this should only be done after either secure passwords have been assigned to all login-accounts or password-based logins have been disabled altogether).
+
+The first thing you might want to do inside the root jail is a
+
+----
+$ hostname `cat /etc/hostname`
+----
+
+because it has a separate namespace for host names and local domain names.
+
+After this is working, you might want to start the SSH daemon using the regular scripts within the root jail rather than running it "from the outside".
+
+In this case, replace options `-De` with `-d` in the above command line. This will then only serve a single SSH session, during which the regular permanently-running SSH server within the root jail can be started.

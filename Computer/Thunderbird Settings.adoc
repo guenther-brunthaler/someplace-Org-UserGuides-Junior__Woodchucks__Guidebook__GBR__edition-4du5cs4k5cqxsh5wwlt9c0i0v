@@ -1,0 +1,52 @@
+﻿Thunderbird Settings
+====================
+v2019.349
+
+* Select +Thunderbird > Preferences+ from the menu bar in Mozilla Thunderbird.
+
+* Open the +Advanced+ category.
+
+* Go to the +General+ tab.
+
+* Click +Config Editor+.
+
+* View the warning screen that appears and then click +I accept the risk!+
+
+----
+mail.compose.other.header = X-MyHeader1,Y-MyHeader2
+----
+
+Add a Custom Header to Email in Thunderbird, which can then be selected from the pop-up menu of available header field types in the message composer window.
+
+----
+alerts.totalOpenTime = 3000
+----
+
+Milliseconds how long pop-up alerts displayed by Thunderbird (such as the new mail notification pop-up) will stay visible before they go away by themselves.
+
+----
+mail.biff.show_alert = false
+----
+
+Disable the pop-up for new mails entirely.
+
+
+Text-Encodings
+--------------
+
+In the "German"-localized version of Thunderbirds, the following menu entries select the following associated actual encodings:
+
+.Associated Encodings
+[options="header,autowidth"]
+|===
+| Menu entry name            | "charset="-header argument
+| Unicode                    | UTF-8
+| Mitteleuropäisch (Windows) | windows-1250
+| Mitteleuropäisch (ISO)     | ISO-8859-2
+| Baltisch (ISO)             | ISO-8859-4
+| Westlich                   | windows-1252
++
+iso-8859-15
+|===
+
+It remains unclear how Thunderbird chooses the actual +charset+ for "Westlich".

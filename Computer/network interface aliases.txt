@@ -1,0 +1,5 @@
+Let's say a network interface with name "ethernet" already exists and you want to create an alias "other" using a different IP address and netmask for it:
+
+$ ifconfig ethernet:other 10.26.159.16 netmask 255.255.0.0 up
+...
+$ ifconfig ethernet:other down

@@ -1,0 +1,49 @@
+﻿KeePass Usage
+=============
+v2025.17
+
+
+Preferred Implementations
+-------------------------
+
+Currently, the following implementations of the application family are preferred:
+
+* KeePassXC on Linux
+* KeePassDX on Android
+
+
+Minimizing the database size
+----------------------------
+
+. Empty the trashcan, if any exists
+. Delete the trashcan group, if it exists
+. Truncate history
++
+--
+Go to menu "Datenbank" entry "Datenbank-Einstellungen" and set "0 Max. Einträge im Verlauf". Press OK.
+
+Then go there again and change back to "10 Max. Einträge im Verlauf". Press OK again.
+--
+. Save the Database, now without trashcan or history and thus smaller.
+
+Note: Truncating the history does not undermine the "merge database" feature. This still works with a database, even with truncated history.
+
+
+Auto-type custom field
+----------------------
+
+If you want to be able to auto-type the contents of a custom field created by you, use the placeholder "`{S:Your Field}`" in your user-defined autotype-sequence where "`Your Field`" must be replaced with the name of your custom field.
+
+This is especially handy for secondary passwords.
+
+
+Select encryption settings
+--------------------------
+
+Go to menu "Datenbank" entry "Datenbank-Sicherheit" and switch to tab "Verschlüsselungs-Einstellungen".
+
+Set "Verschlüsselungs-Algorithmus" to "ChaCha20 256-bit" and "Schlüssel-Ableitungsfunktion" to "Argon 2d (KDBX 4 - recommended)"
+
+Press OK.
+
+Then save the database with the new encryption settings.

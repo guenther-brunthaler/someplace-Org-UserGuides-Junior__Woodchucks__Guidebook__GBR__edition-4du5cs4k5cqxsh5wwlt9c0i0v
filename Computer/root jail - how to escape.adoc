@@ -1,0 +1,21 @@
+How to escape a root jail
+=========================
+v2023.148
+
+----
+$ exec sash
+> aliasall
+> cd /
+> chroot srv
+> cd ..
+> ls
+> # Repeat last 2 command until you are at the real root.
+> chroot .
+> exec /bin/bash
+$ HOME=??? # Set it!
+$ SHELL=/bin/bash
+$ exec /usr/bin/env -i TERM="$TERM" HOME="$HOME" "SHELL=$SHELL" "$SHELL" -l
+$ cd # go to $HOME
+----
+
+If you don't want to use `bash`, change the path to the shell in both instructions above. Also make sure to change the `-l` option in the "`env -i`"-line to match your shell's option for launching a login-shell instead of a normal one.

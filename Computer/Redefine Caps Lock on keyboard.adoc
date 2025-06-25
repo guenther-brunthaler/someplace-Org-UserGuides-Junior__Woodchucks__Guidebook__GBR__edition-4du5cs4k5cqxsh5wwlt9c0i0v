@@ -1,0 +1,39 @@
+Redefine Caps Lock on keyboard
+==============================
+v2022.142
+
+The `[Caps Lock]` key on the keyboard is a pest.
+
+It could be somewhat useful if it only changed letters from lower case to upper case. But it also does all the other things the `[Shift]` key does, which is never useful as a locked mode on its own.
+
+Most of the time, the `[Caps Lock]` key is pressed accidentally and then generates unexpected input events which can be highly annoying and confusing, especially during password entry.
+
+Luckily it is possible under X11 to remap the `[Caps Lock]` key in order to emulate some other key, disabling its annoying standard behaviour.
+
+For instance, add the following snippet to your `~/.Xmodmap` in order to make the `[Caps Lock]` key do the same as the left `[Windows]` key (also known as `Super_L` by people who refuse to acknowledge the abominable Logo printed onto that key):
+
+----
+! Disable the normal use of the [Caps Lock] key and make it the same as the
+! left [Super_L] key.
+clear Lock
+keycode 66 = Super_L
+
+! IMPORTANT: If anything goes wrong after changing this file, run
+!
+! $ setxkbmap -layout us
+!
+! (use 'de' instead of 'us' for a QWERTZ keyboard) in order to restore
+! the defaults.
+----
+
+Then you need to update your key mappings with
+
+----
+$ xmodmap ~/.Xmodmap
+----
+
+in order for the changes to take effect immediately. Usually, this command is also run automatically by the login scripts, so nothing needs to be done for the settings to take effect when logging into a new graphical session.
+
+The above change is especially useful if your keyboard lacks `[Windows]` keys, but you are using an X11 tiling window manager which makes heavy use of the `Mod4` modifier key, which is normally mapped to the `[Windows]` key.
+
+If your keyboard does have a `[Windows]` key the above changes won't hurt either; it will just make the `[Caps Lock]` key and the left `[Windows]` key do the same.

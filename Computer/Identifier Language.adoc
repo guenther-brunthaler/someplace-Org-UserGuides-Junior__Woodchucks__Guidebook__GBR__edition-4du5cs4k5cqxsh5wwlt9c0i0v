@@ -1,0 +1,79 @@
+﻿Identifier Language
+===================
+v2024.35
+
+The language can be used to synthesize names for required temporary variables based on the calcuations which resulted in their value.
+
+* "`a`": `( n1 n2 -- n1 + n2 )` add
+* "`c`": `( w -- w w )` copy (`DUP`), same as "`1p`"
+* "`d`": `( n1 u2 -- n1 / u2 )` real division (not just integer division)
+* "`e`": `( -- )` no-op to e.g. "`enter`" a number: `1e2` pushes `1` then `2`
+* "`f`": `( f a[1]..a[u1] u1 u2 -- r[1]..r[u2] )` external function call
+* "`h`": `( lowercase_hex_str -- value(lowercase_hex_str) )` hex literal
+* "`k`": `( w -- )` kill (`DROP`)
+* "`m`": `( n1 n2 -- n1 * n2 )` multiplication
+* "`n`": `( n -- (-n) )` negate
+* "`o`": `( op -- op(...) )` invoke built-in operator
+* "`p`": `( xn..x1 n -- xn..x1 xn )` `PICK`, copy Nth cell to top
+* "`r`": `( x[n] x[n-1]..x[1] n -- x[n-1]..x[1] x[n] )` `ROLL`, rotate Nth cell to TOS
+* "`s`": `( n1 n2 -- n1 - n2 )` subtract
+* "`t`": `( n -- sgn(n) )` test sign; yields -1, 0 or +1
+* `decimal_uint_literal`: `( -- decimal_uint_literal )` push integer
+* "`w`": `( x1 x2 -- x2 x1)` same as `2r` (`SWAP`)
+* "`z`": `( x n -- ) if (n == 0) program := x` load new program if zero
+
+Operators allowed for "`o`" (pre-defined "built-ins" of this specification):
+
+* "`and`": `( u1 u2 -- u1 & u2 )` bitwise 'and'
+* "`not`": `( n -- ~n )` bitwise flipping of all bits
+* "`or`": `( u1 u2 -- u1 | u2 )` bitwise inclusive 'or'
+* "`xor`": `( u1 u2 -- u1 ^ u2 )` bitwise exclusive 'or'
+* "`shr`": `( u1 u2 -- u1 >> u2 )` unsigned bitwise shift right
+* "`shl`": `( u1 u2 -- u1 << u2 )` unsigned bitwise shift left
+* "`rotr`": `( u1 u2 -- rotate_right(u1, u2) )` bitwise rotate right
+* "`rotl`": `( u1 u2 -- rotate_left(u1, u2) )` bitwise rotate left
+* "`rcl`": `( w -- *w )` 'recall', push value pointed to by `w`
+* "`sto`": `( w1 w2 -- ) *w1 := w2`, 'store' `w2` where `w1` points to
+* "`sp`": `( -- &tos )` get address of TOS ('top of stack') then push it
+* "`ssp`": `( w -- )` set address of new current TOS to `w`
+* "`rem`": `( n1 u2 -- n1 - u2 * floor(n1 / u2) )` remainder
+* "`abs`", "`sqrt`", "`exp`", "`ln`", "`log2`", "`log10`", "`pow`", "`floor`", "`ceil`", "`sin`", "`cos`", "`tan`", "`atan(x)`", "`atan2(y, x)`" - usual mathematical functions, floating-point arguments are allowed
+
+"`f`" is similar to "`o`", but invokes a named function defined outside of the identifier or this specification (a function or macro visible to the program using the identifier), popping `u1` arguments from the stack and pushing `u2` results back onto the stack.
+
+Every identifier composed by using the above naming rules is the concatenation of words which will be pushed onto a theoretical stack for symbolic evaluation of a formula represented by the last word on the stack.
+
+The words of the identifier are separated by a word separator, which is the largest run of "`_`" characters found within any of the words, with another "`_`" appended to it. For instance, concatenation of words "`a_b`", "`c`" and "`d_e_f`" yields composed identifier "`a_b__c__d_e_f`".
+
+The last word on the theoretical stack is the 'FORTH'-like symbolic expression which is to be evaluated by the theoretical symbolic interpreter. It will be moved from there to internal variable `program`.
+
+When `z` conditionally loads a new string into `program`, this replaces the current program and restarts it from the beginning.
+
+The interpreter stops once the end of `program` is reached, yielding the value of TOS as the logically evaluated result. Any other values left on the stack are ignored.
+
+Examples:
+....
+e0 = 0
+e60 = 60
+e99n = -99
+e7e2d = 3.5
+e12345e1000d = 12.345
+x_1a = x + 1
+n_2m3a = n * 2 + 3
+e60cm24m = 60 * 60 * 24
+sqrt_2wo = sqrt(2)
+x_1wd = 1 / x
+atan2_0e1n3ro = PI
+a_b_a2m = a_b_2_am = (a + b) * 2
+a_b_c_3r3rawa3d = (a + b + c) / 3
+floor_a_b_c_3r3rawa3dwo = floor((a + b + c) / 3)
+sin_cos_alpha_c4rocm2r3rocma = sin(alpha)**2 + cos(alpha)**2
+hypot_a_b_c_3e1f = hypot_a_b_c_3_1_f = hypot(a, b, c)
+sin_userfunc_n_1a1e1fwo3a = sin(userfunc(n + 1)) + 3
+rcl_array_i_5aawo7m = array[i + 5] * 7
+p_q_1sw1swm = (p - 1) * (q - 1)
+a_b_c_wk_r4zk = a ? b : c
+sqrt_a_b_c_3p3pa2pa2dcc6rsm2p5rsmw3rsmwo = sqrt(s * (s - a) * (s - b) * (s - c)) with s = (a + b + c) / 2
+k_5p2p5pst1szw2pmw1a4p0z_5e1c4p0z = 5!
+k_5p2p5pst1szw2pmw1a4p0z_7e1c4p0z = 7!
+....

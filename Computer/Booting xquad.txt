@@ -1,0 +1,19 @@
+* Select "Last Known Good" configuration if asked for.
+
+* Enter nothing as FDE password until you get a shell. (Hard-reset if necessary until you get that password prompt before.)
+
+* Run "sclock" in order to set the CMOS system clock from the default network gateway. Use "date -s" followed by "hwclock -u -w" to set the clock manually if "sclock" did not work.
+
+* "reboot -f" (hard reset if it hangs) until you get the GRUB selection screen. Terminate its countdown by pressing cursor down followed by cursor up.
+
+* Now wait several minutes.
+
+* Hard reset again.
+
+* Now try to run the boot sequence normally.
+
+* It the XDM sceen comes up normal, if you can type your user name AND move the mouse cursor, then you are done!
+
+* Otherwise, press Ctrl+Alt+SysRq+k quickly followed by Alt+F1 quickly followed by Ctr+Alt+Del. After the first of those key combos, the screen should turn into a darker black and stay that way. If it becomes a lighter back, you were too slow. Repeat. If the last key combo was successful, you should notice hard disk aktivity until finally a reboot occurs.
+
+* Repeat the normal boot sequence and the following steps described above until you get a working XDM.

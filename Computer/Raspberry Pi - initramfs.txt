@@ -1,0 +1,19 @@
+Raspberry Pi - initramfs
+========================
+v2020.8
+
+
+Things to know
+--------------
+
+* When booting directly via `root=` and no initramfs, `PARTUUID=` as well as `UUID=` can be used to specify the root volume in addition to explicit `/dev/*` device paths.
+
+* When booting via initramfs however, `root=` specifies the root device to be used after initramfs has crypto-mounted/unlocked all devices. In this case, `PARTUUID=` will *not* work, while `UUID=` can still be used to specify the root volume in addition to explicit `/dev/*` device paths.
+
+* The filesystem type of the boot partition in the MBR of Raspberry's SD- or SDXC-card must be set to `0c` (Type "W95 FAT32 (LBA)"). MAYBE it can also be set to any of the other FAT-based filesytem types. It has been tested, however, that the Raspi will definitely *not* boot if the type has been set to `83` (Type "Linux").
+
+* It is recommended to set the size of the boot partition to 200 or 256 MB. This allows to install multiple kernel versions and initramfs-images if necessary, plus a backup of the kernel modules for every installed kernel. And even then there is space enough to deposit some emergency repair programs in `/boot` such as `sash`, the statically-linked "standalone shell". And possibly a statically-linked `busybox`, too. This allows booting directly from the `/boot` if necessary, bypassing the initramfs, if `/boot/cmdline.txt` is edited accordingly before.
+
+* When using Full-Disk-Encryption using LUKS, `/etc/crypttab` needs to be set up correctly first, specifying the crypto volume to be unlocked by initramfs. Then this LUKS volume needs to be actually mounted, and finally `update-initramfs` needs to be run for updating or creating an initramfs using this crypttab. This must usually be done from within a root jail, because the system cannot boot before the initramfs has been created.
+
+* `init` is invoked by the kernel with `HOME=/`, `TERM=linux` and `argv[0]` set to `init`. The actual command run as `init` *without* an initramfs or initrd is attempted in the following order: The program specified with `init=` in the kernel command line (must start successfully if specified), `/sbin/init`, `/etc/init`, `/bin/init` or `/bin/sh`. After this, a kernel panic will occur. Note that `/init` is *not* among the programs attempted to be run. Things are quite different when using an initramfs. In this case, the kernel will try to invoke `/init` only, which can be overridden by `rdinit=`. The `init=`-option is completely ignored by the kernel when using initramfs, although it may be honored by `/init` itself. The Debian initramfs `/init` *does* support `init=` and exec's into the specified executable. But this only works if the initramfs contains a working `init`. To completely bypass a non-functional `/init` within the initramfs, `rdinit=` must be specified instead.

@@ -1,0 +1,13 @@
+﻿* Apply UNICODE NFKC to the characters.
+
+Here are the various UNICODE Normalization Forms:
+
+* NFD: Normalization Form D - Canonical Decomposition
+
+* NFC: Normalization Form C - Canonical Decomposition,
+followed by Canonical Composition
+
+* NFKD: Normalization Form KD - Compatibility Decomposition
+
+* NFKC: Normalization Form KC - Compatibility Decomposition,
+followed by Canonical Composition

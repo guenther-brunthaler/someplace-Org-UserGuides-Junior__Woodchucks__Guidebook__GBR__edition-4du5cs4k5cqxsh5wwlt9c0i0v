@@ -1,0 +1,29 @@
+﻿WBMP (Wireless Application Protocol Bitmap Format)
+==================================================
+v2024.144
+
+WBMP is a very simple monochrome bitmap format. It has been developed by the WAP forum for delivering images to the monochrome displays of early mobile phones.
+
+It is similar to PBM but easier to parse, because there are no ASCII-to-integer conversions required and no possible comments or redundant whitespace need to be ignored.
+
+Its filename extension is "`.wbmp`" and its MIME type is "`image/vnd.wap.wbmp`".
+
+
+File Format Layout
+------------------
+
+[options="header,autowidth"]
+|===
+|Field name   | Field type  | Size     | Purpose 
+|Type         | uintvar     | variable | Type of the image, and is 0 for monochrome bitmaps. 
+|Fixed header | byte        | 1        | Reserved. Always 0. 
+|Width        | uintvar     | variable | Width of the image in pixels. 
+|Height       | uintvar     | variable | Height of the image in pixels. 
+|Data         | byte array  | variable | Data bytes.
+|===
+
+The data size in the above table is specified in bytes.
+
+'uintvar' is a variable-size base-128 encoding of an unsigned integer, most significant digit first. All digits are stored as octets where the 7 least-significant bits represent the value of the base-128 digit. The 8th (most significant) bit is set to "1" for all base-128 digits except the last one (which is the least significant digit and terminates the encoding sequence).
+
+Data bytes are arranged in rows – one bit per pixel. A black pixel is denoted by 0 and a white pixel is denoted by 1. The pixel order within a byte is MLP (most left pixel) = MSB (most significant bit). Where the row length is not divisible by 8, the row is 0-padded to the byte boundary.

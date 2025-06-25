@@ -1,0 +1,66 @@
+C Development Best Practice
+===========================
+v2020.121.1
+
+
+Conditionally repeat code after loop
+------------------------------------
+
+Define the repeated code as a macro `SHARED_CODE` instead of actually repeating it:
+
+----
+while ((c= getchar()) != EOF) {
+   ...
+   /* Do something with 'c' that has to be done after EOF as well. */
+   #define SHARED_CODE() do { \
+      ... \
+   } while (0)
+   SHARED_CODE();
+   ...
+}
+if (ferror(stdin)) raise_read_error();
+assert(feof(stdin));
+SHARED_CODE();
+#undef SHARED_CODE
+----
+
+The "useless" `do`...`while`-loop ensures that
+
+* The macro can be used in all places where a single expression statement would also be valid
+
+* The semicolon at the end of the code inside the macro will not produce an empty statement when the caller puts another semicolon after the macro invocation.
+
+* The macro provides a scope for local definition and declarations
+
+In situations were more nearly- but not quite identical surrounding source-text lines could be added to `SHARED_CODE()` which only differ in a few places, those may also be moved into the macro by adding macro parameters which reconcile the differences.
+
+If more than one macro is needed in an overlapping range (otherwise the same name could be recycled) of source-text lines, name them `SHARED_CODE_SECTION_1`, `SHARED_CODE_SECTION_2` etc. instead.
+
+If meaningful short identifiers can be associated with the different code snippets within the macros, replace the numeric suffixes with those identifiers.
+
+Of course, an even better approach would be to re-structure the loop in a way that the code duplication could be avoided. But unfortunately this is not always possible without loss of performance, efficiency or portability (e. g. when using 'inline'-functions of 'C99'+, which are a cleaner yet less portable alternative to traditional preprocessor macros).
+
+
+Recycling a variable within an expression
+-----------------------------------------
+
+There are situations where a variable is only required up to some point within an expression but no longer after that, while a new variable is required to store some of the results of the expression.
+
+Normally such a situation could be tackled by using adjacent block scopes, but this is not possible here because the lifetimes of the problematic variables would be required to end and start within the same expression for a proper solution.
+
+For instance, the size for a `malloc()` may be needed until the buffer is actually allocated, but from then on only the returned pointer will be used.
+
+Such situations can be fixed using a union like this:
+
+----
+union u {
+	size_t bytes;
+	char *data;
+};
+...
+u.bytes= ...;
+...
+if (!(u.data= malloc(u.bytes))) goto error;
+----
+
+Without the union, two variables would have been needed because of the different types, even though the lifetimes of those variables did not need to overlap. The union fixes this, saving precious space on the stack.

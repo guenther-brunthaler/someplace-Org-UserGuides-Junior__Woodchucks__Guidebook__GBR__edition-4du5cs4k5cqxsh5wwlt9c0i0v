@@ -1,0 +1,131 @@
+﻿SSH
+===
+Guenther Brunthaler
+v2025.14
+
+
+Deterministic moduli generation
+-------------------------------
+
+Instead of trusting /etc/ssh/moduli, one can generate ones's own personalized version of that file.
+
+I recommend a user-defined and easily recognizable text message for personalization, which covers the high-order octets of the generated safe primes, except for the most significant octet which should have its most significant bit set, making it unsuitable for encoding text.
+
+----
+$ personalization="Günther Brunthaler's DH groups v1.0"
+
+$ bits=4096
+
+$ start=`{ printf 01 && { printf %s "$personalization" | iconv -t UTF-8 && printf '\n\0'; } | od -vtx1 -An; } | tr -dc 0-9a-f | tr a-f A-F` && start=`echo "e= 2 ^ $bits; obase= ibase= 16; p= $start; while (p >= e) p= p / 100; while (p < e) p= p * 100 + 55; (p - 1) / 2" | bc | tr -dc A-F0-9` || { echo failure >& 2; false; }
+
+$ nice ssh-keygen -G candidates.txt -b `expr $bits + 1` -S "$start" || { echo failure >& 2; false; }
+
+$ true > moduli.new && nice ssh-keygen -T moduli.new -f candidates.txt -a 400 || { echo failure >& 2; false; }
+----
+
+Don't wonder if the last two commands shown above take their time to complete:
+
+....
+$ nice ssh-keygen -G [...]
+Thu Dec  3 09:32:50 2020 Sieve next 268435456 plus 4096-bit
+Thu Dec  3 09:37:13 2020 Sieved with 203277289 small primes in 263 seconds
+Thu Dec  3 09:37:24 2020 Found 221785 candidates
+
+$ true > moduli.new && nice ssh-keygen -T [...]
+Thu Dec  3 09:44:28 2020 processed 2692 of 221785 (1%) in 0:06, ETA 8:35
+...
+Thu Dec  3 17:12:52 2020 processed 219996 of 221785 (99%) in 7:34, ETA 0:03
+Thu Dec  3 17:16:00 2020 Found 39 safe primes of 184577 candidates in 27472 seconds
+....
+
+In the last case, it took about as many safe prime candidates for testing as there are bits in its length in order to finde one actual safe prime. I have no idea whether this is coincidence or a rule. Anyway, expect a long time for the `-T` option to run.
+
+After everything is done, the contents of generated file `moduli.new` are suitable new entries for `/etc/ssh/moduli`.
+
+
+Verify the operation of `ssh-keygen`
+------------------------------------
+
+Correct moduli generation is important. An attacker might change the source code of `ssh-keygen` in subtle ways, making it behave differently than before.
+
+You can verify that the program still work by running the above generation instructions with the following changed settings:
+
+----
+$ personalization="ssh-keygen verification test v1.0"
+
+$ bits=512
+----
+
+After the `moduli.new` have been generated, hashing its contents minus the datestamp field using the command
+
+----
+$ cut -d ' ' -f 2- moduli.new | openssl sha256 | cut -d ' ' -f 2-
+----
+
+should produce the following output:
+
+....
+b4c3175a422225104fef169e292b1fd036c202e261518b247ea963483a85f81c
+....
+
+If your output is the same, your `ssh-keygen` works the same like mine does.
+
+Otherwise, consider the possibility that your `ssh-keygen` may have been tampered with.
+
+
+Dissect private key contents
+----------------------------
+
+First uses `ssh-keygen` to remove the password from the key and export it into 'PEM' format.
+
+Then use `openssl asn1parse` to decode the 'PEM' file. The output will have the following structure:
+
+....
+SEQUENCE
+ INTEGER const_0
+ INTEGER modulus
+ INTEGER pub_exp
+ INTEGER prv_exp
+ INTEGER prime_1
+ INTEGER prime_2
+ INTEGER exp_1
+ INTEGER exp_2
+ INTEGER coeff
+....
+
+where
+
+* `const_0` is just the value zero. Probably a version identifier.
+* `modulus` is the RSA public modulus, the product of `prime_1` and `prime_2`.
+* `pub_exp` is the RSA public exponent, normally 65537.
+* `prv_exp` is the RSA secret exponent.
+
+The above parameters are all which is minimally necessary to perform all RSA operations. The remaining parameters are helpful to speed up the calculations.
+
+* `prime_1` is the first secret prime.
+* `prime_2` is the first second prime.
+* `exp_1` - hmmm.
+* `exp_2` - hmmm.
+* `coeff` - hmmm.
+
+
+Entropy required for RSA key generation
+---------------------------------------
+
+Assuming the public exponent will be constant (typically 65537) and the private exponent will be calculated from the public exponent and the two secret prime numbers, then the RSA key pair can be derived from the two secret primes. (The modulus can also be derived from those two because it is just their product.)
+
+In order to create either prime randomly, a random starting value needs to be selected and then the next prime number found from there will be selected.
+
+The starting value needs to be in the same order of magnitude as the required prime numbers.
+
+However, the information *actually* represented by a starting value is the index of the prime number, starting with the first prime.
+
+According to the prime number theorem, if there are actually `K` prime numbers less than some given prime number `N`, then the value of `K` will have approximately the same order of magnitude as the value `N / ln(N)`.
+
+This means that for generating a `p`-bit prime number, we only need approximately `log2(2 ^ p / ln(2 ^ p))` bits of entropy.
+
+It turns out that this number is in the same order of magnitude as `2 ^ p` itself and only marginally smaller.
+
+Therefore, it is a good idea to also use `p` bits of entropy for generating the search starting point for a `p`-bit prime number.
+
+Which means that for generating the two secret primes for an RSA key pair with an `m`-bit modulus, a total of `m` bits of entropy are required.

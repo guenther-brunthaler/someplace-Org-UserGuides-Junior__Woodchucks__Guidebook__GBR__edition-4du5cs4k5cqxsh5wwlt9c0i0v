@@ -1,0 +1,190 @@
+﻿Joe's own editor
+================
+Günther Brunthaler
+v2020.115
+
+Basic instructions for using `joe` ('Joe\'s own editor'), the author's favorite text-mode editor.
+
+
+Basic command line options
+--------------------------
+
+[options="autowidth"]
+|===
+| `-option`          | Sets the option
+| `--option`         | Clears the option
+| `+139`             | Start editing the file at this line
+|===
+
+
+Generally useful options
+------------------------
+
+It is recommended to set those as specified here in the personalized `joe` configuration file `~/.joerc`:
+
+[options="autowidth"]
+|===
+| `-nobackups`       | We don't want backup files to be created
+| `-break_hardlinks` | Break hard links, but not symlinks
+| `--guess_indent`   | Always use tabs according to configured settings
+| `-smarthome`       | Home key first moves cursor to beginning of line
+| `-smartbacks`      | Backspace key undoes 'istep' + 'identc'
+| `--icase`          | Search is case insensitive by default.
+| `-french`          | One space after "'.'", "'?'" and "'!'" for wordwrap
+|===
+
+You might want to invert the last setting if you prefer to use two spaces for separating sentences within the same paragraph.
+
+All in one line (for pasting as `joe` arguments into the terminal):
+
+----
+-nobackups -break_hardlinks --guess_indent -smarthome -smartbacks --icase -french
+----
+
+Options for flowtext documents
+------------------------------
+
+This uses the format specified in RFC 3676, which puts a space at the end of all lines in a paragraph except for the last one. This results in the same text as `fold -sw` would have produced for line-wrapping the paragraph lines.
+
+[options="autowidth"]
+|===
+| `-wordwrap`        | Wordwrap
+| `-flowed`          | Put one space after intermediate paragraph lines.
+| `-spaces`          | TAB inserts spaces instead of tabs
+| `-indentc 32`      | Indentation character (32 for space, 9 for tab)
+| `-istep 4`         | Number of indentation columns
+|===
+
+This format makes it easy to safely undo the folding later by replacing every space-newline sequence in the text by a single space. This avoids the danger of messing up pre-formatted text during the process.
+
+Also note that `joe` is smart about the combination of the `-rmargin`, `-wordwrap` and `-flowed` settings:
+
+* If `-flowed` is enabled and `-rmargin` is set to 79, automatic word-wrapping will occur as soon as one types a character into the 78th column, unless this is a space. Typing more spaces will delay the word-wrapping, but as soon as the first non-space is typed, all spaces typed at the end of the line will be removed except the last one, and the newline character(s) will be inserted after this. This ensures there will be no premature word-wrapping, but also that column 79 will never by occupied with a space automatically inserted by `-flowed`. Which means that the line width is actually just 78 columns, i. e. one less than specified with `-rmargin`.
+
+* This does not happen without `-flowed`. In this case word wrap only occurs when trying to type anything (including a space) into the 79th column.
+
+The same applies for the paragraph reformatting command. Which means, `joe` behaves correctly (and thus differently) with and without `-flowed`. One can just use set the terminal's width minus 1 as `-rmargin` and does not have to consider the ramifications of enabling or disabling `-flowed`.
+
+
+`format=flowed` e-mail
+~~~~~~~~~~~~~~~~~~~~~~
+
+This is the text format used by many mail user agents like Thunderbird when composing plain-text (non-HTML) e-mail messages. Such e-Mails have the MIME type
+
+....
+Content-Type: text/plain; charset=UTF-8; format=flowed
+....
+
+except that the `charset` may differ.
+
+----
+-rmargin 72 -wordwrap -flowed -spaces -indentc 32 -istep 4
+----
+
+
+Optimized for human readers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A modified version recommended for free-text documents like README files, which uses a line width generally considered most human-friendly for reading:
+
+----
+-rmargin 66 -wordwrap -flowed -spaces -indentc 32 -istep 4
+----
+
+
+Minimizing the number of lines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A modified version minimizing the number of output lines produced for a 80-column terminal:
+
+----
+-rmargin 79 -wordwrap -flowed -spaces -indentc 32 -istep 4
+----
+
+This might be useful in situations where a shorter line width would otherwise make the terminal scroll the beginning of the text out of view.
+
+
+Options for hard-wrapped text
+-----------------------------
+
+This is the best for classic text files where the space at the end of folded paragraph lines must be avoided.
+
+----
+-rmargin 79 -wordwrap --flowed --spaces -indentc 9 -istep 8
+----
+
+`joe` can still re-flow such paragraphs, but they need to be selected as blocks not containing pre-formatted paragraphs.
+
+
+Options for source code
+-----------------------
+
+This is similar to hard-wrapped text, except that line wrapping is generally not wanted here. Also, the amount of indentation may be smaller.
+
+
+Indented by 2 spaces
+~~~~~~~~~~~~~~~~~~~~
+
+This is preferred by languages which use frequently need many indentation levels, such as LISP and other functional languages.
+
+----
+-istep 2 -rmargin 79 -spaces -indentc 32 --wordwrap --flowed
+----
+
+
+Indented by 3 spaces
+~~~~~~~~~~~~~~~~~~~~
+
+This is the author's favorite setting. It also seems to be popular with C++ engineers at IBM. The indentation is clearly visible, yet still allows a lot of indentation levels before the line width is exhausted.
+
+----
+-istep 3 -rmargin 79 -spaces -indentc 32 --wordwrap --flowed
+----
+
+
+Indented by 4 spaces
+~~~~~~~~~~~~~~~~~~~~
+
+This is probably the most-widely employed scheme. For instance, most Python-developers seem to prefer it.
+
+----
+-istep 4 -rmargin 79 -spaces -indentc 32 --wordwrap --flowed
+----
+
+
+Indented by single tabs
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This is often wanted for \`Makefile`s or POSIX-shell scripts.
+
+----
+-rmargin 79 --wordwrap --flowed --spaces -indentc 9 -istep 1
+----
+
+
+Most important options
+----------------------
+
+This is a summary of the `joe` options the author has found to use most frequently, sorted by perceived frequency of usage (most frequent first). The options normally only set in the configuration file are shown last.
+
+[options="autowidth"]
+|===
+| `-wordwrap`        | Wordwrap
+| `-flowed`          | Put one space after intermediate paragraph lines.
+| `-rmargin 79`      | Right margin
+| `-spaces`          | TAB inserts spaces instead of tabs
+| `-istep 1`         | Number of indentation columns
+| `-indentc 9`       | Indentation character (32 for space, 9 for tab)
+| `-tab 8`           | Tab width
+| `-icase`           | Search is case insensitive by default.
+| `-crlf`            | File uses CR-LF at ends of lines
+| `-nobackups`       | If you don't want backup files to be created
+| `--guess_indent`   | Always use tabs according to file type
+| `-lmargin 1`       | Left margin
+| `-tab 8`           | Tab width
+| `-smarthome`       | Home key first moves cursor to beginning of line
+| `-smartbacks`      | Backspace key undoes 'istep' + 'identc'
+| `-backpath /path`  | for backups; nothing in line after the path
+| `-break_hardlinks` | Break hard links, but not symlinks.
+| `-french`          | One space after "'.'", "'?'" and "'!'" for wordwrap
+|===

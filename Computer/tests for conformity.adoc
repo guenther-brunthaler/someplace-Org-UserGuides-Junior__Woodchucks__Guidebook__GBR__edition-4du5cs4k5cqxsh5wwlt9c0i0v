@@ -1,0 +1,19 @@
+Tests for conformity
+====================
+v2020.30
+
+Here is a selection of web sites and utilities which can be used to test some application or web/network service for standards compliance or conformity with established best practices.
+
+Security of websites::
++
+--
+* Test via webfrontend:: https://www.ssllabs.com/ssltest/
+
+* Directly via URL:
++
+--
++https://www.ssllabs.com/ssltest/analyze.html?d=<FQDN>+
+
+EXAMPLE: +https://www.ssllabs.com/ssltest/analyze.html?d=www.gmx.net+
+--
+--

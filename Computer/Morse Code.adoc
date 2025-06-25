@@ -1,0 +1,154 @@
+﻿Morse Code
+==========
+v2024.338
+
+Morse code requires a signal which can be switched on and off rather than just sending pulses. It is also relatively hard to learn.
+
+In cases where this is a problem, link:Tap%20Code.html[Tap code] is a viable alternative which is much easier to learn and can be transmitted by knocking or banging against a pipe or something.
+
+
+Details
+-------
+
+Morse code is transmitted using just two states (on and off).
+
+International Morse code is composed of five elements:
+
+* short mark, dot or "dit": "dot duration" is one time unit long
+
+* longer mark, dash or "dah": three time units long
+
+* inter-element gap between the dots and dashes within a character: one time unit long (like a dot)
+
+* short gap (between letters): three time units long
+
+* medium gap (between words): seven time units long
+
+* The code is usually transmitted at the highest rate that the receiver is capable of decoding. Morse code transmission rate (speed) is specified in 'groups per minute', commonly referred to as 'words per minute'.
+
+* The typical words 'PARIS' (more common) or 'CODEX' (less common) are used to calculate the "dit" length for some 'words per minute' value.
+
+* For the Radiotelegraph Operator License, besides other things the examinee must pass a 20 word per minute plain text test.
+
+Up to the 1990s, the radio frequency of 500 kilohertz (500 kHz) was an international calling and distress frequency for Morse code maritime communication. The operators of all stations were required, during the hours the station is in operation, to 'listen in' at intervals of not more than 15 minutes and for a period not less than 2 minutes.
+
+For distress calls, this system has been superseded by the 'Global Maritime Distress and Safety System (GMDSS)' which is no longer based on Morse code.
+
+
+See also:
+----
+$ apropos morse
+cw (7)               - the international Morse code
+xcwcp (1)            - X Window-based Morse tutor program
+----
+
+
+Morse code symbols
+~~~~~~~~~~~~~~~~~~
+
+.Letters
+[options="autowidth"]
+|======
+| A | . _
+| B | _ . . .
+| C | _ . _ .
+| D | _ . .
+| E | .
+| F | . . _ .
+| G | _ _ .
+| H | . . . .
+| I | . .
+| J | . _ _ _
+| K | _ . _
+| L | . _ . .
+| M | _ _
+| N | _ .
+| O | _ _ _
+| P | . _ _ .
+| Q | _ _ . _
+| R | . _ .
+| S | . . .
+| T | _
+| U | . . _
+| V | . . . _
+| W | . _ _
+| X | _ . . _
+| Y | _ . _ _
+| Z | _ _ . .
+|======
+
+.Numbers
+[options="autowidth"]
+|======
+| 1 | . _ _ _ _
+| 2 | . . _ _ _
+| 3 | . . . _ _
+| 4 | . . . . _
+| 5 | . . . . .
+| 6 | _ . . . .
+| 7 | _ _ . . .
+| 8 | _ _ _ . .
+| 9 | _ _ _ _ .
+| 0 | _ _ _ _ _
+|======
+
+.Abbreviated Numbers
+[options="autowidth"]
+|======
+| 1 | . _
+| 2 | . . _
+| 3 | . . . _
+| 4 | . . . . _
+| 5 | .
+| 6 | _ . . . .
+| 7 | _ . . .
+| 8 | _ . .
+| 9 | _ .
+| 0 | _ (sometimes a long dash is used)
+|======
+
+
+.Punctuation
+[options="autowidth"]
+|======
+| Comma ,              | _ _ . . _ _
+| Full stop . (period) | . _ . _ . _
+| Question mark ?      | . . _ _ . .
+| Semicolon ;          | _ . _ . _ .
+| Colon : or division sign | _ _ _ . . .
+| Slash / (fraction bar)   | _ . . _ .
+| Dash -                   | _ . . . . _
+| Apostrophe '             | . _ _ _ _ .
+| Inverted comms "         | . _ . . _ .
+| Underline                | . . _ _ . _
+| Left bracket or parenthesis (  | _ . _ _ .
+| Right bracket or parenthesis ) | _ . _ _ . _
+| Double hyphen = equals sign    | _ . . . _
+| Cross + addition sign          | . _ . _ .
+| Multiplication sign X          | _ . . _
+| Commercial at @                | . _ _ . _ .
+|======
+
+.Acented characters
+[options="autowidth"]
+|======
+| Á | . _ _ . _
+| É | . . _ . .
+| Ö | _ _ _ .
+| Ä | . _ . _
+| Ñ | _ _ . _ _
+| Ü | . . _ _
+|======
+
+.Procedural characters
+[options="autowidth"]
+|======
+|Start of work (CT)                                   | _ . _ . _ .
+|Invitation to transit (K)                            | _ . _
+|End of message (AR)                                  | . _ . _ .
+|Error                                                | . . . . . . . .
+|End of work (VA)                                     | . . . _ . _
+|Invitation for a particular station to transmit (KN) | _ . _ _ .
+|Wait                                                 | . _ . . .
+|Understood                                           | . . . _ .
+|======

@@ -1,0 +1,83 @@
+SSH
+===
+v2021.24
+
+My favourite `~/.ssh/config` default settings:
+
+----
+Host *
+        #ProxyCommand -nnc6 $HOME/.ssh/proxy proxy 8080 %h %p
+	HashKnownHosts no
+        Compression yes
+	Ciphers chacha20-poly1305@openssh.com,3des-cbc,aes256-gcm@openssh.com,aes256-ctr
+	MACs hmac-ripemd160,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha2-512,hmac-sha1
+	HostKeyAlgorithms ssh-rsa
+        ControlPath none
+        ControlPath ~/.ssh/shared_connections/%C
+        ControlMaster auto
+        ControlPersist 300
+----
+
+
+Connection sharing
+------------------
+
+Connection sharing enables using a single SSH connection to a particular destination host, port and user account, no matter how many `ssh`, `scp` or `sftp`-connections will be requested.
+
+It can also be used to keep the connection open for some time after the last explicit connection has been closed, in case it shall be re-opened again. This can be very handy when the SSH server is started by inetd, because it avoids the relatively long startup time of `sshd`. It is also helpful if too many `scp` commands are run in rapid succession, because `inetd` might limit the number of allowed connections per time interval.
+
+The entries starting with "`Control`" from the "`~/.ssh/config`"-settings shown above define defaults for connection sharing, but do not enable it yet.
+
+In order to do so, copy the "`ControlPath`"-line which does *not* contain "`none`" into an earlier section of your "`~/.ssh/config`".
+
+The connection defined in that section will then use connection sharing.
+
+However, in order to actually work, the path mentioned in the `ControlPath` directive needs to be created first:
+
+----
+$ mkdir -m700 -- ~/.ssh/shared_connections
+----
+
+This needs only be done once for every ssh user which wants to use connection sharing. The SSH client will then automatically create and delete temporary socket special files in this directory.
+
+Those sockets represent the currently existing established shareable connections, and the SSH client will automatically use them rather than creating new connections as long as they do exist.
+
+If you want to terminate a connection immediately for some reason after closing your SSH session, without having to wait for the `ControlPersist` timeout:
+
+----
+$ ssh -O exit $DESTINATION
+----
+
+where $DESTINATION is rest of the previous `ssh` command which used the connection to be terminated immediately.
+
+If you want to temporarily disable the connection sharing mechanism enabled for some connection by default and make a new un-shared connection without a `ControlPersist` timeout at its end:
+
+----
+$ ssh -o ControlPath=none $DESTINATION
+----
+
+
+SSH-connection through a proxy server
+-------------------------------------
+
+One might find oneself in the situation that one wants to establish an SSH connection to some host, but the SSH port of the destination host is blocked by the firewall of the local internet gateway.
+
+In this case is possible to tunnel the SSH connection through a proxy server which uses an innocent port number that is not blocked by the local firewall, and this proxy will then connect to the actual target host.
+
+Add the following option to your `ssh` command line:
+
+----
+-o ProxyCommand='socat STDIO PROXY:myproxy.test.com:%h:%p
+----
+
+This assumes the proxy is accessible as `http://myproxy.test.com:8080` - if a different port is used, say 3128, append the following immediately after the last character of the above `-o` argument:
+
+----
+,proxyport=3128
+----
+
+If the proxy needs a username "john" with password "secret" for authentication, add the following as well:
+
+----
+,proxyauth=john:secret
+----

@@ -1,0 +1,12 @@
+﻿Geany Projects
+Nur der Dateiname der Projektdatei ist relevant. Basisverzeichnis (base path) kann relativ zur Projektdatei sein. Etwa: "build/debug".
+
+Einstellungen im "Erstellen"-Dialog des Projekts:
+
+Make: "make", Dir: "%p"
+Ausführen "./%e", Dir: "%p"
+
+%d - substituted by the absolute path to the directory of the current file.
+%e - substituted by the name of the current file without the extension or path.
+%f - substituted by the name of the current file without the path.
+%p - if a project is open, substituted by the base path from the project.

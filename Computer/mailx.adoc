@@ -1,0 +1,26 @@
+mailx
+=====
+v2023.278
+
+
+Relocate `~/mbox` file
+----------------------
+
+The default places `mailx`'s `mbox` file right into the user's home directory.
+
+If a user should be annoyed by this, the following command will relocate the file `~/mbox` to directory `~/.local/share/mbox`:
+
+----
+$ (PS4=`id -un`"@"`hostname` && PS4=$PS4':$PWD> ' && set -vx && umask 077 && cd && d=.local/share && mkdir -p $d && (cd $d && d=mailx && mkdir -p $d && cd $d && : >> sent && : >> mbox) && cat << 'EOF' >> .mailrc) && echo OK || echo error
+set append
+set folders=~/.local/share/mailx
+set MBOX=~/.local/share/mailx/mbox
+set record=~/.local/share/mailx/sent
+EOF
+----
+
+This command also configures that copies of all outbound mails will be saved in `~/.local/share/sent`.
+
+If you don't want the latter feature, comment out the "`set record`"-line in `mailx`'s configuration file `~/.mailrc`.
+
+Otherwise a copy of every outbound mail will not only be saved when using `mailx` interactively, but also when sending mails directly via the command line or from within a script.

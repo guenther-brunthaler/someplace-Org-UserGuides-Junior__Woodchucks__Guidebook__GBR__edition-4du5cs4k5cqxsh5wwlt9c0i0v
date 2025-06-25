@@ -1,0 +1,41 @@
+Shell Bugs
+==========
+v2020.59
+
+Certain shell features should be avoided because commonly installed versions of POSIX shells can't handle them correctly.
+
+
+HERE-DOC
+--------
+
+Never use command substitution within HERE-DOCUMENTs.
+
+At least some versions of `dash` have a bug when running the following script:
+
+----
+$ cat bug
+cat << EOF1 << EOF2
+hidden
+EOF1
+shown
+`echo also shown`
+EOF2
+----
+
+This fails like this
+
+----
+$ dash bug
+bug: 1: bug: hidden
+: not found
+shown
+----
+
+at least on:
+
+----
+$ dpkg -s dash | grep ^Version:
+Version: 0.5.10.2-5
+$ uname -mor
+4.19.97-v7+ armv7l GNU/Linux
+----

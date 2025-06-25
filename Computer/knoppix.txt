@@ -1,0 +1,22 @@
+Knoppix
+=======
+
+Recommended bootloader options:
+
+knoppix64 toram noimage forensic lang=de no3d noswap
+
+Leave out "toram" if you have less than 6 GiB of RAM. Or if you don't care that the USB pen device cannot be removed. Or if you are impatient, because copying Knoppix to RAM takes bloody ages. (GRML does this a lot faster.)
+
+$ telinit 2
+
+changes to text-mode
+
+The Knoppix terminal-server is buggy. It only works with a 255.255.255.0 netmask.
+
+And frankly, it does not work at all.
+
+Also note that Knoppix uses udisks2, so expect accessible filesystems to be mounted without asking for permission. Uninstalling udisks2 will fix that, but then the regular "mount" command does not work any more. You can use the BusyBox implementation of "mount" instead, though.
+
+The only thing Knoppix really excels is that it provides a complete autotools toolchain for C.
+
+Also, things like LibreOffice and GIMP are available which might not be installed everywhere.

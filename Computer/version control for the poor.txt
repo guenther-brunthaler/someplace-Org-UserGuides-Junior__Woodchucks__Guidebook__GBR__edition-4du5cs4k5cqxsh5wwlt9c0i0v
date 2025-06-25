@@ -1,0 +1,214 @@
+A poor man's approach to version control
+========================================
+
+Version 2020.96
+
+Copyright (c) 2017-2019 Guenther Brunthaler. All rights reserved.
+
+Distribution is permitted under the terms of the GNU Free Documentation License, Version 1.3
+
+
+Quickstart
+----------
+
+Prepare version history like this:
+
+----
+$ diff -u /dev/null file.c > file.c.diffs # Initial version.
+$ cp file.c file.c.old # Prepare for first revision.
+----
+
+From then on, commit all changes like this:
+
+----
+$ vi file.c # Create a new revision.
+$ diff -u file.c.old file.c >> file.c.diffs # Commit new revision.
+$ cp file.c file.c.old # Prepare for next revision.
+----
+
+Get a listing of all revisions, including the initial version:
+
+----
+$ grep ^+++ file.c.diffs | nl
+     1  +++ file.c     2020-04-05 02:28:28.043180116 +0200
+     2  +++ file.c     2020-04-05 02:28:37.473590968 +0200
+----
+
+The first column is the revision number.
+
+Retrieve a copy of some older revision:
+
+Lets' say you want a copy of the file as of revision 1:
+
+----
+$ rev=1
+$ test -e tmp && rm -r tmp; mkdir tmp
+$ stop=`grep ^--- file.c.diffs | nl | sed 's/^ *'$(($rev+1))'[[:space:]]*//; t; d'`
+$ sed '1,/^'"$stop"'$/!d' ptest.c.diffs | head -n -1 | (cd tmp && patch)
+----
+
+Then file tmp/file.c will be a copy of that older revision $rev.
+
+
+Basics
+------
+
+* The version history is stored as a series of concatenated patches in unified-diff format in a `*.diff` file.
+
+* Files which did not exist in previous versions can be created as patches against the always-empty pseudo-file /dev/null.
+
+* A version archive can either store the history of one individual file, or the histories of a whole group of files from a directory tree. This is possible because patch headers contain the (relative) path names of the affected files.
+
+* The patches which represent a single commit are stored concatenated as a single large block of text within a version history archive file.
+
+* Before every the block of patches which present individual commits within a version archive, a commit comment (including a commit date) can optionally be stored. It is recommended to include at least a commit date or a one-line comment, because otherwise the boundary between adjacent commits may be unclear.
+
+* When applying the whole version archive file as a single patch to an empty directory, it will "replay" all the recorded history and populate that directory with the latest versions of all the files that have already been committed to the version history.
+
+* The only special utility really required to create new commits is "diff". "date" and a text editor will make things easier, but "echo" and file redirection can replace both of them (if you happen to know the current date and time).
+
+* For restoring historic versions of files from a version archive, "patch" is also required.
+
+* Other tools that may be helpful in certain situations are "lsdiff", "diffstat" and possibly other utilities of the "patchutils" package. But none of those are required.
+
+* Adding new commits normally means appending to the existing version archive without otherwise modifying its previous contents.
+
+* Files can also be renamed, moved, duplicated (forked) or (marked as) deleted, but these are complicated operations which require editing and rewriting the whole version archive file. They cannot just be appended to it like normal commits which do not do such things.
+
+
+Details
+-------
+
+* If the version history is only about a single file `$NAME`, it is stored in the version archive file "`./$NAME.diffs`".
+
+* If the version history contains multiple files belonging to a common project `$PROJECT`, the history is stored in version archive file "`./patches/$PROJECT.diffs`". If there is no specific project name, use the relative pathname of the current directory (typically relative to `/`) as `$PROJECT`, replacing forward slashes with underscores.
+
+* Consider prefixing `$PROJECT` with "`$HOSTNAME-`" and/or suffixing it with "`-$UUID`". This should not be done for history files stored elsewhere than in `./patches`. `$HOSTNAME` is the host name of your system and should only be included if the project is particularly related to the local system. `$UUID` is some case-insignificant encoding of a DCE UUID, such as Base-35 encoding. Use it in cases where the version archive name needs to be unique, or if the name of $PROJECT is not set in stone and might be changed in the future. In this case, the `$UUID` part can remain the same even though the rest of the name changes, but all named variants can still be found by searching for the `$UUID` part.
+
+* The version history may also be compressed, using the names `*.diffs.gz` or `*.diffs.bz2` instead.
+
+* Creating a new commit always starts by creating copies `$FILE.old` for all files `$FILE` to be modified. Use the `-p` option (or even better `-a` if supported) with `cp` to create a copy with the same modification date as the original.
+
+* Then the original files are being edited, introducing changes to them.
+
+* After all the changes are ready to be committed, redirect the output of `date` to create some working file, typically `./commit`. Optimally you should "`export LC_TIME=C`" and optionally "`export TZ=UTC0`" before doing so, but normally it is possible to figure out which `LC_TIME` and `TZ` settings where in effect by looking at the formatted date strings.
+
+* Append `diff -u` output for all differences between the various `$FILE.old` and `$FILE` to `./commit`.
+
+* Edit `./commit` and insert a git-like (optional) commit message between the first line (containing the date) and the second line (where the first patch starts). The inserted commit message text block shall be separated from the preceding date line and the first line of the patch by one empty line, respectively. If no commit message is being used, an empty line should be inserted between the date and the first line of the patch.
+
+* The commit message text block itself shall consist of a headline no longer than 49 columns (like recommended for `git`), optionally being followed by an empty line and a description body text not wider than 72 columns. The body text is allowed to contain empty lines for separating paragraphs.
+
+* The commit description body text is normally assumed to be reflowable text with empty lines separating paragraphs. If the body text contains preformatted text such as source code examples, the body text should be formatted as RFC-3676 flowtext instead. This means that all newline characters are interpreted as hard line breaks unless they are soft line breaks. Soft line breaks are represented by a newline character preceded by a single ASCII space character. The presence of soft line breaks in the body text marks the text to be interpreted as RFC-3676 flowtext. Otherwise all line breaks are interpreted as soft line breaks, except the very last one and those being followed by an emtpy line.
+
+* After `./commit` has been reviewed, augmented by a commit message (or just an empty line after the date) and has been saved, `./commit` shall be compressed and then appended to the history file. The kind of compression applied to `./commit` must be the same as that of the version history file, including the possible variant of using no compression at all.
+
+* After the commit, the `./commit` file shall be removed or truncated to an empty file. All `*.old` files should also be removed or be replaced by copies of the files with the same name minues the `.old`-suffix. In the latter case, the copies should be created with the same modification times as the originals. If the `*.old` files are deleted, the original files should be made read-only as a reminder not to edit them without creating an `*.old` backup first.
+
+* It is quite common to forget creating a `*.old` copy before modifying some file for a new commit. In this case, the version history can be "replayed" in a temporary directory, re-creating the latest commited versions of all files which can then be used by renaming them into `*.old` files. In this case, the modification time of the "restored" `*.old`-files should be set to the same date as found in the latest patch for that file in the version history. If the patch headers are missing date information, use the date from the commit message instead.
+
+* Renaming files and similar operations which change path names can only be versioned by applying the same changes globally throughout the whole version history, and add small scripts for undoing those changes with the commits that introduced them.
++
+--
+Those scripts need to be fully parsed in order to avoid security problems, and are restricted to very few and completely specified commands. In all cases, such a script shall consists of lines prefixed by "`UNDO:`". The following commands are allowed:
+
+* `UNDO: mv -i -- '$NEW' '$OLD'` undoes a rename or move operation.
+
+* `UNDO: rmdir -- '$EMPTY'` removes a directory which became empty because previous `mv` statments in the same undo script moved all files out from there.
+
+In the above commands, `$NEW`, `$OLD` and `$EMPTY` are relative path names (must not start with a "`/`") which must not contain any "`..`" path components nor single quotes.
+
+Because of that mandatory quoting, the names cannot contain any wildcard characters (they would be interpreted literally, no longer being wildcards).
+
+All instructions have to be executed from the top-level directory to which all path names mentioned in the patches are relative to. The instructions must match the format stated here exactly, or the whole undo script must fail to be recognized as special instructions and SHOULD be considered a warning.
+
+
+In the case of the `mv`-command, the effect of the command must be undone by exchanging the arguments. 
+
+In order to be distinguishable from the commit comment, undo scripts must be located immediately before the first line of the patch with no separating empty line. It will therefore be separated from the commit message (or from the date if no commit message is present) by an empty line.
+--
+
+* In order to rename or move an existing files in a commit, perform this operation throughout all matching path names mentioned in the version history. This means that for the same instance of a file (ignoring its revision) throughout its version history, only the same (and latest) path name will be used everywhere. Add an `mv`-UNDO-entry to the commit in order to restore its previous pathname.
+
+* Parsing and applying undo scripts is OPTIONAL. In particular, applying the whole version history as a patch onto an empty directory will always re-create the newest version exactly. The only reason the parse the rename-blocks is for determining the original pathnames as they were in an older version when a truncated history is "played back". In order to do so, all rename-blocks which have been removed by the truncation need to be extracted, concatenated and being undone as commands in reverse order.
+
+* The commit messages and undo script blocks themselves are normally not versioned. The messages and scripts are either correct or not. If they are not they should be fixed, but there is normally no reason to keep faulty versions around.
+
+* But if you absolutely *want* to version the commit messages, you can do so by saving them (including the date line and the undo instructions, if any) into a file "`./commit`" and then create a version history for that file in exactly the same way as the version history of any normal single file. Note that this "nested" version history is only for a particular commit messsage, not for all the commit messages in the version history. This `commit` file may then be optionally compressed with `gzip` or `bzip2` and the result shall be Base-64 encoded like "`openssl base64`" does it. The resulting text block shall then be inserted before the start of the first patch of the commit, following any "undo"-block (with no empty lines for separation). This optional commit entry history can be distinguished from the undo block because it cannot match its required pattern, and neither will it look like a patch header. It is also redundant, because by "replaying" it the the latest commit headers will be reconstructed, which are also still present in the containing commit entry itself.
+
+* Note that because such "embedded version histories of particular commits" are otherwise normal version histories, and can therefore contain their own commit messages as well as other embedded version histories for every commit. In other words, the versioning process can be nested recursively into infinity, if one should be crazy enough to do so.
+
+
+Create the initial version
+--------------------------
+
+* Decide whether the version archive should be compressed (normally a good idea) or not (for archives which will be stored within already-compressed containers, such as an initramfs or squashfs image):
++
+----
+$ archive= # Prefix of archive basename, empty means one archive for whole directory tree.
+$ compression=true # If you want it.
+$ compression=false # If you don't want it.
+$ test ! -e "$archive${archive:+.}"diffs && test ! -e "$archive${archive:+.}"diffs.gz || echo "Not the initial version!!!" >& 2
+$ $compression && > "$archive${archive:+.}"diffs.gz || > "$archive${archive:+.}"diffs; unset compression
+----
+
+* Then proceed as with editing a version-controlled file, except that "co" is used to tag files for initial inclusion rather than for tracking modifications.
+
+
+Edit a version-controlled file
+------------------------------
+
+* "Check-out" a file by creating a *.old backup of the file, unless such a backup already exists (in an initial version, this tags a file for inclusion):
++
+----
+$ co() { test -e "$1".old && return; cp -- "$1" "$1".old && chmod +w -- "$1"; }
+$ co "$file"
+----
+
+* Edit any checked-out files (skip this for an initial version):
++
+----
+$ "$EDITOR" "$file"
+----
+
+* Prepare the changeset for the next commit:
++
+----
+$ find . -name '*.old' -type f | cut -c 3- | { initial=`a="$archive${archive:+.}"diffs; test -e "$a" || a=$a.gz; test -s "$a" || echo /dev/null` && date -u +'%Y-%m-%d %H:%M:%S %Z' && echo && while IFS= read -r o; do f=${o%.old} && diff -u -- "${initial:-"$o"}" "$f" || true; done; } > commit
+----
+
+* Edit the changeset, review the changes, and optionally insert a git-like comment for the next version between the date and the first line of the patch (separated by a blank line from both the date and the patch):
++
+----
+$ "$EDITOR" commit
+----
+
+* "Check-in" (write-protect) all checked-out files and remove the backups:
++
+----
+$ find . -name '*.old' -type f | cut -c 3- | while IFS= read -r o; do f=${o%.old} && rm -- "$o" && chmod -w -- "$f"; done
+----
+
+* Commit the changes:
++
+----
+$ { test -e "$archive${archive:+.}"diffs && cat >> "$archive${archive:+.}"diffs || gzip -9c >> "$archive${archive:+.}"diffs.gz; } < commit && rm commit
+----
+
+
+Underlying concepts
+-------------------
+
+* Only use unified diffs (diff -u). All other forms of diffs are not portable between different operating systems and toolsets, or they do not provide filename information of the files to be patched. Unfortunately, unified diff format is not fully portable either, because POSIX does not specify it. However, most of the time, a "diff" implementation with unified format support is available.
+
+
+Usage advice
+------------
+
+* If versioned files are only important for future reference of the past, delete them (the real file, not its patches from the version history). The version archive can regenerate all versions of all versioned files.
+
+* Don't bother using the -r option for recursively diffing version trees, although it is possible to do so. However, during actual work, it is usually too cumbersome to set up a clean pair of directories as preparation. Instead, create *.old copies directly in the directories where the modifications happen, and use "find" to create individual patches for all files.
+
+* File renames and deletions are expensive operations for the version history. They add the whole size of the renamed or deleted file again as a patch deleting every single line from the file. It might be a better idea to just edit the file names within the patch (with "sed", for instance).
+
+* When compression is desired, it is usually the best to use gzip because it has the smallest metadata overhead for small changesets. It allows the changeset patches to be compressed separately and then appending the result to the version archive file. bzip2 works as well, but even though it compresses large files better, it also has larger metadata overhead. Which means the version archive will probably get larger rather than smaller. lrzip does not work at all for appending incremental patches - it only works when compressing everything at the same time. On the other hand, it might be best to recompress the patch with "lrzip -z" for external long-term archival. But whatever compression format you choose, it needs to remain the same for all incremental update patches, because only a single invocation of "zcat" or "bzcat" will be used to decompress the concatenated patches.

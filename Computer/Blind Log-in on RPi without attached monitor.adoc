@@ -1,0 +1,22 @@
+
+Assumption: RPi is in an unknown state (X11 running or not), and the display has been powered off (therefore no visible framebuffer image).
+
+* Press [Ctrl]+[Alt]+[F1] in order to switch to virtual text console # 1.
+
+* Press [Ctrl]+[Alt]+[SysRq]+[r] to reset keyboard input mode to normal, in case it has not been so before. Press [Ctrl]+[Alt]+[F1] again in case it was not recognized the first time due to a special keyboard input mode.
+
+* Press [Ctrl]+[Alt]+[SysRq]+[k] in order to kill any session running there and abort any partial password-entry currently in progress. A new login prompt will occur.
+
+* Enter your login name and press [Enter].
+
+* Enter your password and press [Enter].
+
+* Enter "sudo -i" and press [Enter]. Enter your login password again and press [Enter].
+
+* Enter "display-on" and press [Enter].
+
+Now you should have a visible video image.
+
+* It nothing happens, it might be because your CapsLock is on. Press the caps lock key in order to (hopefully) turn it off again, then repeat the whole cycle described above.
+
+* If the display is visible but screwed up because the current monitor supports different resolutions than the one which was connected to the RPi the last time: Run my script "display-switch-vga-resolution" which should switch the display back to a "lowest-common denominator" resolution for all monitors.

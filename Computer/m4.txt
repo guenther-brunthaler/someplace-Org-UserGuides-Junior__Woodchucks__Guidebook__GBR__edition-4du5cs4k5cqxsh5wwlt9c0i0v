@@ -1,0 +1,12 @@
+POSIX M4 Preprocessor
+=====================
+
+maketemp() and mkstemp() will create trouble.
+
+maketemp() is deprecated, but the new mkstemp() is not yet implemented in all m4 implementations (NetBSD in particular, at least as of as of 2015-07).
+
+Another thing is that the standard does not state that the files created by those functions will be deleted automatically when the program terminates, although at least the NetBSD implementation does do so.
+
+It seems more logical that way either, because m4 does not provide a command to delete files. Also, what good is a temporary file for unless it is deleted?
+
+Nevertheless, the standard does not require the files to be deleted. However, the standard at least refers to the file once as "temporary".

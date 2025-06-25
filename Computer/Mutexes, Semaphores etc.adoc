@@ -1,0 +1,36 @@
+Semaphore
+---------
+
+The general case is the "counting semaphore", which is initialized with a specific resource count, and allows users to obtain resources from it until it becomes "empty" and blocks then until some of the obtained resources are returned to the semaphore.
+
+A "binary semaphore" is the special case where only a single resource is managed by the semaphore.
+
+A semaphore does not generally restrict which entity can obtain resources or how many resources can be obtained by the same entity.
+
+Depending on the implementation, semaphores can be used by different (or the same) threads of a process, of even by different processes.
+
+
+Mutex
+-----
+
+A mutex is essentially the same thing as a binary semaphore and sometimes uses the same basic implementation. The differences between them are in how they are used. While a binary semaphore may be used as a mutex, a mutex is a more specific use-case, in that only the thread that locked the mutex is supposed to unlock it. This constraint makes it possible to implement some additional features in mutexes:
+
+* Since only the thread that locked the mutex is supposed to unlock it, a mutex may store the id of the thread that locked it and verify the same thread unlocks it.
+
+* Mutexes may provide priority inversion safety. If the mutex knows who locked it and is supposed to unlock it, it is possible to promote the priority of that thread whenever a higher-priority task starts waiting on the mutex.
+
+* Mutexes may also provide deletion safety, where the thread holding the mutex cannot be accidentally deleted.
+
+* Alternately, if the thread holding the mutex is deleted (perhaps due to an unrecoverable error), the mutex can be automatically released.
+
+* A mutex may be recursive: a thread is allowed to lock it multiple times without causing a deadlock.
+
+
+Critical Section
+----------------
+
+There are two meanings of this term:
+
+. A critical section is a kind of a "global" mutex for all threads of a process. The critical section object does not need to be created or deleted explicitly; this is either done implicitly or by the OS itself before the process starts. There are usually only two API calls, one for entering and another for exiting the critical section. This usage of the term seems OS-specific and is not portable.
+
+. Code that runs protected by some sort of mutual exclusion, such as a binary semaphore, a mutex, or a critical section object. Typically, code in a critical section must only be executed by a single thread of a process.

@@ -1,0 +1,19 @@
+$ bb=busybox-pbyqxzl1ktqlk3fjm3arlrclg rifc=eth2 rmac=aa:bb:cc:dd:ee:ff lifc=eth0 && printf 'WOL-sleeper IFC: %s\nWOL-sleeper MAC: %s\nWOL-awaker IFC: %s\nWOL-awaker BusyBox implementation: %s\n' "${rifc:?}" "${rmac:?}" "${lifc:?}" ${bb:?}
+
+$ ethtool -s ${rifc:?} wol g # Enable
+$ ethtool ${rifc:?} # Show WOL status
+$ sleep 10 && pm-suspend # log-out SSH during sleep before suspend
+
+...
+
+# Wake up:
+$ ${bb:?} ether-wake -i ${lifc} ${rmac:?}
+
+# or
+$ command -c wakeonlan && apt-get install wakeonlan
+$ wakeonlan ${rmac:?}
+
+...
+
+$ ethtool -s ${rifc:?} wol d # Disable
+$ ethtool ${rifc:?}

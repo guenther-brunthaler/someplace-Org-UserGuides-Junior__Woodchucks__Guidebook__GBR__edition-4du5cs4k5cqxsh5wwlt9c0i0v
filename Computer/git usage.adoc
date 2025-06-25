@@ -1,0 +1,891 @@
+﻿git Usage
+=========
+Günther Brunthaler
+v2025.17
+
+
+Specify a revision by approximate date
+--------------------------------------
+
+Let's say you have a date and time, and want to specify the revision committed at this date/time:
+
+----
+$ git rev-parse HEAD@{2022-03-18}
+$ git rev-parse HEAD@{2022-03-18T01:02:25} 
+----
+
+The time is only necessary if more than one commit for the same date is present in the history of the selected branch (`HEAD` in this example).
+
+
+Show a particular revision of a single file
+-------------------------------------------
+
+`git show` has a particular argument syntax `$COMMIT_ID:$PATH` for this:
+
+----
+$ git show 6442554:README.txt
+$ git show b66aa8c:memos/README.txt
+$ git show b66aa8c:./README.txt
+----
+
+Note that the part after the colon ("`:`") is not just a file name, but a path name. Unless the name is prefixed with "`./`", it will be interpreted relative to the top-level directory of the current working tree.
+
+The first of the above examples displays the contents of some file `README.txt` in the top-level directory of the working tree as it was in commit `6442554`.
+
+The second example shows the contents of some different file with the same name, but which resides in a top-level sub-directory `memos` of the working tree.
+
+The third example shows the same thing as the second example, but specifies the path to the file as relative to the current directory. This assumes the user's current directory is the `memos` subdirectory.
+
+
+Show the version history of a single file
+-----------------------------------------
+
+In order to restrict the version history to versions which changed a particular file, the following syntax can be used:
+
+----
+$ git log --follow README.txt
+$ git log --follow memos/README.txt
+$ git log --follow ./README.txt
+----
+
+See the previous section for an explanation of the different variants how to specifiy the path name. This works the same with `got log --follow` as it does with `git show`.
+
+
+Author/Committer
+----------------
+
+Display both (and not just the author):
+
+----
+$ git log --format=full # Of existing commits
+$ git var -l # To be used for next commit
+----
+
+Set permanent default author/committer for all repositories of the current user account (paste the 3 sections separately into your shell):
+
+----
+gecos=`grep "^\`id -un\`:" /etc/passwd | cut -d : -f 5` \
+&& user_name=`printf '%s\n' "$gecos" | cut -d , -f 1` \
+&& test -z "$user_name" && user_name=`id -un` || : \
+&& user_email=`printf '%s\n' "$gecos" | cut -d , -f 5-` \
+&& unset gecos && case $user_email in *"@"*) ;; *) user_email=; esac \
+&& test -z "$user_email" && user_email="`id -un`@`hostname -f`" || : \
+&& printf "%s [%s]? " 'User name' "$user_name"; read REPLY
+
+test -n "$REPLY" && user_name=$REPLY || : \
+&& printf "%s [%s]? " 'User e-mail' "$user_email"; read REPLY
+
+test -n "$REPLY" && user_email=$REPLY || : \
+&& echo "User is: $user_name <$user_email>" \
+&& git config --global user.name "$user_name" \
+&& git config --global user.email "$user_email" \
+&& unset REPLY user_name user_email \
+&& git config --global -l | grep '^user\.'
+----
+
+Note: If you have used `chfn` in order to set the user's name as "Full Name" (and optionally the user's e-mail address as "Other"), the above commands will exploit that.
+
+
+Temporarily override author/committer name
+------------------------------------------
+
+This is useful on shared accounts where different users share the same account-local e-mail-address.
+
+----
+$ export GIT_AUTHOR_NAME="John Doe"
+$ export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+----
+
+Change the author of the last commit:
+
+----
+$ export GIT_AUTHOR_NAME="John Doe"
+$ git commit --amend --reset-author
+----
+
+Replace everything from last commit: author/committer/e-mail/date:
+
+----
+$ export GIT_AUTHOR_NAME="John Doe"
+$ export GIT_AUTHOR_EMAIL="john.doe@mailhost.example"
+$ export GIT_AUTHOR_DATE="2020-12-31 12:34:56 +0200"
+$ export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL" GIT_COMMITTER_DATE="$GIT_AUTHOR_DATE" # Duplicate for committer
+$ git commit --amend --reset-author
+$ git log --format=fuller
+----
+
+
+Most important settings for remotes
+-----------------------------------
+
+The settings can be shown with `git config --local -l` or be set with `git config --local KEY VALUE`. The following KEYs are the most important ones:
+
+`remote.REMOTE.url`:: The URL used for pulling/fetching from that REMOTE.
+
+`remote.REMOTE.pushurl`:: The URL used for pushing to that REMOTE. If not set, the same URL as for pulling/fetching is used for this.
+
+`remote.REMOTE.fetch`:: Typically `+refs/heads/*:refs/remotes/REMOTE/*`. Specifies what branches to pull/fetch from REMOTE. The `+` means that no local commits will ever be made to this branch and thus the branch tip can be overwritten without danger.
+
+`remote.REMOTE.push`:: Typically `refs/heads/*:refs/heads/*`. Specifies what branches to push to REMOTE. If not set then some default applies. The missing `+` means that the push will fail if someone else pushed other commits first. In this case, the new commits must be merged before the result can be pushed.
+
+`branch.BRANCH.remote`:: Typically `origin`. Specifies the REMOTE to be used for push/pull by default.
+
+`branch.BRANCH.pushRemote`:: Override `branch.BRANCH.remote` for pushing this branch.
+
+`branch.BRANCH.merge`:: Typically `refs/heads/master`. Specifies the destination for `pull`. This is the *local* branch where the commits from the REMOTE shall be added/merged to. If this is not set, then `pull` needs a 2nd argument specifying the destination branch, such as `git pull some_remote master`.
+
+Example: Set some GitHub-repository as the default "pull" source for the current repository which does not have any remotes defined yet:
+
+----
+$ git remote add origin https://github.com/guenther-brunthaler/shellrc-raxjyvp9gv2krg9ltyrqyvxuf.git
+$ git config --local branch.master.remote origin
+$ git config --local branch.master.merge refs/heads/master
+----
+
+Of course you must use a different URL in a real-life situation!
+
+
+Pushing without arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to be able to just `git push` without any additional arguments, at least the following configuration values must have been set:
+
+* branch.BRANCH.remote
+* remote.REMOTE.url
+
+
+Pulling without arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to be able to just `git pull` without any additional arguments, at least the following configuration values must have been set:
+
+* branch.BRANCH.remote
+* remote.REMOTE.url
+* branch.BRANCH.merge
+
+
+[[github_specific]]
+Check out a specific release from 'GitHub'
+------------------------------------------
+
+If only downloading a single specific release from 'GitHub', `git clone` is overkill and downloads way too much.
+
+Go instead onto the 'GitHub' web page of the project, say `https://github.com/skarnet/s6-rc/`, and go there to the 'Releases' subpage (`https://github.com/skarnet/s6-rc/releases`).
+
+Let's say you decide to download the release with tag 'v0.5.0.0' from there.
+
+----
+$ url=https://github.com/skarnet/s6-rc
+$ rel=v0.5.0.0
+$ git init ${url##*/} && cd ${url##*/}
+$ git remote add github "$url"
+$ git pull --depth=1 github $rel:master
+$ git checkout -b master $rel
+----
+
+
+Alternative method
+~~~~~~~~~~~~~~~~~~
+
+----
+$ git clone -q --depth=1 https://git.savannah.gnu.org/git/poke.git
+$ cd poke
+$ git fetch -q --depth=1 --tags
+$ git tag
+...
+releases/poke-2.0
+...
+$ git checkout -b releases/poke-2.0
+----
+
+
+Access a repository with relocated alternates
+---------------------------------------------
+
+A git repository referencing shared other git repositories may be used in a situation where some of the shared repositories have temporarily been relocated. This typically happens when some of the referenced alternate object directories reside on a filesystem that has been mounted on a different mount point than usual.
+
+In such a case, the environment variable 'GIT_ALTERNATE_OBJECT_DIRECTORIES' can be set to a colon-separated list of directories which take priority over the ones in '$GIT_DIR/objects/info/alternates' which refer to the original paths.
+
+Example
+~~~~~~~
+
+Imagine you originally created two connected repositories on filesystem '/home/mnt/repos' as follows:
+
+----
+$ git init /home/mnt/repos/original
+$ git clone -s /home/mnt/repos/original /home/mnt/repos/clone
+----
+
+Then repository 'clone' references the alternate object directory '/home/mnt/repos/original/.git/objects'.
+
+Now assume you mount the filesystem '/home/mnt/repos' on '/home/mnt/tmp123' instead
+
+----
+$ mkdir -m0 /home/mnt/tmp123
+$ mount --move /home/mnt/repos /home/mnt/tmp123
+$ cd /home/mnt/tmp123/clone
+----
+
+and want to check the clone for consistency.
+
+----
+$ git fsck
+----
+
+This will give error messages about missing commit objects, because the referenced '/home/mnt/repos/original' can no longer be reached. However, it *will* work when setting up the environment variable:
+
+----
+$ GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/mnt/tmp123/original/.git/objects git fsck
+----
+
+Or you might want to backup the repository to a different location as a stand-alone "bare" repository (i. e. without checkout), getting rid of all references to the original repositories:
+
+----
+$ GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/mnt/tmp123/original/.git/objects git clone --dissociate --bare . /some/backup/path/standalone_copy_of_clone.git
+----
+
+The man page for 'git fsck' also documents other environment variables which might be useful to temporarily set in the case of mount point relocation.
+
+
+Create a staging directory
+--------------------------
+
+Sometimes after successfully building a package, its files shall be installed in a staging directory for packaging rather than into the live filesystem.
+
+The following command accomplishes that, assuming the 'Makefile' supports an 'install' target with a `DESTDIR=`-setting:
+
+----
+echo make install DESTDIR="$PWD/stage/`basename -- "$PWD"`-`git describe --tags 2> /dev/null | sed 's/^v//'`"
+----
+
+However, this might fail if no tags have been assigned to the version history at all.
+
+First of all, make sure you have all the tags from upstream. "`git fetch --depth=1 --tags`" gets them all, but this is dangerous because it will at least fetch the commit for every tag, and there may be many tags. If there is an online repository browser available, determine the newest tag from there and deepen your shallow history accordingly.
+
+If upstream did not assign any tags either, add manually either a tag named "`0`" or "`0.YYYYMMDDzHHNNSS`" for the initial (first) commit in the branch. The second variant includes the UTC timestamp of the initial commit. Note that the "`z`" is literal and shall be a hint that this is UTC ("zulu time" in aviation named after "zero degrees" of longitude which runs through Greenwich, England, which is where the term "GMT" refers to) rather than local time.
+
+Normally the shorter "`0`" tag name should suffice. But some version histories (merged with "`--allow-unrelated-histories`") might have multiple initial commits reachable from the current HEAD, and then the longer tag name variant is required in order to disambiguate the existing initial commits.
+
+After adding such a tag, the above command should work fine now.
+
+This only shows the resulting command. Remove the `echo` from the beginning of the command in order to actually execute it.
+
+Don't forget to `chown -R root. staging` before you package the files as user 'root', unless the packaging command used can change the ownership of the files internally as it reads them from the staging subdirectory.
+
+
+Bundle and unbundle a particular shallow commit
+-----------------------------------------------
+
+Sometimes you are only interested in a particular commit, and don't want to download the whole version history which goes with it. You can create a "shallow" repository as explained <<github_specific,above>>, but how can you archive such a commit into a file and later restore it?
+
+Archiving is simple - just as for normal non-shallow branches:
+
+----
+$ url=https://github.com/skarnet/s6-rc
+$ rel=v0.5.0.0
+$ git init ${url##*/} && cd ${url##*/}
+$ git pull --depth=1 "$url" $rel:master
+$ b=$rel.gbnd
+$ git bundle create $b HEAD
+----
+
+Re-importing the archived bundle file '$b' into some other checked-out working directory:
+
+----
+$ git init ${url##*/} && cd ${url##*/}
+$ c=`git bundle unbundle $b | cut -d " " -f 1`; echo "$c"
+$ git tag $rel $c # optional: create a tag for the imported commit.
+$ git reset --hard $c
+$ git fetch --depth=1 .
+----
+
+Re-importing the archived bundle file '$b' into some "bare" Git repository (without a checkout), creating a release tag $rel for the shallow commit:
+
+----
+$ git init ${url##*/} && cd ${url##*/}
+$ c=`git bundle unbundle $b | cut -d " " -f 1`; echo "$c"
+$ git tag $rel $c
+$ git fetch --depth=1 . $rel
+----
+
+
+How to change some branch tip of a bare repository
+--------------------------------------------------
+
+After unbundling commit $c into a bare repository, you might want to change the tip of an existing branch $branch so that it refers to that commit. Alternatively, $branch might be a new branch to be created which shall point to commit $c.
+
+----
+$ branch=master # An example for the name of the branch to be modified.
+$ git update-ref refs/heads/$branch $c
+----
+
+Note that $c should also start with "`/refs/`" for maximum unambiguousness.
+
+
+How to change the default branch of a bare repository
+-----------------------------------------------------
+
+If one runs `git log` or `git branch` in a bare repository, there is usually a "current" branch. But one cannot do a `git checkout $branch` in a bare repository. How to achieve a similar effect there?
+
+----
+$ git symbolic-ref HEAD refs/heads/$branch
+----
+
+
+How to create new symbolic links for existing branches
+------------------------------------------------------
+
+Let's say you want to create a local symlink `exports/master` for your existing local `master` branch.
+
+This allows you to specify a refspec like "`+refs/heads/exports/*:refs/heads/branches_of_john_joe/*`" when pushing later.
+
+Using such refspecs, you can push a subset of your available local branches to a particular remote without having the specify them manually every time.
+
+Just make sure every branch to be exported has a symlink name prefixed with 'exports/'.
+
+----
+$ git symbolic-ref refs/heads/exports/master refs/heads/master
+----
+
+Note that the purpose of the arguments here is reversed compared to the "`ln -s`" shell command: The first argument specifies the symlink source (to be created), the second argument the target.
+
+
+[[fetch_into_bare]]
+How to "pull" into a bare repository
+------------------------------------
+
+Real pulling is not possible because this would require a checkout. However, this should work:
+
+----
+$ REMOTE=...
+$ branch=master
+
+$ git fetch $REMOTE +$branch:$branch
+
+# *Or* make refspec permanent for repeated use:
+$ git config --local remote.$REMOTE.fetch +$branch:$branch
+$ git config --local branch.$branch.remote $REMOTE
+$ git fetch
+----
+
+Assuming only the master branch shall be "pulled". Otherwise, use `+*:*` as the refspec, which will "pull" all branches.
+
+
+How to mirror remote branches in a local bare repository
+--------------------------------------------------------
+
+This assumes you want to keep a local mirror that regularly gets refreshed and shall delete branches if $REMOTE also did remove them.
+
+----
+$ git config --local remote.$REMOTE.fetch '+*:*'
+$ #git config --local remote.$REMOTE.prune true # Read below before enabling!
+$ git fetch $REMOTE
+----
+
+Be warned that this will make an exact mirror: Any remote branches set up locally will also be deleted! This includes all remote branches for other mirrors to push to, and even those for $REMOTE itself! If you do not want that, be sure *not* to enable the 'prune' attribute.
+
+You can avoid having to specify $REMOTE every time by setting a remote for the current default branch. See <<fetch_into_bare,How to "pull" into a bare repository>> about how to do that.
+
+
+Rebase the contents of a subdirectory as the only thing remaining
+-----------------------------------------------------------------
+
+This can be useful if changes in a subdirectory are related to a different branch which has been merged there as a subdirectory, even though the other branch itself places everything into its top-level directory.
+
+----
+$ git filter-branch --subdirectory-filter $SUBDIR_AS_NEW_TOP_DIR
+----
+
+This can also be used to easily get rid of everything else as a preparation to create patches only considering this subdirectory. However, in this case one wants to get the subdirectory back as it was after removing the rest:
+
+----
+$ git filter-branch --tree-filter "mkdir \"$OLD_SUBDIR\" && bash -c 'git mv -k -- {,.[!.],..[!.]}* \"$OLD_SUBDIR\"/'"
+----
+
+
+Post-process imported RCS/CVS commits
+-------------------------------------
+
+In such imports, normally the author is misssing or incomplete, and there are a lot of commits without an actual commit message.
+
+First, set the replacement Author and e-mail addresses:
+----
+$ n='Guenther Brunthaler'
+$ e='gb@emgenxx69lwyn5ctlr4nl64ul.local'
+----
+
+The following command will then only replace such authors/committes which do not provide an e-mail address, and will only replace log messages '*** empty log message ***' with "No comment".
+
+----
+$ t=`mktemp -d` && n="$n" e="$e" git filter-branch -f -d "$t" --env-filter \
+'case $GIT_AUTHOR_EMAIL in "") GIT_AUTHOR_NAME=$n; GIT_COMMITTER_NAME=$n'\
+'; GIT_AUTHOR_EMAIL=$e; GIT_COMMITTER_EMAIL=$e'\
+'; export GIT_AUTHOR_NAME GIT_COMMITTER_NAME '\
+'GIT_AUTHOR_EMAIL GIT_COMMITTER_EMAIL;; *) esac' \
+&& git filter-branch -f -d "$t" --msg-filter \
+'sed "s|\\*\\*\\* empty log message \\*\\*\\*|No comment|"' \
+&& rmdir -- "$t" && unset t
+----
+
+Search through historic file versions
+-------------------------------------
+
+Search the last 10 commits for the string `foo` in the versioned file `something.txt`:
+
+----
+$ git grep foo `git rev-list HEAD~10` -- something.txt
+----
+
+Note that most of the search options for normal `grep` are supported.
+
+Among them `-E` for switching from basic (default) to extended regexes, `-P` for Perl-regexes, `-F` for fixed strings (no regexes), `-n` for including line numbers and `-l` ('ell', not 'one') for only showing the paths of files containing the pattern.
+
+
+Clean the working tree
+----------------------
+
+Use the following command to delete all files unversioned from the working tree.
+
+----
+$ git ls-files -i -o --exclude-standard # | sed 's/./\\&/g' | xargs rm --
+----
+
+This just shows the files which would be deleted. Remove the `#` in order to actually delete the files.
+
+
+Git server for multiple repositories
+------------------------------------
+
+Sometimes you want to provide temporary access to a selection of your local Git repositories for all machines on a specific network, such as a VPN or just the local host.
+
+First create a subdirectory `gitrepos` in the current directory, and populate with a repository directory tree containing only symlinks and subdirectories. The symlinks point to the real repositories elsewhere in your filesystem.
+
+
+Then create the following script:
+
+----
+$ cat  << 'EOF' > serve-git && chmod +x serve-git
+#! /bin/sh
+usual_host=myhost
+#usual_host=127.0.0.1
+#usual_host=192.168.0.99
+exec git daemon --verbose --listen=${1:-$usual_host} --reuseaddr \
+	--export-all --enable=receive-pack --base-path=gitrepos
+EOF
+----
+
+and finally run it without arguments (listening on address `$usual_host`) or with a single argument (the IP address or hostname where the server shall be listening for client connections).
+
+Other git clients which can reach `$usual_host` can then use the git URL `git:://$usual_host/x/y.git,` in order to read-only access your repository `./gitrepos/x/y.git`.
+
+Although obviously dangerous because there is no access control, it is also possible to augment with the above script with write access to the repository.
+
+Add the string "`,upload-pack`" after the "`--enable=receive-pack`" in the script. This will enable full "git push" access to the repository.
+
+Make sure that only completely trustworthy clients can connect to `$usual_host` in this case!
+
+If you trust the clients even more, you can also append the string "`,upload-archive`" to the "`--enable`"-argument in the script. This will then allow the clients to access deleted branches, tags and revisions which are still physically in the repository and can be accessed by commit ID.
+
+
+How to determine the initial commit
+-----------------------------------
+
+$ initial=`git log --graph --pretty=%h | cut -d ' ' -f 2 | tail -n 1`
+
+sets variable `$initial` to the abbreviated commit ID of the initial commit. Use `%H` if you need the full ID.
+
+
+Find the Git revision introducing some feature
+----------------------------------------------
+
+First create a test repository for demonstrating the search:
+
+----
+r=testrepo
+git init $r && cd $r
+dt='2022-12-07 11:30:00 +0100'
+an='Guenther Brunthaler' ae='some_username@somewhere.example'
+for add in alpha beta gamma delta epsilon zeta eta
+do
+	echo $add >> file
+	git add file
+	GIT_AUTHOR_NAME="$an" GIT_COMMITTER_NAME="$an" \
+		GIT_AUTHOR_EMAIL="$ae" GIT_COMMITTER_EMAIL="$ae" \
+		GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" \
+		git commit -m "Adding $add"
+done
+unset r dt am ae
+----
+
+This repository contains a file `file` to which the next Greek letter name is appended in every revision.
+
+Now we want to locate the commit which added the line `delta`.
+
+This should be commit `a2444b7`, because:
+
+----
+$ git log --oneline | grep delta | tail -n 1
+a2444b7 Adding delta
+----
+
+Now we use the "git bisect" command for actually locating the commit.
+
+----
+relfile=file added=delta
+initial=`git log --graph --pretty=%h | cut -d ' ' -f 2 | tail -n 1`
+
+git bisect reset # optional: abort an already running bisect
+
+git bisect start
+git bisect bad HEAD
+git bisect good $initial
+git bisect run sh -c "! grep -sq '${added:?}' '${relfile:?}'"
+----
+
+where `$initial` is the commit ID of the initial commit, `$added` is the RexEx for locating the new feature within file `$relfile`.
+
+The above command displays the ID of the commit introducing the feature:
+
+....
+a2444b7a153429f96d5f4c5271092b50e3e47a93 is the first bad commit
+....
+
+Note that even though the right commit has now be identified, it is not the commit currently checked out. Use
+
+----
+git bisect reset
+----
+
+in order to restore the original HEAD before doing anything else.
+
+
+Quick serving git repositories
+------------------------------
+
+Sometimes it is useful to serve a set of Git repositories in read-only fashion without any authentication required by the clients.
+
+One (and probably the best) way to do this is setting up a web server.
+
+However, setting up a web server can be a lot of work, and using `git daemon` there is an easier way:
+
+1. Change to some directory which has all git repositories to be served as subdirectories, and no other subdirectories. (Instead of real subdirectories, symlinks to git repositories somewhere else are also eligible as such "subdirectories".
+
+2. Run the following command:
++
+--
+----
+$ git daemon --verbose --listen=`hostname -I` --reuseaddr \
+        --base-path=. --export-all
+----
+
+If your box has multiple network interfaces and you do want to serve at different interface, specify its IP address as the argument to "`--listen`" rather than what is shown above.
+
+Alternatively, remove the whole "`--listen=`"-argument. In this case, the Git server will accept requests from all network interfaces.
+--
+
+3. Now the git repositories can be accessed via the Git URL "`git://repohost/reposubdir`" where `repohost` is the IP-address or hostname of the box running the "`git daemon`"-command, and "`reposubdir`" is the name of one of the sundirectories (or symlinks) containing a git repository on the server.
+
+4. By default, port `9418` will be used by the Git daemon for "`git://`"-URLs.
+
+5. Although not generally recommended because it is lacking client authentication, it is also possible to allow "`git push`" by adding the "`--enable=receive-pack`"-option to the "`git daemon`"-command.
++
+However, this option might still be useful in a VPN or point-to-point connection where only trusted clients can actually reach the network interface where the Git server is listening for requests.
+
+
+Fetch a single commit from a huge repository
+--------------------------------------------
+
+This will avoid downloading the whole repository. It required that the full commit-ID is known (an abbreviated version of it will not do).
+
+----
+repourl='https://some.test/somerepo.git'
+commit=4e1243bd22c66e76c2ba9eddc1f91394e57f9f83
+
+: ${repourl:?}; reponame=${repourl##*/}; reponame=${reponame%.git}
+git init -- "${reponame:?}"
+cd -- "${reponame:?}"
+git remote add origin "${repourl:?}"
+git fetch -q --depth=1 origin "${commit:?}"
+git reset --hard FETCH_HEAD
+----
+
+
+Fetch a tagged version from a huge repository
+---------------------------------------------
+
+Firstly, a simplified but somewhat traffic-extensive version which fetches all revisions which have a tag:
+
+----
+$ repourl='https://some.test/somerepo.git'
+$ reponame=${repourl##*/}; reponame=${reponame%.git}
+$ git init "${reponame:?}"
+$ cd -- "${reponame:?}"
+$ git remote add origin "${repourl:?}"
+$ git pull --depth=1 --tags -qq
+$ git tag | less
+----
+
+If the above commands would create too much traffice for your taste, the following commands will avoid unnecessary traffic:
+
+----
+$ repourl='https://some.test/somerepo.git'
+$ reponame=${repourl##*/}; reponame=${reponame%.git}
+$ mkdir -- "${reponame:?}"
+$ cd -- "${reponame:?}"
+$ git init
+$ git remote add origin "${repourl:?}"
+$ git fetch -qq --depth=1
+$ git update-ref HEAD FETCH_HEAD
+----
+
+If you want to fetch the latest tag, run this after the above commands:
+
+----
+$ while test `git tag | wc -l` = 0; do echo "Deepening further..."; git fetch -qq --deepen=1 || break; done
+----
+
+If you are interested in a particular commit, run this first (if you also know the date of the commit):
+
+----
+$ git fetch -qq --shallow-since=2020-06-22
+----
+
+Then, if you are interested in a particular tag, run this first (if you also know the date of the tag):
+
+----
+$ tag_eregex='(^|[^0-9])14[.]0[.]38([^0-9]|$)'
+$ while ! git tag | grep -Eq "${tag_eregex:?}"; do echo "Deepening further..."; git fetch -qq --deepen=1 || break; done && git tag | grep -E "${tag_eregex:?}"
+----
+
+Note that the above commands do not yet check out anything. This is intentional. You don't usually want a check-out in this case unless the tag of interest has been fetched. Then just do a "`git checkout`" with the appropriate tag.
+
+There is a faster way to fetch all all commits up to a specific tag, but it creates more traffic:
+
+----
+$ tagname=v2.7.0
+$ git fetch --tags -q --depth=1
+$ git fetch -qq --shallow-since=${tagname:?}
+----
+
+This usually fetches all commits required to do a "`git describe --tags HEAD`" later. But it also fetches all commits that are referenced by all existing tags, which could be many. However, this still incurs less (or at worst about the same) data transfer traffic volume than cloning the whole repository.
+
+
+Long-term archiving particular git commits
+------------------------------------------
+
+This is too complicated to be done manually in a satisfactory way. I have written a script `git-longterm-archive-single-commit` for this purpose.
+
+It can create an archive file from a single git commit, containing nothing than the output of "git export" plus very few text-only metadata files which allow to create a binary identical git commit in a new repository later.
+
+This means the restored commit will have the same commit ID as the original commit did have.
+
+The script will also save and (restore later) any tags (lightweight as well as heavyweight ones) which refer to the commit to be archived.
+
+The script is out there; use it!
+
+The long-term URN of the repository containing the script is "`tag:xworld.mine.nu,2009:usr-local-bin-xworld-jv3gwuidf2ezyr5vbqavqtxyh.git`". See link:github%20URLs.html[this article] how to translate the URN into a URL you can actually use for accessing the repository.
+
+Unfortunately, this script does not work correctly yet. It needs a lot additional work to be done. In the mean time, here is a copy of the ...
+
+
+Old Instructions
+~~~~~~~~~~~~~~~~
+
+This creates an offline archive containing a single commit and also optionally an associated tag object specified as `$commit`.
+
+This requires my "`dfa`" script.
+
+There is no need to check out anything when running the following command; i.e. it should even work in a bare repository.
+
+In the first command line below, note that `$version` does *not* need to be the actual name of a tag in the repository, but rather the version descriptor you want to see as part of the generated archive name (`savename`).
+
+Also note that `$compress` can be set to an empty string if no compression of the resulting archive is required.
+
+----
+$ md='{METADATA}' keep=false compress=lrz commit=HEAD
+$ reponame="`basename -- "$PWD"`" && reponame=${reponame%.git} && version=`{ git describe --tags ${commit:?} || echo g\`git describe --always ${commit:?}\`; } 2> /dev/null` && savename=$reponame${version:+"-$version"}; savename=`printf '%s\n' "$savename" | sed 's|/|--|g'`; for n in md keep compress commit reponame version savename; do eval "echo \"\\\$$n = '\$$n'\""; done
+$ mkdir -- "${savename:?}" \
+&& git archive "${commit:?}" | tar -C "${savename:?}" -x \
+&& mkdir -- "${savename:?}/${md:?}" \
+&& case `git cat-file -t "${commit:?}"` in \
+ tag) git cat-file -p "${commit:?}" > "${savename:?}/${md:?}"/tag;; \
+ *) if revision=`{ git describe --tags ${commit:?} || echo g\`git describe --always ${commit:?}\`; } 2> /dev/null`; then
+       printf '%s\n' "${revision:?}" > "${savename:?}/${md:?}"/revision
+    fi; \
+esac; \
+git cat-file -p `git rev-list -n 1 "${commit:?}"` \
+ > "${savename:?}/${md:?}"/HEAD \
+&& git ls-tree `git rev-list -n 1 "${commit:?}"` \
+| tee "${savename:?}/${md:?}"/original \
+| awk '$2 ~ "^(blob|tree)$" {print}' > "${savename:?}/${md:?}"/stripped \
+&& diff --ed "${savename:?}/${md:?}"/stripped "${savename:?}/${md:?}"/original \
+> "${savename:?}/${md:?}"/tree.ed && rm -- "${savename:?}/${md:?}"/tree.ed; \
+rm -- "${savename:?}/${md:?}"/original "${savename:?}/${md:?}"/stripped \
+&& git remote -v \
+| sed 's|.*[[:space:]]\([^[:space:]]\{1,\}\)[[:space:]].*|\1|' \
+| sort -u > "${savename:?}/${md:?}"/url \
+&& dfa -f "${savename:?}".dfa -C "${savename:?}" -c \
+&& case ${compress?} in
+ lrz) ionice -n 6 nice lrzip -L9 -z -q -U -- "${savename:?}".dfa;; \
+ xz) ionice -n 6 nice xz -9e -- "${savename:?}".dfa; \
+esac && if ${keep:?}; then : ; else rm -rf -- "${savename:?}"; fi
+----
+
+Note that previous versions of the above script named the metadata file "`tagname`" rather than "`revision`". Changing this might be necessary in order to re-create old archives as a basis for binary deltification.
+
+If the command line starting with `case` complains about an ambiguous commit specification, specify the commit more specifically, such as "`commit=refs/tags/17.0.42`" rather than just "`commit=17.0.42`". Similarly, `refs/heads` can be used to refer to a particular branch.
+
+The generated 'dfa'-archive contains all information to rebuild the git repository and restore the single original commit and, optionally, the tag object.
+
+After restoration, the commit ID will be identical, and the signature of the tag (if any) will also be valid.
+
+And here is how you recreate the git repository containing the archived commit on the receiver side:
+
+----
+$ md='{METADATA}' reponame=sometool tagname=17.0.42
+$ savename=$reponame${tagname:+"-$tagname"} \
+&& if test -e "${savename:?}.dfa"
+then :
+elif test -e "${savename:?}.dfa.lrz"
+then lrunzip -q -- "${savename:?}.dfa.lrz"
+elif test -e "${savename:?}.dfa.xz"
+then unxz -k -q -- "${savename:?}.dfa.xz"
+elif test -e "${savename:?}.dfa.gz"
+then gunzip -k -q -- "${savename:?}.dfa.gz"
+else false
+fi \
+&& mkdir -- "${savename:?}" \
+&& dfa -f "${savename:?}.dfa" -C "${savename:?}" -x \
+&& rm -- "${savename:?}.dfa" \
+&& cd -- "${savename:?}" \
+&& git init -q \
+&& test ! -e .git/"${md:?}" \
+&& mv -- "${md:?}" .git/ \
+&& git add -f . \
+&& mv .git/${md:?} . \
+&& git commit -q -m dummy \
+&& if test -f "${md:?}"/tree.ed
+then
+git ls-tree HEAD > "${md:?}"/tree \
+&& { cat < "${md:?}"/tree.ed && echo w; } | ed - "${md:?}"/tree \
+&& git mktree --missing < "${md:?}"/tree && rm "${md:?}"/tree
+fi \
+&& commit=`git hash-object -t commit -w -- "${md:?}"/HEAD` \
+&& git reset -q --hard "${commit:?}" \
+&& git fetch -q --depth=1 . \
+&& if test -f "${md:?}"/tag; \
+then commit=`git hash-object -t tag -w -- "${md:?}"/tag`; \
+fi \
+&& git tag "${tagname:?}" "${commit:?}" \
+&& git remote add origin -- "`cat -- "${md:?}"/url`" \
+&& git remote -v \
+&& rm -f -- "${md:?}"/url "${md:?}"/tag "${md:?}"/HEAD \
+&& rmdir -- "${md:?}" 2> /dev/null \
+&& git log \
+&& cd - \
+&& ls -F -- "${OLDPWD:?}"
+----
+
+If you need the above commands frequently, there is an easier way by
+
+----
+$ base64 -d << EOF | zcat | dfa -x
+H4sIAAAAAAACA71XW3ObVhB+51dsGRLFbg+K5KYeW5U7njqePqSTPqTTB5MMCA5wKi4KB8lykPrb
+s3u4SEII+6l+sOGw++3ut7fje3g3hkDkzMncUKx4Nlw47pyNzFDIPM2etNibDoo/33+6vbv9dLsd
+wJzzxdR3IsnBTeNFxqWcRtk3eolFPv3j/e2ddg8XlxcdqGNThlrGF2nixHyq2zNHcnoExkA3/vrn
+Trd1eP0aGhGjqB9fmQi3pY+IJkWaTO2CLIDHpZuJGWHkTiDBKEpPrn/bwmYD3A1TCCy7JepEj87T
+gbBlT2AL4xsYenw1TJZRZJM16ax46UrtiVFUHlz/qDOjeta3k52ovchEkvsweCWtZICR1V902IDk
+HgzkZrhhbBMM0KifZpCASCD2FLkNrRWlDRt15I2hCXgp8JUTga7CtHTLsgwjgSkM6O/A0nWSSThm
+ZHQxvupIyQWlJJ57IiuTUNTgSIkOloYUEHWVEgk0jFE0uYN6vx/psXWpegJ4aBSxtzPgYhmAypDr
+5MwXEWYoPzRlE0GWhvaCMziUXLScujllbIjKkwmhnJ+B8JHXlfifKmkCecgTDcqfdnkUtSfP+F+L
+KRxfUChcOi79bVOivER5FmEbA0tg1OYTaThtibp4l/xIsjzj/EWgWBKcn8RNMxGIBAuWBJ3HOQyM
+MfwH+pc3syidbcjKmaFDoRjCYXPaQ5lnYrHAXlJeesL3MRf4+qz8C1zrqSB00EQQmlFxT13XgpSa
+fsHG7MsCLTMQpzlmeaVYrOaJef7wcC2xpfn158/Wm4cve2/F6Cdra53tCZjnG2u0GZQAaYbJXPZw
+vcyiimbfAea3u91Uxx1DwN1rb1UnaqxhNwksYdwZ2IVpIlxOpfQLqCc8FQtgH66AfQP2FdjfHWOJ
+DJaNvO7CWKPmFT+lVzUNpRBngFHQyMWPZYfCNUyA026jrGV+BwgObIHj9N3bw2G6TJ7Zm81Ok2nM
+8zSNaJapg9Gl+db8eaxm9OiyE1YtTqNzGVUoahlVz/q2JB7jyzl1arshiQhdKwPWeNQrZ2JKKtko
+WyYqPV+PedmJPoe3ruGWCWVqfhpu/QK0oEYLKt968AKFh8lV1xfNF71LSu+peUVg3+LravpSqWwJ
+r3fbigR/YRjqQAX/A4VPV6Chfrg741WFVB0qmb297XnkvdkIq++VdH2slkd51yDuYvCWcfzUqiF/
+Z6Sebop4bX9DqL1x05IsgQraT/DrMQp1otqtj7Q2cc+ix50IZCieq3fGYiGlSIIjwGo0Hx42qa4u
+qWqRhY4MWTr7l7s5XTdqAh4P+FSb0N6fvZKXLLHQybzW1aMR83nuhqWYxxd5OB3VXHfziRcT/Kzq
+uMdFFDvyD89s0q0jJDWS03eTgTw74We1SqhKykWkwG3K1IEV3AC23r2BqmL3jxQOnWxRWivuOq+q
+3/1r094NJA12jVM+RRLYfaX78cMd/vNA+tp3X41CgdAMAAA=
+EOF
+----
+
+The files will be extracted into the new subdirectory `git-archiver` and shall be used as follows:
+
+----
+$ history -r pack-1.history
+$ . pack-2.sh
+$ . pack-3.sh
+
+$ history -r unpack-1.history
+$ . unpack-2.sh
+$ . unpack-3.sh
+----
+
+Except that the variables set in the line imported by `history -r` should be re-edited and customized before sourcing the `*.sh` snippets.
+
+
+Copy and merge revisions from another local repository
+------------------------------------------------------
+
+This assumes there is another local repository $merge_source_repo which contains some revisions $merge_revs which you would like to apply to the repository in the current directory also.
+
+The following example will merge the last revision of $merge_source_repo:
+
+----
+$ merge_revs='HEAD~1' merge_source_repo=othergitdir
+$ (cd -- "${merge_source_repo:?}" && git format-patch -k --stdout "${merge_revs:?}") | git am -3 -k
+----
+
+
+Force `git am` to preserve the original commit ID
+-------------------------------------------------
+
+It is usually recommended to use `git bundle unbundle` in order to import commits while preserving the original commit ID.
+
+However, `git am` is able to do the same if additional steps are taken:
+
+----
+$ GIT_COMMITTER_NAME='Original Commit Author Name' GIT_COMMITTER_EMAIL='original_commit_author_email@test.com' git am --committer-date-is-author-date < 0001-Some-commit.patch
+----
+
+
+Locally serving Git repositories
+--------------------------------
+
+Die folgenden hilfreichen Scripte
+
+....
+connect-telnet
+git-fwd-tunnel-rpo
+rsync-fwd-tunnel
+rsync-serve.history
+serve-git
+set-ip
+....
+
+können wie folgt erzeugt werden (wenn `-t` durch `-x` ersetzt wird):
+
+----
+$ base64 -d << EOF | zcat > git-serve.dfa && dfa -t -f git-serve.dfa
+H4sIAAAAAAACA81VbW/bNhD+bP6Kq63WTRH6RbITz60CDF2HGujaAMmwfihg09JZUkyRKkn5ZUn2
+23eSX+YU2LBP3ewPJo+8493zPHf+DP2RD5FWCiPHHUqFjrWeQXeeqa5NWRp67z/98q7bkToSkizC
+YHcTJ1NTKpflOI0zw1Vydye+Dvz1fOgHo7Qs+vN8feeKohNXAdKuRbNCw1NtHVeb9dIM023y9UJE
+cjgoXHIphr/HI2ZQxJAVEJd5voU30PTSJisylQD/DXqdAHgEffCyguEGI9glW+1h1Bv12GfwgwtI
+MscX65i7kkqS3BT6tBxLDhy/f1VFqhVOKVOXZnZaeVSbfYl1NZYycXD79nrAP0xubt99HP8w6I/O
+Ke849E69zg2WlmLG5nyhzbJ2GVOZ9X0CIQiGYOxWRScw/O8hOLWFs2qhRI7AJ/AAYr2E9n1hMkVk
+9x/bs78DrN8bXQb/jNgSsRAyW2G9ymKJ4UVvt1ZuJcNgt4mUC/0TeL1D8rs32M/QD4I9yjUEHXrO
+abNltQ04L7RxYX0Z+DUBzjNVSBFhdWR0YtBaaM6iko5iaNOXL0jbf3Q7qc6RoO92VloKl0n8dxjP
+muNxWUgtYtslEQyCHtR+nPrhlH3WgpXf8wed4GLwXTVw0J3BCAn/kK1TKg4SdLpwFtZAPyzWrBEJ
+i+DRDjLFGo31GRxc2pyjEnPibG/hhYiW7dev6dqrM1gISZ4PD4AbqrmBVkQUUCGzabZwMMNNYcD7
+dH07+fgTcEKbro5n7Dh2SlsKWWvmSWMSgBALzLUi7qjQubYVi5IIRxV69/0x9/5yfaSjo9zgC4P9
+h1LfVJrgQkrw9vmTdU7VUhkuDekdg4W2xN5wMCT2HKdJ95S6G8JQG6juGQeTa6heISmhhZe13Wq5
+qhCCQwvZM9CLXe+BUDHcvp/c1Icd1jpqwQ/8/2IsHJoq9PpPhkLo+Sxb0HwnJprH1mvCixcH2+nt
+anggKaXMhV1C7/KSNepZsYD2cwvP7RfVfhLlG2+42nNN4iHRRKmG5q9WJAjU/hULjv6AxuDd91qt
+V91HeOOEIdFOY1xlEV7R/hDtqnnwf/mjScocFek6LynhOX5LDdTcVFyektg524c4BHpbGkNh5LZK
+BIiKcbNqkKNAFxn7E31D2uXBBwAA
+EOF
+----

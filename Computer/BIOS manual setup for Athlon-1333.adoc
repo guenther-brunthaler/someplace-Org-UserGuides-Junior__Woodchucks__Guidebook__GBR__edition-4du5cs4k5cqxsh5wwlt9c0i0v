@@ -1,0 +1,158 @@
+BIOS-Settings And Boot Procedure for Athlon-1333 Tower
+======================================================
+
+Prepare
+-------
+
+* Have a mobile device available which shows date and time
+* Get mouse and mousepad ready
+* Remove cover from keyboard and extend the the stands at its bottom
+
+
+Power-On Sequence
+-----------------
+
+* Switch on power outlet strip
+* Switch on Monitoring
+* Throw the rocker switch on the back side of the tower (over the A/C socket) from left to the right, hardware-switching "on" the power-supply unit
+* Switch on main power switch on the front side of the tower
+* Fix CMOS BIOS Settings (see below).
+
+
+Restore CMOS Settings
+---------------------
+
+How to set up CMOS after complete CMOS NV memory power loss (clock shows year 2002).
+
+1. Press DEL to enter CMOS setup
+2. Select "Load Optimized Defaults"
+3. Note to press the "z" key whenever "y" is required: German keyboard!
+4. Change (only) the values shown in the following sections in order to match
+5. When done, exit CMOS setup and save changes (press "z" to confirm)
+
+
+Standard CMOS Features
+----------------------
+
+Date/Time		(Set as in local time zone)
+Drive A			None
+
+
+Advanced BIOS Features
+----------------------
+
+First Doot Device	USB-ZIP
+Second Doot Device	Disabled
+Third Doot Device	HDD-O
+Boot Other Device	Disabled
+...
+Boot Up Floppy Seek	Disabled
+
+
+Advanced Chipset Features
+-------------------------
+
+OnChip Sound		Disable
+OnChip Modem		Disable
+
+
+Integrated Peripherals
+----------------------
+
+Init Display First	AGP
+...
+Onboard FDD Controller	Disabled
+Onboard Serial Port 1	Disabled
+Onboard Serial Port 2	Disabled
+...
+Onboard Parallel Port 	Disabled
+...
+Onboard Legcy Audio	Disabled
+
+
+Power Management Setup
+----------------------
+
+MODEM Use IRQ			NA
+State After Power Failure	Off
+...
+Wake Up Events			(All: OFF, NONE or Disabled)
+IRQ Activity Monitoring		(Don't edit)
+
+
+PnP/PCI Configurations
+----------------------
+
+PNP OS Installed	Yes
+
+
+AHA-2940 
+--------
+
+Adapter has NV memory - setting up manually after CMOS power failure normally not necessary.
+
+However, if the message "Press Ctrl-A..." appears during the boot sequence, then the NV memory has been lost or damaged, and needs to be manually reset as explained below.
+
+Here is how to set up from scratch:
+
+* Press [Ctrl]+[a] at boot screen to enter SCSI setup.
+* Press [F6] to Reset Host Adapter Defaults
+* Then change only the values below
+
+
+Configuration
+~~~~~~~~~~~~~
+
+Host Adapter SCSI Termination	Disabled
+
+
+Boot Device Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Boot Target ID		4
+
+
+Advanced Configuration Options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Host Adapter BIOS (Configuration Utility Reserves BIOS Space)	Disabled
+Support Removable Disks Under BIOS as Fixed Disks		Disabled
+...
+Display <Ctrl-A> Message During BIOS Initialization		Disabled
+...
+BIOS Support for Bootable CD-ROM				Disabled
+BIOS Support for Int13 Extensions				Disabled
+
+
+Booting the System
+------------------
+
+* HDD Boot: Enter FDE password to boot
+* If booting was successful, start Total Commander and start CygWin Shell from there.
+* Execute command "time-set-from-xrpi3" to set a more accurate system time
+* Switch on Scanner
+* Go to "Start", "Systemsteuerung", "Hardware". The Hardware Setup Wizard will start.
+* Press "Weiter". When the dialog "Ja, die Hardware wurde bereits angeschlossen" appears, press "Abort". The scanner should already have been detected by now.
+
+
+Setup Procedure Complete
+------------------------
+
+If you came here, you are done!
+
+The remaining sections in this document only informational and are *not* necessary for system startup. 
+
+
+Some Hard- and Firmware details
+-------------------------------
+
+Award Hodular BIOS 06.00PG
+Copyright (C) 1981-2002
+
+W6330VMS V3.6 100702 11:00:51
+Main Processor: AMD Athlon 1333 MHz
+
+Mainboard: MSI K7T Pro2
+
+HDD: WDC WD1200BB-00CAA1
+Disc-Drive: PHILIPS DVR1640P

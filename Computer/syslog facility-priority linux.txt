@@ -1,0 +1,37 @@
+syslog(3) and logger(1) use facility.prioprity identifiers.
+
+The following is a list generated on 2017-11-18 from the contents of <syslog.h>.
+
+Facilities (sorted by name and comment where the messages originate):
+
+auth (security/authorization messages)
+authpriv (private security/authorization messages)
+cron (clock daemon)
+daemon (system daemons)
+ftp (FTP daemon)
+kern (system kernel messages)
+lpr (line printer system)
+mail (mail system)
+news (network news system)
+syslog (syslog-related logging daemon)
+user (a normal userspace process)
+uucp (UUCP system)
+local0 (local use, first of 8 such categories)
+local1
+local2
+local3
+local4
+local5
+local6
+local7
+
+Priorities (sorted by increasing associated numeric value):
+
+emerg (system is unusable)
+alert (action must be taken immediately)
+crit (critical conditions)
+err (error conditions)
+warning (warning conditions)
+notice (normal but significant condition)
+info (informational)
+debug (debug-level messages)

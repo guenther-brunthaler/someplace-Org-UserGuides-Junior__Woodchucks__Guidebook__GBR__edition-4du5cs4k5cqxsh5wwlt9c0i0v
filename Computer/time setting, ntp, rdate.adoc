@@ -1,0 +1,89 @@
+Setting the time on a remote system
+===================================
+v2024.8
+
+
+Manually
+--------
+
+Run this command on a system which already has the correct current time:
+
+----
+$ echo date -u `date -u +"%m%d%H%M%Y.%S"`
+----
+
+It will print a command to be executed on a different system in order to set the same time.
+
+The above command uses a non-POSIX extension to the date format which includes seconds.
+
+If the printed command should fail on the destination system because of this, try the following command instead:
+
+----
+$ echo date -u `date -u +"%m%d%H%M%Y"`
+----
+
+This is POSIX-compliant, but can only set the time with whole-minute accuracy.
+
+
+Via SSH
+-------
+
+Try the same commands as suggested for manually setting the date/time, except that the `echo` shall be replaced by an `ssh` client invocation:
+
+----
+$ ssh $ssh_target date -u `date -u +"%m%d%H%M%Y.%S"`
+
+$ ssh $ssh_target date -u `date -u +"%m%d%H%M%Y"` # Fallback.
+----
+
+
+Setting the TZ variable
+-----------------------
+
+Setting the TZ variable is optional and overrides the default timezone setting of the system.
+
+For Austria, TZ can be set to the following value in order for `date` to correctly display standard time or daylight saving time:
+
+----
+$ export TZ=MEZ-1MESZ-2,M3.5.0,M10.5.0/3
+----
+
+for German timezone names are preferred, or
+
+----
+$ export TZ=CET-1CEST-2,M3.5.0,M10.5.0/3
+----
+
+for English names. This value might also be provided via DHCP as option 100 (decimal).
+
+Alternatively, a symbolic name can be used, although this would require the client to provide a timezone database for lookup:
+
+----
+$ export TZ=Europe/Vienna
+----
+
+This value might also be provided via DHCP as option 101 (decimal).
+
+
+Showing UTC without DST
+-----------------------
+
+Some protocols and applications do not support the concept of timezones and require all times to be specified as UTC.
+
+In order to display the current date and time as UTC, a timezone must be chosen which does not use Daylight Saving Time.
+
+Especially useful for this purpose is Reykjavik, the capital of
+
+----
+$ export TZ=Iceland
+----
+
+Not only does this timezone not use daylight saving time, it is also identical to UTC without any timezone offset.
+
+However, newer Android OS provide a timezone "UTC" which serves the same purpose more clearly. On POSIX,
+
+----
+$ export TZ=UTC
+----
+
+will archive the same effect.

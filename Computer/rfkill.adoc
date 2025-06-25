@@ -1,0 +1,41 @@
+Doing rfkill manually on Linux
+==============================
+v2020.96
+
+This guide helps you to perform the same function as the `rfkill` command on the Linux operating system in the case no such command is installed.
+
+This is helpful if network access for installing the missing `rfkill` command is not possible before `rfkill` unblocks  Wi-Fi.
+
+
+Get list of wireless interfaces
+-------------------------------
+
+Display a list of available wireless devices supporting rfkill:
+
+----
+$ ls -1d /sys/class/net/*/*802*11/rfkill* | cut -d / -f 5
+----
+
+
+rfkill list
+-----------
+
+Set `$IFC` to one of the devices output by the above command, like `wlan0` in the example below.
+
+The command will then display `1` if the device is currently blocked from using its radio transceiver, or `0` if it is not blocked.
+
+----
+$ IFC=wlan0
+$ cat /sys/class/rfkill/`ls -1d /sys/class/net/$IFC/*802*11/rfkill* | cut -d / -f 7`/soft
+----
+
+rfkill unblock
+--------------
+
+Same as for the "rfkill list" section, except that "`cat`" must be replaced with "`echo 0 >`".
+
+
+rfkill block
+------------
+
+Same as for the "rfkill list" section, except that "`cat`" must be replaced with "`echo 1 >`".

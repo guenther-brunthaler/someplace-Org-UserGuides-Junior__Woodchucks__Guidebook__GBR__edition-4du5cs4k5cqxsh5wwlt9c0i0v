@@ -1,0 +1,18 @@
+Template Web Page
+=================
+v2025.39
+
+----
+$ cat index.html 
+<!DOCTYPE HTML
+  PUBLIC "-//W3C//DTD HTML 4.01//EN"
+  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Some Manual</title>
+</head>
+<body>
+<p><a href="en/latest/index.html">Some Manual</a> (snapshot 2025-01-09)</p>
+</body>
+</html>
+----

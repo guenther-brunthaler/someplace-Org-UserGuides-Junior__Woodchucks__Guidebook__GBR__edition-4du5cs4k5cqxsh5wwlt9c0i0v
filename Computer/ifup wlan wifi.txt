@@ -1,0 +1,41 @@
+$ cat /etc/network/interfaces.d/wifi-somewlan-3xxnx6jaqq66nfe3p0kkjhyk0
+# Version 2024.158
+
+rename mac/gg:gg:gg:gg:gg:gg=wifi
+
+# $ ifup wifi=wifi-somewlan
+# ...
+# $ ifdown wifi
+
+iface wifi-xrpi4 inet dhcp
+        pre-up rfkill unblock wlan
+        wpa-ssid somewlan
+        wpa-psk-file /etc/site-6n580p79r0flmgyv0feaxchll/secrets/wpa/wifi-somewlan-3xxnx6jaqq66nfe3p0kkjhyk0
+        post-down rfkill block wlan
+==============
+$ cat /etc/network/interfaces.d/hotspot-4mcq3ngu78mct5f337cxirxgq 
+# Version 2023.207
+#
+# $ ifup wifi=hotspot
+# $ gateway_setup -e wifi
+# ...
+# $ gateway_setup -d wifi
+# $ ifdown wifi
+
+allow-x-wifi-hotspot hotspot
+
+rename mac/dc:a6:32:49:1a:1e=wifi
+
+iface hotspot inet static
+        pre-up rfkill unblock wlan
+        address 10.238.124.113
+        netmask 255.255.0.0
+        hostapd /etc/hostapd/hostapd.conf
+        post-up invoke-rc.d --quiet dnsmasq status > /dev/null && invoke-rc.d --quiet --force dnsmasq force-reload > /dev/null || invoke-rc.d --quiet --force dnsmasq start > /dev/null
+        post-down rfkill block wlan
+        post-down invoke-rc.d --quiet dnsmasq status > /dev/null && invoke-rc.d --quiet --force dnsmasq stop > /dev/null || :
+        metric 10
+        #dns-nameservers 10.238.124.113
+        #dns-search eth.emgenxx69lwyn5ctlr4nl64ul.local
+        #dns-options ndots:2
+==============

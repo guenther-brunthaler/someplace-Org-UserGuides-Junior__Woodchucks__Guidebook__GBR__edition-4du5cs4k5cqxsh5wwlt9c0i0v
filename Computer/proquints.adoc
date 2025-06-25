@@ -1,0 +1,30 @@
+proquints
+=========
+v2023.234
+
+https://arxiv.org/html/0901.4016[Pronouncable Quintuplets] ("proquints") encode 16 bit of arbitrary information per pronouncable word.
+
+Every word consists of a sequence `c-v-c-v-c` (without the dashes), where `c` and `v` are:
+
+* `c` - Four-bits as a consonant:
++
+[options="autowidth"]
+|====
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | A | B | C | D | E | F
+| b | d | f | g | h | j | k | l | m | n | p | r | s | t | v | z
+|====
+--
+
+* `v` - Two-bits as a vowel:
++
+[options="autowidth"]
+|====
+| 0 | 1 | 2 | 3
+| a | i | o | u
+|====
+
+The resulting 5-character-words are normally concatenated using dashes, but the specification does not enforce this.
+
+If dashes are used as separators, they are suggested to be pronounced as "eh" (the letter "`e`" is not used in the encoding itself).
+
+A problem in pronunciation of the consonant may be the "`h`"s. They often result in silent sounds. For those cases there is the simple rule: If a consonant seems to be missing in a position where one is expected, it can be assumed the consonant is a silent "`h`".

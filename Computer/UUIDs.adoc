@@ -1,0 +1,58 @@
+﻿DCE UUIDs
+=========
+v2023.171
+
+....
+03e4d2fe-9e3b-11e8-8c3d-b827eb0d201c
+
+time-low=0x03e4d2fe
+time-mid=0x9e3b
+time-high-and-version=0x11e8
+clock-seq-hi-and-reserved=0x8c
+clock-seq-low=0x3d
+node=0xb827eb0d201c
+
+
+time-high-and-version=0x3xxx name-based
+clock-seq-hi-and-reserved=0x[89AB]x
+
+LLLLLLLL MMMM VHHH TRRR-NMNNNNNNNNNN
+03e4d2fe-9e3b-11e8-8c3d-b827eb0d201c
+	      ^    ^
+              |    |
+              |    \___ variant must start with bits "10"
+              |
+              \____ version must be 3 for MD5-based
+....
+
+* `V`: 'UUID' version
+* `T`: 'UUID' variant, variable size, rest like `R`
+* `RRR`: random clock sequence
+* `M`: The two least significant Bits # 1 and # 0 should be `10` for randomly-generated UUIDs (local unicast), or `00` (global unicast) for time-based UUIDs. Remaining bits like `N`. 
+* `N?NNNNNNNNN`: 48-bit 'MAC' or random number (the remaining bits)
+* `HHHMMMMLLLLLLLL`: 60 bit time stamp; number of 100 nanosecond-intervals since '1582-10-15'
+
+UUID versions ("`V`"):
+--
+* `1`: time-based
+* `2`: 'DCE' security version with embedded 'POSIX UID' values
+* `3`: name-based ('MD5')
+* `4`: random-based
+* `5`: name-based ('SHA-1')
+--
+
+UUID variants ("`T`"):
+--
+* `0xxx`: Reserved, 'NCS' backward compatibility
+* `10xx`: The variant specified in this document
+* `110x`: Reserved, 'Microsoft Corporation' backward compatibility
+* `111x`: Reserved for future definition
+--
+
+MAC-Addresses, nybble M:
+--
+* `00`: global unicast (required for time-based UUIDs)
+* `01`: global multicast
+* `10`: local unicast (required for randomized MAC-addresses of VMs)
+* `11`: local multicast
+--

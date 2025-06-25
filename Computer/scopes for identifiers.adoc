@@ -1,0 +1,11 @@
+Scopes for identifiers
+======================
+v2020.114
+
+lexical:: logically associated instances of particular identifiers are only valid within some range of lines within the source text, which may or may not span multiple files (e. g. in case of "modules" consisting of several source files).
+
+non-lexical:: identifiers have global range (within the same compilation unit or across all compilation units), i. e. they are not restricted to some line range
+
+dynamic:: identifiers can be declared within some range that is defined by control flow (such as the execution of a function) rather than a range of lines within some source files. They may or may not be allowed to hide/override pre-existing identifiers with the same name outside that scope. Dynamic identifiers act like global variables, except that every control flow may be associated with a completely different set of instances of those identifiers
+
+static:: all identifiers that are not dynamic.

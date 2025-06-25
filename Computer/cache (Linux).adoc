@@ -1,0 +1,42 @@
+Clearing Linux Caches
+=====================
+v2019.142
+
+As the following are non-destructive operations and dirty objects are not freeable, the
+user should run
+
+----
+$ sync
+----
+
+first.
+
+* In order to drop the block cache for a particular block device, use for instance
++
+----
+$ blockdev --flushbufs /dev/$SOME_DEVICE
+----
+
+* As part of doing some cold cache timings, it might be useful to also free the OS cache.
++
+--
+
+. To free pagecache, dentries and inodes:
++
+----
+$ echo 3 > /proc/sys/vm/drop_caches
+----
+
+. To free only pagecache:
++
+----
+$ echo 1 > /proc/sys/vm/drop_caches
+----
+
+. To free only dentries and inodes:
++
+----
+$ echo 2 > /proc/sys/vm/drop_caches
+----
+
+--

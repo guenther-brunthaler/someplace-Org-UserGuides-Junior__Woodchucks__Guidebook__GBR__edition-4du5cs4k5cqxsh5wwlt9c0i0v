@@ -1,0 +1,114 @@
+Bash
+====
+v2024.93
+
+
+History expansion
+-----------------
+
+Some frequently useful input sequences for history expansion:
+
+* `!$` - last word of last command
+* `!:0` - command word of last command
+* `!:1` - first argument of last command
+* `!*` - all arguments of last command
+* `!#:0` - command word of current command line
+* `!#:1` - 1st argument of current command line
+* `!#:$` - last word of current command line
+
+
+Loading a saved `.history` file
+-------------------------------
+
+----
+$ history -r $FILENAME
+----
+
+appends contents of `$FILENAME` to the current editing history without executing them.
+
+If all lines are appended as a single entry rather than invividual ones, try this first:
+
+----
+$ exec env -i TERM=$TERM HOME=$HOME /bin/bash --norc
+$ history -c
+----
+
+
+Saving the current history into a .history file
+-----------------------------------------------
+
+----
+$ history -w $FILENAME
+----
+
+This saves the current history to a different file than "`~/.bash_history`" (or whatever `$HISTFILE` says).
+
+
+Sync the current shell instance's history
+-----------------------------------------
+
+`bash` uses a standard history file from which the initial history is read when starting the shell instance, and to which the final history will be written when exiting the shell.
+
+An important modification of this default behaviour can be enabled with
+
+----
+$ shopt -s histappend
+----
+
+This makes bash append its new history in memory to the history file, rather than replacing it. (The maximum number of entries definied for the history file will still be honored, though. Which means the oldest entries will be removed after appending the new entries in order to comply with the defined maximum history size.)
+
+The name of this standard history file is stored in the `$HISTFILE` variable, setting it to an empty string disables history saving when the shell instance exits.
+
+----
+$ history -a
+----
+
+appends the current shell's history to the standard history file. Use this if you want the current shell's history to be available in other shells also. Then, in those other shells, run
+
+----
+$ history -n
+----
+
+which will add missing lines from the standard history to the local shell's history but ignore lines already present.
+
+If only the complete history should be appended as-is without leaving out anything, use
+
+----
+$ history -r
+----
+
+(without an argument, this defaults to using `$HISTFILE`) instead.
+
+Also consider cleaning out the local bash instance's history with
+
+----
+$ history -c
+----
+
+first and then use the `-r` option for filling the now empty history with the contents of a history file.
+
+Another potential useful bash variable is `$PROMPT_COMMAND`. The contents of this variable are evaluated with `eval` every time the prompt is displayed. This command can therefore be set to a command which saved the history immediately, rather than only when the shell is closed or `$HISTSIZE` is exceeded and flushes the history to `$HISTFILE` prematurely.
+
+
+History size
+------------
+
+There are two environment variables (make sure to export them, or otherwise nested shells will not inherit them) which control the size of the bash history.
+
+`$HISTFILESIZE`:: This is the maximum number of history entries to keep in `$HISTFILE`.
+
+`$HISTSIZE`:: This is the maximum of history entries to keep in memory. When a new bash instance starts, it first reads the whole `$HISTFILE` into memory, and then throws away all items but the last `$HISTSIZE` ones. I also assume that all new history entries are appended to `$HISTFILE` when HISTSIZE is exceeded and marked internally as "already saved". Then those entries can safely be removed one by one as new entries are added to the history in memory, because they can already be found in `$HISTFILE`.
+
+
+Other useful variable assignments
+---------------------------------
+
+Here are some generally useful settings:
+
+----
+$ export HISTFILESIZE=7000 HISTSIZE=3000
+$ test "$HISTFILE" || export HISTFILE=~/.history
+$ test "$BASH_VERSION" && shopt -u lithist cmdhist; shopt -s histappend histreedit histverify
+$ export HISTTIMEFORMAT='{%F %T} '
+$ test `id -u` = 0 && PS1='\n\[\033[0;33m\]cwd: \w\[\033[0m\]\n\[\033[1;31m\]\u@\h\[\033[0m\] \[\033[41;37m\]${?#0}\[\033[0;1;34m\]\$\[\033[0m\] ' || PS1='\n\[\033[0;33m\]cwd: \w\[\033[0m\]\n\[\033[1;32m\]\u@\h\[\033[0m\] \[\033[41;37m\]${?#0}\[\033[0;1;34m\]\$\[\033[0m\] '; export PS1
+----

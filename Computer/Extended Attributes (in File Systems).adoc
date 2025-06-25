@@ -1,0 +1,37 @@
+﻿Extended Attributes (in File Systems)
+=====================================
+v2021.152
+
+ACLs
+----
+
+Use +getfacl+ and +setfacl+.
+
++getfattr+ should also work, although its output is only generic.
+
+
+Linux Capabilities
+------------------
+
+----
+$ getcap /usr/lib/squid/pinger
+/usr/lib/squid/pinger = cap_net_raw+ep
+----
+
+----
+$ getfattr -d -m - /usr/lib/squid/pinger
+getfattr: Entferne führenden '/' von absoluten Pfadnamen
+# file: usr/lib/squid/pinger
+security.capability=0sAQAAAgAgAAAAAAAAAAAAAAAAAAA=
+----
+
+Decode +getfattr+ output:
+
+----
+$ getfattr -d -m - /usr/lib/squid/pinger 2> /dev/null | sed 's/[^=]\{1,\}=0s//; t; d' | base64 -d | hexdump -vC
+00000000  01 00 00 02 00 20 00 00  00 00 00 00 00 00 00 00  |..... ..........|
+00000010  00 00 00 00                                       |....|
+00000014
+----
+
+This only works in case of "`0s`" value-prefixes.

@@ -1,0 +1,95 @@
+﻿UIDs and GIDs
+=============
+v2021.81
+
+In the "xworld" administrative real, both UIDs and GIDs are calculated from the associated names as follows:
+
+----
+10000 + (BigEndian2UInt(MD5(name)) modulo 50000)
+----
+
+UIDs and GIDs share the same namespace in this administrative realm. Not only the actually realm-defined users/groups shall be allocated within that range, but also all the system users/groups.
+
+If a name collision occurs, the younger colliding names must be renamed by adding suffixes 2, 3, etc. unless they already and in a digit. In this case only, the numeric suffixes shall be preceded with an underscore character.
+
+As a general rule how to resolve name conflicts, the UID/GID with older or vastly more existing files within the realm wins, and the other one has to be renamed. IDs defined outside the realm (i. e. system users/groups) always lose in case of name conflicts.
+
+The purpose of also allocating entries for system users/groups is migration of such data between systems. The IDs can be mapped to the realm-allocated ranges during transport, and be mapped back to new IDs once they are extracted at the target site.
+
+Regarding local system configuration, the numeric limits for allocating new system UIDs/GIDs should always be set to the same range.
+
+In any case, they must not overlap with the xworld range of 10000-59999.
+
+Regarding the split between system and normal user accounts, this split can be very much in favor of system accounts (because most normal users will always be allocated in the xworld range). I suggest allocating the range 9000-9999 for normal users and every ID below 9000 for system users/accounts.
+
+
+UID Value Ranges
+----------------
+
+The following table lists observed UID/GID allocation practices.
+
+The following ranges are non-overlapping, even though some of the neighboring range reservations occasionally do overlap.
+
+[cols=">,>,<",options="header,autowidth"]
+|===
+|    from  |           to | Comment
+|     `0`  |          `0` | UID of the superuser (also LSB-defined)
+|     `1`  |         `99` | LSB-defined for statically allocated system UIDs
+|   `100`  |        `499` | Dynamically created services from package installations
+|   `500`  |        `999` | Debian extends the LSB range and also uses it for service GIDs
+|   `1000` |      `32765` | free for local assignment
+|  `32766` |      `32766` | may be a special value for very old UNIX OS'es
+|  `32767` |      `32767` | highest value for very old UNIX OS'es, may be a special value
+|  `32768` |      `59999` | free for local assignment
+|  `60000` |      `64999` | Reserved by Debian (includes systemd ranges)
+|  `65000` |      `65533` | Also reserved by Debian
+|  `65534` |      `65534` | Sometimes a special value (`nobody`, `nogroup`)
+|  `65535` |      `65535` | highest value for 16-bit UIDs
+| `524288` |     `589823` | snapd
+| `589824` | `1879048191` | systemd
+|          | `4294967295` | highest possible value for 32-bit UIDs
+|===
+
+The 'from' and 'to' values specified above are both included within the range.
+
+
+Historic Practice
+-----------------
+
+The size of UID values varies amongst different systems; some UNIX OS's used 15-bit values, allowing values up to `32767`, while others such as Linux (before version 2.4) supported 16-bit UIDs, making `65536` unique IDs possible. The majority of modern Unix-like systems (e.g., Solaris-2.0 in 1990, Linux 2.4 in 2001) have switched to 32-bit UIDs, allowing `4,294,967,296 (2**32)` unique IDs. 
+
+The Linux Standard Base Core Specification specifies that UID values in the range `0` to `99` should be statically allocated by the system, and shall not be created by applications, while UIDs from `100` to `499` should be reserved for dynamic allocation by system administrators and post install scripts.
+
+Debian Linux not only reserves the range `100-999` for dynamically allocated system users and groups, but also centrally and statically allocates users and groups in the range `60000-64999` and further reserves the range `65000–65533`.
+
+Systemd defines a number of special UID ranges, including
+
+* `60001-60513`: UIDs for home directories managed by systemd-homed
+
+* `61184-65519 (0xef00-0xffef)`: UIDs for dynamic users
+
+On FreeBSD, porters who need a UID for their package can pick a free one from the range `50` to `999` and then register the static allocation.
+
+Some POSIX systems allocate UIDs for new users starting from `500` (macOS, Red Hat Enterprise Linux till version 6), others start at `1000` (Red Hat Enterprise Linux since version 7, openSUSE, Debian). On many Linux systems, these ranges are specified in `/etc/login.defs`, for `useradd` and similar tools.
+
+Central UID allocations in enterprise networks (e.g., via LDAP and NFS servers) may limit themselves to using only UID numbers well above `1000`, and outside the range `60000–65535`, to avoid potential conflicts with UIDs locally allocated on client computers.
+
+OS-level virtualization can remap user identifiers, e.g. using Linux namespaces, and therefore need to allocate ranges into which remapped UIDs and GIDs are mapped:
+
+* snapd maps UIDs and GIDs into the range `524288-589823 (0x80000-0x8ffff)`
+
+* systemd-nspawn automatic allocates of per-container UID ranges uses the range `524288-1879048191 (0x80000-0x6fffffff)`
+
+The systemd authors recommend that OS-level virtualization systems should allocate `65536 (216)` UIDs per container, and map them by adding an integer multiple of 216.
+
+
+Special values
+--------------
+
+* `0`: The superuser normally has a UID of zero (0).
+
+* `−1`: The value `(uid_t)-1` is reserved by POSIX to identify an omitted argument.
+
+* `65535`: This value is still avoided because it was the API error return value when `uid_t` was 16 bits.
+
+* Nobody: Historically, the user "nobody" was assigned UID `-2` by several operating systems, although other values such as `2**15−1 = 32,767` are also in use, such as by OpenBSD. For compatibility between 16-bit and 32-bit UIDs, many Linux distributions now set it to be `2**16−2 = 65,534`; the Linux kernel defaults to returning this value when a 32-bit UID does not fit into the return value of the 16-bit system calls. Fedora Linux assigns the last UID of the range statically allocated for system use (`0-99`) to nobody: `99`, and calls `65534` instead nfsnobody.

@@ -1,0 +1,29 @@
+cpio
+====
+v2020.99
+
+----
+$ (cd /path/to/source/dir && find . | LC_COLLATE=C sort | cpio -o -H crc --renumber-inodes) | lzop -c | lzop -dc | (cd /path/to/destination/dir && cpio -idm --sparse)
+----
+
+The formats `crc` and `newc` are identical, except for a format indicator digit and that `newc` always sets the CRC field to zero. Which means both formats produce the same output size. (Of course, when compressing the output `newc` will be slightly shorter because of the repeated CRC zero-values.)
+
+There is a CRC for every individual archive member, not one for the whole archive.
+
+Busybox `cpio` can unpack both formats, but ignores the checksum of `crc` and does not verify it either.
+
+In other words, it is usually not a problem when GNU cpio creates an `crc` archive, and Busybox cpio is later used to unpack it.
+
+Note that `pax` can also create and process `cpio` files, and will then use the same CRC-based format as explained above.
+
+GNU `pax` also provides a wrapper `paxcpio` which lets `pax` act as a drop-in replacement for GNU `cpio`.
+
+The `file` utility identifies both formats as follows:
+
+----
+$ echo / | cpio -oH crc 2> /dev/null | file - | cut -d " " -f 2-
+ASCII cpio archive (SVR4 with CRC)
+
+$ echo / | cpio -oH newc 2> /dev/null | file - | cut -d " " -f 2-
+ASCII cpio archive (SVR4 with no CRC)
+----

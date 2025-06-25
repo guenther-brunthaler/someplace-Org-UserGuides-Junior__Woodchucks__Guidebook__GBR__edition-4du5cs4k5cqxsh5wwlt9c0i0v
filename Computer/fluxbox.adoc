@@ -1,0 +1,102 @@
+﻿Fluxbox
+=======
+Günther Brunthaler
+v2020.111
+
+This document provides some general advice how to use the 'Fluxbox' X11 Window Manager, but mostly documents my personal customizations and usage patterns.
+
+Therefore, this document might not be useful for everyone.
+
+
+The mouse buttons
+-----------------
+
+In this guide, the mousebuttons are referred to as
+
+LMB:: Left mouse button 
+MMB:: Middle mouse button 
+RMB:: Right mouse button 
+
+Normally, this also implies that the mouse button is clicked as well, unless the text says otherwise (such as dragging/moving a windows).
+
+
+Menus
+-----
+
+Root Menu:: This is the "normal" pop-up menu where you launch applications. In my configuration, it shows a "Quick Launch" menu of favorite applications, and the menu for all applications is hidden in a submenu.
+
+Client Menu:: This displays just a list of currently open windows, much like the task bar, but of course vertically rather than horizontally.
+
+Workspace Menu:: This provides a single submenu for all "hidden" windows and a submenu for every existing workspace and the non-hidden windows inside them.
+
+Window Menu:: This provides operations for the current window itself, such as maximizing, minimizing or restoring it. I also added entries for re-positioning and alignment.
+
+
+Menu popup concept
+------------------
+
+In the following, an added `++` means that the mouse button has to be double-clicked rather than just a single click.
+
+I always tried to assign the same actions to the same activation sequence where possible, no matter of the context. It is better if a button does nothing in another context than doing a different thing.
+
+
+Mouse over Window Titlebar
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* LMB: Select/Move Window
+* MMB: Show Root Menu
+* RMB: Show Window Menu
+* RMB++: Show Client Menu
+
+
+Mouse over Desktop Background
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* LMB: Hide Menus
+* MMB: Show Root Menu
+* RMB: Hide Menus
+* RMB++: Show Client Menu
+
+
+Mouse over Toolbar
+~~~~~~~~~~~~~~~~~~
+
+* LMB: Show & Activate or Hide Window
+* MMB: Show Workspace Menu
+* RMB: Show Toolbar Settings Menu
+
+The toolbar ("task bar") ist not intended to be essential to navigation. It shall be configured as a mere convenience, and everything possible using the mouse alone must still be possible when the toolbar has been switched off.
+
+The idea is to show the toolbar as long as plenty of screen space is available, but to hide it on small displays when free display space is getting scarce.
+
+
+Combined Effects
+~~~~~~~~~~~~~~~~
+
+* Move the mouse to the top of the screen and doublclick the RMB to get the workspace menu. This works whether there is a window titlebar or the desktop background. In addition, this also works when moving the mouse to the bottom of the screen if the toolbar is currently shown.
+
+* Move the mouse to the top of the screen and MMB-click to get the application start menu. This works whether there is a window titlebar or the desktop background.
+
+* When clicking on the RMB after the application start menu has been brought up using a MMB-click (without moving the mouse since), the menu goes away and does nothing.
+
+
+Workspaces
+----------
+
+The desktop which is currently visible, is a Fluxbox "workspace" - but an arbitrary number of such workspaces can exist. The desktop is just a 'view' focused on the 'current' workspace. By 'switching' to a different workspace, the remaining workspaces can also be shown.
+
+The windows of currently running applications can either be visible on one of the workspaces (or on all of them, then this windows this is called 'sticky').
+
+Or it can be "minimized", also called "iconized". In the latter state, the windows is no longer visible on any workspace.
+
+... Use the "Sent To"-submenu of the RMB Window Menu in order to send the current window to a different workspace. Clicking the submenu entry with the LMB just sends the windows, clicking with the RMB also switches the desktop to that workspace.
+
+... The 'Workspace Menu' has two submenus:
++
+--
+. Icons:: This contains all minimized windows. Clicking on an entry will restore that Window into the current workspace.
+
+. Workspaces:: This has a submenu for every workspace, and all the non-minimized windows of that workspace in it. Clicking on a window switches to the workspace containing the that window, and then raise and activate it.
+--
+
+... Switching the desktop to a different workspace is also possible with the "Fluxbox Command" menu-entry of the "Fluxbox" command. Enter `Workspace 3` to switch to the third workspace, for example.

@@ -1,0 +1,131 @@
+Forwarding USB via SSH
+----------------------
+v2019.353
+
+Lets' securely forward an USB device on the local host to some other host via SSH.
+
+First of all, package 'usbip' needs to be installed, and an associated kernel driver needs to be available.
+
+Next, the 'usbip' daemon is not secure at all by default. It listens on all interfaces and lets any host which can reach the local host via the network access the exported USB devices.
+
+In order to restrict this, we create a new network namespace for running the USB export server:
+
+----
+$ unshare -n $SHELL -l
+$ echo $$ > ~/usb-forwarding.pid
+----
+
+This creates a new network namespace and all following commands run on this shell will use it. Currently, that network namespace is completely isolated, so no-one else will be able to connect to this server.
+
+This is a bit *too* isolated, and therefore we will create a virtual Ethernet connection between the separate namespace and the default network stack.
+
+We will set this up in such a way that network device 'usbserver' with address '160.128.0.2' in the new namespace will be connected to network device 'usbexport' with address '160.128.0.1' which is visible outside of the namespace.
+
+Run the following commands in a *different* shell than the above commands (outside the namespace):
+
+----
+$ ip link add usbexport type veth peer name usbserver # create pair
+$ ifconfig usbexport 160.128.0.1 up
+$ read ns < ~/usb-forwarding.pid && rm -- ~/usb-forwarding.pid
+$ ip link set usbserver netns $ns && unset ns
+----
+
+Now close that additional shell and go back to the shell in the new namespace:
+
+----
+$ ifconfig usbserver 160.128.0.2 up
+----
+
+The new namespace has a network interface with adress '160.128.0.2' which can be reached by the default namespace of the host, and therefore also by SSH local port forwardings.
+
+Next, we need to load the kernel driver required for USB sharing. It may have different names, but typically this will work:
+
+----
+modprobe usbip-host # Load kernel driver for USB sharing
+----
+
+Now we need to decide which USB devices to export via the USB daemon started before. This will display a list:
+
+----
+$ usbip list --local
+ - busid 1-1.1 (0424:ec00)
+   Standard Microsystems Corp. : SMSC9512/9514 Fast Ethernet Adapter (0424:ec00)
+
+ - busid 1-1.2 (148f:7601)
+   Ralink Technology, Corp. : MT7601U Wireless Adapter (148f:7601)
+
+ - busid 1-1.5 (12d1:1001)
+   Huawei Technologies Co., Ltd. : E161/E169/E620/E800 HSDPA Modem (12d1:1001)
+----
+
+Let's say we want to export the Ralink adapter only:
+
+----
+$ usbip bind -b 1-1.2 # Export this device
+usbip: info: bind device on busid 1-1.2: complete
+----
+
+Finally, we can run the USB forwarding server now in the namespace. It won't matter that it binds to all interfaces, because '160.128.0.2' is the only interface visible there:
+
+----
+$ usbipd -4 & # Start network server (IPv4 only)
+----
+
+If desired, we can run more `usbip bind` commands (in the same namespaced shell) in order to export additional USB devices.
+
+Or we can run `usbip unbind` commands to cancel USB device exports.
+
+Now we can test from a different shell on the same host (outside of the network namespace) whether the USB server is accessible via its network interface. (In this case, SSH connections will also be able to access it.)
+
+----
+$ usbip list -r 160.128.0.2
+Exportable USB devices
+======================
+ - 160.128.0.2
+      1-1.2: Ralink Technology, Corp. : MT7601U Wireless Adapter (148f:7601)
+           : /sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.2
+           : (Defined at Interface level) (00/00/00)
+----
+
+This looks promising!
+
+But how do we import that expored USB device on another host via SSH?
+
+Do the following on that other host:
+
+----
+$ ssh -L 127.0.0.1:13240:160.128.0.2:3240 user@host
+----
+
+This will create a tunnel from port 13240 on the SSH client machine to the host running the USB export server in its network namespace. As long as this tunnel remains open, it is now possible to access the remote USB device.
+
+However, before accessing it, it needs to be connected.
+
+After establishing the tunnel, run the following command on the same host as the SSH client, but from a different shell (as user root):
+
+----
+$ usbip --tcp-port 13240 list -r 127.0.0.1
+usbip: info: using port 13240 ("13240")
+Exportable USB devices
+======================
+ - 127.0.0.1
+      1-1.2: Ralink Technology, Corp. : MT7601U Wireless Adapter (148f:7601)
+           : /sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.2
+           : (Defined at Interface level) (00/00/00)
+----
+
+Note that we use address '127.0.0.1' here instead of `160.128.0.2`, because this is the local end of the tunnel.
+
+Now we can connect this remote device to our local box:
+
+----
+$ modprobe usbip-host
+$ modprobe vhci_hcd
+$ usbip --tcp-port 13240 list -r 127.0.0.1
+usbip: info: using port 13240 ("13240")
+libusbip: error: udev_device_new_from_subsystem_sysname failed
+usbip: error: open vhci_driver
+usbip: error: query
+----
+
+Hmmm... obviously this still needs some work! ;-)

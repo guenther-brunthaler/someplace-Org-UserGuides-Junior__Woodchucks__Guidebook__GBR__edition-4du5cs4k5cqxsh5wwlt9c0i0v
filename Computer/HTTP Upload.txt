@@ -1,0 +1,33 @@
+How to upload a single local file as if you were running a web server, but without one.
+
+Here is a one-liner how to web-serve the contents of file $f as [ http://0.0.0.0:12345/ ], assuming command "nc" is available:
+
+$ test -f "$f" && { for h in "HTTP/1.0 200 OK" "Content-Type: application/octet-stream" "Content-Length: `stat -c %s -- "$f"`" ""; do printf '%s\015\012' "$h"; done && cat < "$f"; } | nc -lp 12345
+
+Download it from the same host using a web browser or
+
+$ wget -O "$f" http://0.0.0.0:12345/
+
+When downloading from a different host, replace 0.0.0.0 with the IP address of the host where the file is being served.
+
+
+Explanation
+-----------
+
+When downloading a binary file from a web server, the client sends a request like
+
+GET / HTTP/1.0
+Accept: */*
+Connection: Keep-Alive
+
+where the / after the GET is the path to the resource to fetch.
+
+The web-server replies with something like
+
+HTTP/1.0 200 OK
+Content-Type: application/octet-stream
+Content-Length: 123
+
+which is followed by an empty text line, and then the binary contents file to be downloaded. In this example, 123 would be the byte size of the binary contents which follow the empty text line.
+
+All text lines should be terminated by ASCII CR LF (printf '%s\015\012' "$line").

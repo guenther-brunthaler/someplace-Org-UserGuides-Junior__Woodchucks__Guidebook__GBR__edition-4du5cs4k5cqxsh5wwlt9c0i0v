@@ -1,0 +1,10 @@
+GNU screen
+
+# screen -ls <username>/
+
+lists the screen sessions from this user
+
+In order to allow <username> to attach with screen -x to the current session (screen needs to be installed SUID for this to work):
+
+: multi on
+: acladd <username>

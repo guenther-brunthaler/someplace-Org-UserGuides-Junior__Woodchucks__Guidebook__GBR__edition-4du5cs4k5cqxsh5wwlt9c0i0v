@@ -1,0 +1,62 @@
+﻿galculator
+==========
+v2022.101
+
+`galculator` is a GTK+ based desktop calculator application.
+
+It also supports formula entry into a text widget for evaluation. The functions and operators documented below can be used there.
+
+
+Built-in functions
+------------------
+
+* `sin(f)`
+* `asin(f)`
+* `sinh(f)`
+* `asinh(f)`
+* `cos(f)`
+* `acos(f)`
+* `cosh(f)`
+* `acosh(f)`
+* `tan(f)`
+* `atan(f)`
+* `tanh(f)`
+* `atanh(f)`
+* `sqrt(f)`
+* `ln(f)` - base e
+* `log(f)` - base 10
+* `cmp(i)` - 2's complement
+
+
+Built-in operators
+------------------
+
+* `i!` - factorial
+* `~i` - 2's complement
+* `f + f`
+* `f - f`
+* `f / f` - division
+* `f1 % f2` - calculate `f1` percent of `f2`
+* `f1 ^ f2` - raise `f1` to the `f2` th power
+* `i xor i` - bitwise exclusive 'OR'
+* `f1 mod f2` - remainder of division
+* `i1 & i2`, `i1 and i2`
+* `i1 | i2`, `i1 or i2`
+* `i1 << i2` - shift `i1` by `i2` bits to the left
+* `i1 >> i2` - shift `i1` by `i2` bits to the right
+
+
+Built-in prefixes
+-----------------
+
+* `0b` - binary
+* `0x` - hexadecimal
+* `0o` - octal
+
+Those can prefix numeric literals in formulas for indicating an explicit radix base.
+
+
+General information
+-------------------
+
+Functions and operator which require integer operands convert their floating-point arguments into 32 bit integers.

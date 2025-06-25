@@ -1,0 +1,87 @@
+Copy whole filesystems with GNU `tar`
+=====================================
+v2024.58
+
+Add the following options when running GNU tar in order to preserve as many attributes as possible when creating or extracting the archive (as superuser):
+
+----
+--numeric-owner --sparse --xattrs --acls --one-file-system
+----
+
+The last option avoids recursively copying the contents of mounted mount point directories. This is usually what one wants, but one might want to leave it out in specific situations.
+
+GNU tar recognizes and archives existing hard links automatically - no special option needed for that.
+
+The `--acls` and possibly `--xattrs` options may trigger many warnings if the filesystem does not support ACLs or EAs, respectively - test the options first and omit those unsupported by the filesystem in the following instructions.
+
+Here is how to create a local replacement Bourne Shell function for `tar` that will add those options automatically:
+
+----
+$ tar_opts='--numeric-owner --sparse --xattrs --acls' && export tar_opts &&
+tar_xa() { command tar $tar_opts --totals=SIGUSR2 "$@"; } && export -f tar_xa
+
+$ tar_opts='--numeric-owner --nosparse --no-xattrs --no-acls' # Later.
+----
+
+Here is another helper function for locally copying whole directory trees using the above helper function:
+
+----
+$ tar_cp() { test -d "$1" && test -d "$2" && tar_xa -C "$1" -c . | tar_xa -C "$2" -x || echo "failed with RC $?" >& 2; } && export -f tar_cp
+
+$ tar_chk() { killall -USR2 tar; } && export -f tar_chk
+----
+
+And here is how to get rid of the changes to the shell environment later:
+
+----
+$ unset -f tar_xa tar_cp tar_chk; unset PID_OF_TAR
+----
+
+But while the changes are in effect, the `--totals`-Option allows you to
+
+----
+$ tar_cp /src/dir /dst/dir &
+$ tar_chk # Repeat this as often as desired
+----
+
+and tar will display progress information in a format like
+
+....
+Total bytes written: 934277120 (891MiB, 6.0MiB/s)
+....
+
+This is very helpful and does, other than the `-v` option of `tar`, not clutter the display with each and every single filename that is being processed.
+
+The `--numeric-owner` is important that GIDs and UIDs are preserved rather than using the IDs of users/group which the same name. It is important not to forget when this when backing up or restoring data in a root jail which uses different IDs than the outer system from which `tar` is run.
+
+However, *don't* specify `--numeric-owner` if you are exchanging data between a root jail and the outer system - in this case you usually want to map IDs to names rather than the other way around. For the same reason, do not specify the option when exchanging data over the network with `tar` and `netcat` between different hosts.
+
+The `--sparse` option is a real performance hog - omit it if you know there are no sparse files among those to be transferred, or of you don't care to preserve sparseness even if there is.
+
+
+Archiving pathnames in binary collation order
+---------------------------------------------
+
+Sometimes uncompressed tar archives shall be deltified later. In this case it is advantageous if the archive entries always occur in the same order, avoiding unnecessary differences.
+
+Sorting pathnames is an easy way to achieve this, and this is best done locale-independently by interpreting the names as byte strings rather than text strings.
+
+The following command uses the `tar_xa` shell function defined earlier to archive the contents of some directory `$subdir` as archive `$subdir.tar` with sorted pathnames:
+
+----
+$ find -H "${subdir:?}" -print0 | LC_COLLATE=C sort -z | tar_xa -f "${subdir:?}".tar --no-recursion --verbatim-files-from --null -c -T -
+----
+
+The above command relies on the GNU implementations of `find`, `sort` and `tar`.
+
+
+Getting rid of redundant default ACLs
+-------------------------------------
+
+Sometimes after copying with `--acls` from filesystems not supporting ACLs, all directories in the target filesystem get redundant default ACLs which are identical to the normal permissions of the directory.
+
+In order to remove such default ACLs from the current directory and its subdirectories, run the following command in `bash`:
+
+----
+$ find . -type d | while IFS= read -r f; do if cmp -s <(getfacl -a -- "$f") <(getfacl -d -- "$f"); then setfacl -k -- "$f"; fi; done
+----

@@ -1,0 +1,32 @@
+UTF-8 encodes full 21-bit UNICODE characters into variable-length (1 to 4) octet sequences as follows:
+
+0xxxxxxx
+110xxxxx 10xxxxxx
+1110xxxx 10xxxxxx 10xxxxxx
+11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+Only continuation octets may start with a bit-pattern of '10'.
+
+The first octet of the encoding encodes the number of octets in the current encoding. (Which is the same as the number of leading '1'-bits in the first octet, except for the 1-octet case.)
+
+The above encoding variants by usage:
+
+1 octet:: 7 bit - identical to the ASCII character set
+
+2 octets:: 11 bit - remaining characters including combining marks for most languages besides CJK
+
+3 octets:: 16 bit (Basic Multilingual Plane, BMP) - most of CJK languages
+
+4 octets:: 21 bit - rarely used CJK characters and other exotic characters
+
+Not UTF-8 at all, but rather an extension/extrapolation:
+
+111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+11111110 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+5 octets:: 26 bit - can store any 24-bit number, plus 2 bit more
+
+6 octets:: 31 bit - can store full UCS4
+
+7 octets:: 36 bit - can store any 32-bit number, plus 4 bit more

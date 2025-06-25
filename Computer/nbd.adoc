@@ -1,0 +1,121 @@
+NBD
+===
+v2021.365
+
+Network Block Devices act like `/dev/loop*`-devices, except over the network and that no special privileges are required for serving an image file.
+
+There has been a significant change between older legacy and newer NBD versions of the server.
+
+
+`qemu-nbd`
+----------
+
+Newer versions of the `nbd-server` require a configuration file with export definitions which is useless overhead if one just wants to serve a single block device temporarily.
+
+`qemu-nbd` can still serve a single block device without a configuration file like the old versions of `nbd-server` used to do.
+
+
+Server-side
+~~~~~~~~~~~
+
+----
+$ qemu-nbd -r -b 10.0.0.5 -p 12345 -f raw /path/to/absolute/dir/disc.img
+----
+
+This will read-only serve the contents of the disk image (say a DVD-ROM image) on TCP port 12345, reachable only via interface 10.0.0.5 of the local machine.
+
+Without the `-b` and `-p` options, would serve on port `10809` on all local interfaces.
+
+Without the `-r` option, would serve with read/write access by the client.
+
+`qemu-nbd` is much more flexible than the original `nbd-server`. It can also serve `qcow2` image files (which supports multiple snapshots can be created/maintained with `qemu-img`) and other virtual image formats.
+
+Plus the `-s`-option is supported which can be used to allow virtual writes to a read-only disk-image. The writes will be redirected to a temporary file which will be discarded once the current connection ends.
+
+In addition to the things explained above, `qemu-nbd` can also directly attach an image to a local `/dev/nbd*`-device. This can be handy to serve as additional `/dev/loop*`-devices if too few of the latter ones are available.
+
+Also, `qemu-nbd` allows to use UNIX domain sockets rather than TCP sockets. Those are much more secure because they can be protected by UNIX file permissions. Unfortunately, they restrict servers and clients to reside on the same machine. For a lot of virtualization scenarios this may be good enough, however.
+
+
+Remote clients
+~~~~~~~~~~~~~~
+
+Although the original `nbd-client` can be used for accessing NBD devices provided by `qemu-nbd`, the latter program can actually be used as both client and server.
+
+----
+$ qemu-nbd 10.0.0.5 12345 /dev/nbd0 -b 4096 -R
+----
+
+will use the original `nbd-client` to create a read-only connection to the server configured in the example before.
+
+Leaving out the `-R` option enables read/write-support (the server must allow this, too).
+
+Without the `-b`-option, 512 byte blocks would be used for transfer instead of more efficient 4096-byte blocks.
+
+
+Original `nbd-server`
+---------------------
+
+Server-side
+~~~~~~~~~~~
+
+Create a configuration file such as
+
+----
+$ cd /go/to/some/dir
+$ cat > nbd_server.conf << 'EOF'
+# Pass the path of THIS file as the argument of the -C option to nbd-server.
+# A relative path is sufficient for the configuration file.
+
+[generic]
+listenaddr = 0.0.0.0
+allowlist = true
+
+[first_share]
+exportname = /path/to/absolute/dir/disc.img
+readonly = true
+EOF
+----
+
+If the configuration file ever changes, run
+
+----
+$ kill -HUP `cat /run/nbd-server.pid`
+----
+
+in order to make the daemon re-read its configuration file.
+
+Use the same command without the `-HUP` in order to kill shut/down the NBD daemon.
+
+
+Remote clients
+~~~~~~~~~~~~~~
+
+List the available shares on host `$SERVER` (hostname or IP address):
+
+----
+$ nbd-client -l $SERVER
+----
+
+Lets assume you want to connect `/dev/nbd0` to share `$EXPORT` (one of the section names specified in the server's configuration file) on host `$SERVER`:
+
+----
+$ nbd-client $SERVER /dev/nbd0 -name $EXPORT
+----
+
+Security
+--------
+
+If used as described above, NBD is totally insecure. Everyone can read and even write (unless the images are served as read-only). Only use it in trusted LANs or VPNs.
+
+However, NBD connections can be secured via TLS certificates. It is then as secure as much one would trust TLS.
+
+It is also possible to access NBD-devices via SSH tunnels. However, this only protects against external adversaries, because local users can still connect to the local ends of the SSH tunnel.
+
+
+Swapping
+--------
+
+Even though NBD-devices work very reliably in general, they should never be used as swap devices.
+
+Doing so could result in kernel deadlocks if the system is under heavy memory stress. The `-s`-option of `nbd-client` can be used to alleviate this somewhat, reducing the chance of a deadlock significantly. Use this if you need remote swap space desperately. But know that there is no reliable way of swapping via network under Linux. (I presume iSCSI is an exception to that general rule.) This is a kernel restriction and has nothing to do with NBD in particular.

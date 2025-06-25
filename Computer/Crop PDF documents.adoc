@@ -1,0 +1,61 @@
+Crop PDF Documents
+==================
+v2022.317
+
+The measurement unit for PDF is the same as for PostScript: it's called a point (`pt`=).
+
+....
+72 points == 1 inch == 25.4 millimeters
+....
+
+You need to determine the co-ordinates for the part of the page which shall "survive" the cropping operation.
+
+The cropping region is determined by a "crop box", specifying the `LLx, LLy, URx, URy` (`LL` = lower left, `UR`= upper right) values:
+
+----
+$ gs                             \
+  -o cropped.pdf                 \
+  -sDEVICE=pdfwrite              \
+  -c "[/CropBox [10 20 500 700]" \
+  -c " /PAGES pdfmark"           \
+  -f uncropped-input.pdf
+----
+
+In this example, `10 20 500 700` are the co-ordinates of the crop box.
+
+Note that this uses the 'User Space' co-ordinate system where the x-axis extends to the right and the y-axis extents upwards.
+
+However, the above command only works unless the PDF already defines its own CropBox. Otherwise, try the following commands instead:
+
+----
+$ gs                         \
+  -o cropped.pdf             \
+  -sDEVICE=pdfwrite          \
+  -dDEVICEWIDTHPOINTS=595    \
+  -dDEVICEHEIGHTPOINTS=842   \
+  -dFIXEDMEDIA               \
+  -c "10 20 translate"       \
+  -c " 0 0 490 680 rectclip" \
+  -f uncropped-input.pdf
+----
+
+where the `DEVICE...POINTS` are the width/height of the output page (A4 in this example).
+
+
+Alternative: podofobox
+----------------------
+
+----
+$ command -v podofobox || sudo apt-get install libpodofo-utils
+$ podofobox $input_pdf $output_pdf $boxtype $left $bottom $width $height
+----
+
+Use `media` for '$boxtype'.
+
+The numeric values must be specified as 'points' multiplied by 100. (A 'point' is 1/72th of an inch.) They are measured from the lower left corner of the page located at 0/0, with positive co-ordinate values extending to the right and up.
+
+The next example cuts `DIN_A4.pdf` into 3 separate output PDFs, representing the lower, middle and upper third of the input file.
+
+----
+$ for p in 1 2 3; do podofobox DIN_A4.pdf DIN_A4-$p.pdf media 0 $(( ($p - 1) * 28063)) 59528 28063; done
+----

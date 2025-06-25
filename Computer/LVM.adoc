@@ -1,0 +1,79 @@
+LVM2
+====
+v2025.64
+
+
+Units of measurement
+--------------------
+
+When reporting values, `--units` can be used to select binary or decimal measures. In the case, binary values are displayed as lower-case letters, and decimal values are displayed as binary values. So, `1k` means 1024 bytes, but `1K` means 1000 bytes.
+
+When parsing argument values, `lvm2` always treats the letters as binary measures, even when written in upper case. Otherwise, it is like for reporting.
+
+
+lvcreate errors
+---------------
+
+....
+not found: device not cleared
+Aborting. Failed to wipe start of new LV.
+....
+
+Solution: Add "`-Z n`" to lvcreate command line options.
+
+
+VG creation
+-----------
+
+----
+dev=/dev/disk/by-partlabel/vg_n0myhost && vg=${dev##*/}
+
+dev=/dev/mapper/xxxx-level0-dec && vg=${dev%-level*-dec} && vg=vg_${vg##*/}
+
+dev=/dev/mapper/xxxx-level0-dec && vg=vg_xxxx
+
+echo "VG '${vg:?}' @ PV '${dev:?}'."
+
+pvcreate -M lvm2 --bootloaderareasize 0 --dataalignment 4k --metadatacopies 2 "${dev:?}"
+
+vgcreate -M lvm2 --physicalextentsize 16m --dataalignment 4k --metadatacopies 2 "${vg:?}" "${dev:?}"
+----
+
+Notice:
+
+The default metadatasize for a VG seems to be 128 KiB (starting at 4 KiB), which can be concluded from the diagnostic output of `vgcreate`:
+
+....
+Creating metadata area on /dev/mapper/xxxx-level0-dec at sector 8 size 256 sectors
+....
+
+
+Logical Volume creation
+-----------------------
+
+----
+lvcreate -n vol1 -L 10G  "${vg:?}"
+lvcreate -n volN -l 100%FREE  "${vg:?}"
+----
+
+
+Metadata extraction
+-------------------
+
+----
+$ vgdisplay -vvv 2>& 1 | grep -iE 'Found metadata.*text.*at.* size' | uniq
+----
+
+shows:
+
+....
+  Found metadata text at 4608 off 512 size 854 VG (...) on /dev/vda2
+....
+
+Then
+
+----
+$ { head -c 512 > /dev/null; head -c 854; } < "${dev:?}" | less
+----
+
+Hmmm. This just shows the label. This has been more useful once.

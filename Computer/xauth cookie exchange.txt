@@ -1,0 +1,6 @@
+
+Set up $DISPLAY in both hosts; giver and receiver. Then
+
+giver$ xauth extract - "$DISPLAY" > /path/to/shared/fifo
+
+receiver$ xauth merge - < /path/to/shared/fifo

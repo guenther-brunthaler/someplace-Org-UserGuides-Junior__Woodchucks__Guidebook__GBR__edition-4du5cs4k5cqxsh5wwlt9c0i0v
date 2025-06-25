@@ -1,0 +1,39 @@
+﻿Video Display Control with X11/Linux
+====================================
+Günther Brunthaler
+v2019.255
+
+
+Show available selections
+-------------------------
+
+Display a list of available monitors and resolutions:
+
+----
+$ xrandr
+----
+
+
+Change resolution
+-----------------
+
+This only works for the currently active display/monitor:
+
+----
+$ xrandr -s 1920x1080
+----
+
+switches to Full-HD resolution, assuming `xrand` displayed this as one of the available modes.
+
+
+Switch between connected displays
+---------------------------------
+
+Let's say `xrandr` displays 2 connected displays, internal LCD 'LVDS1' (currently active) and externally-connected VGA monitor 'VGA1'.
+
+In order to switch from the internal LCD to the external monitor and then turn off the internal LCD:
+
+----
+$ xrandr --output VGA1 --mode 1920x1080
+$ xrandr --output LVDS1 --off
+----

@@ -1,0 +1,29 @@
+yEnc
+====
+v2023.236
+
+yEnc ("why encode?") is a binary-to-text encoding which requires an 8-bit clean transport channel.
+
+Its overhead is small, typically 2 %.
+
+The downside is that many of the ASCII control characters may occur in the output, which is not compatible with the e-mail or MIME standards.
+
+yEnc is heavily used in UseNet binary groups.
+
+
+Encoding procedure
+------------------
+
+Input byte `inp`, output byte `outp`:
+
+----
+outp := (inp + 42) mod 256
+If outp is_member_of [NUL, LF, CR, optionally(HT), "="]:
+	outp := "=" && (inp + 64)
+----
+
+where
+
+* `&&` is string concatenation and
+
+* `optionally(x)` means `x` may be omitted from the set.

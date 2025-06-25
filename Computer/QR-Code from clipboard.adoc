@@ -1,0 +1,54 @@
+QR-Code from clipboard contents
+===============================
+v2020.177
+
+
+Medium amounts of text
+----------------------
+
+Use for things like a shopping list or full length URLs.
+
+----
+$ xclip -o -selection clipboard | qrencode -r /dev/stdin -o - -t PNG | display -
+----
+
+will display the QR-code as a bitmapped image in a window.
+
+If necessary, the code can be made larger by adding `-s N` where `N` is a pixel count.
+
+
+Very small amounts of text
+--------------------------
+
+Use for things like very short URLs and passwords.
+
+----
+$ xclip -o -selection clipboard | qrencode -r /dev/stdin -o - -t ANSI
+----
+
+will display the QR-code directly within the terminal window.
+
+
+Small amounts of text
+---------------------
+
+Use for things like rather short URLs and longer passwords.
+
+----
+$ xclip -o -selection clipboard | qrencode -r /dev/stdin -o - -t UTF8
+----
+
+Also displays the QR-code directly within the terminal windows, but uses quarter-character block graphics. This effectively doubles the available display width and height for the code.
+
+Requires UTF-8 support in the terminal and a font which contains the quarter-character block graphics.
+
+
+Recommended packages to install
+-------------------------------
+
+The following package and section names refer to Debian 10:
+
+* qrencode (section "utils") for `qrencode` QR encoder
+* imagemagick (section "graphics") for `display` graphics viewer
+* xclip (section "x11") for `xclip` clipboard accessor
+* zbar-tools (section "graphics") for `zbarcam` to decode QR-code from webcam

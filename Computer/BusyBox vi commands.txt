@@ -1,0 +1,122 @@
+BusyBox vi commands
+
+There are 3 modes: Initial/normal mode, insert/overwrite mode, colon mode.
+
+Most vi commands in normal mode can be prefixed by a decimal repetition
+count which must be typed in invisibly before pressing the command key.
+
+Ctrl-G  show current status
+Ctrl-B, PgUp  scroll up full screen
+Ctrl-D  scroll down half screen
+Ctrl-E  scroll down one line
+Ctrl-F, PgDn  scroll down full screen
+h, Left  move left
+Ctrl-J, Enter  insert newline or move to beginning of next line
+j, Down  goto next line, same col
+Ctrl-L  force redraw whole screen
+Ctrl-R  force redraw
+Ctrl-M, Enter  Carriage Return
+Ctrl-U  scroll up half screen
+Ctrl-Y  scroll up one line
+Esc  escape to command mode
+l, Space, Right  move right
+Ins  Enter insert mode or toggle between insert and overwrite mode
+"  name register to use for Delete/Yank with next letter a-z typed
+'  goto mark of next letter a-z typed
+m  Mark current line with next letter a-z typed
+P  Put register before
+p  put register after
+U  Undo; replace current line with original version
+$, End  goto end of line
+%  find matching char of pair () [] {}
+f  forward to a user specified char
+;  repeat latest 'f' in forward direction
+,  repeat latest 'f' in backward direction
+-  goto prev line
++  goto next line
+.  repeat the last modifying command
+/  forward search for a pattern
+?  backward search for a pattern
+n  forward search for last pattern
+N  backward search for last pattern
+0, Pos1  goto begining of line
+<  Left shift something by tab or 8 spaces
+>  Right shift something by tab or 8 spaces
+A  append at EOL
+a  append after current char
+B  back a blank-delimited Word
+E  end of a blank-delimited word
+W  forward a blank-delimited word
+C  Change until EOL
+D  delete until EOL
+g  goto a line number
+gg  goto very first line
+G  goto to a line number (default: EOF)
+H  goto top line on screen
+I  insert before first non-blank
+i  insert before current char
+J  join current and next lines together
+L  goto bottom line on screen
+M  goto middle line on screen
+O  open a empty line above
+o  open a empty line below
+R  continuous Replace char (enter overtype mode)
+X  delete char left of current char
+x  delete the current char
+s  delete the current char then enter insert mode
+ZZ  if modified, {write}; exit
+^  move to first non-blank character in current line
+b  back a word
+e  end of word
+c  change something
+d  delete (move to register) something
+y  yank (copy to register) something
+Y  Yank a line
+Up, k  goto prev line, same col
+r  replace the current char with next char typed
+t  move to char prior to location of next character typed
+w  forward a word
+z  next char typed scrolls current line to: "-" bottom, "." middle, else top
+|  move to column "cmdcnt"
+~  flip the case of letters (a-z -> A-Z)
+{  move to previous paragraph (does not seem to work)
+}  move to next paragraph (line block separated by empty line)
+:  enter colon mode command (see below)
+
+"something" typed after a command in normal mode:
+cdy><  Any of those selects the current line
+^%$0bBeEfthwWH-k{L+j}  Any of those (plus the Enter key plus Ctrl-B)
+pressed as "something" character select all text between the current
+position and the one resulting from temporarily executing the character
+as a movement command.
+
+colon mode commands:
+:x  // save & exit
+:q!  // quit- don't care about modified file
+:3154  // if (test -e line 3154) goto it else stay put
+:4,33w! foo  // write a portion of buffer to file "foo"
+:w  // write all of buffer to current file
+:q  // quit
+:'f  // goto mark "f"
+:'fl  // list literal the mark "f" line
+:.r bar  // read file "bar" into buffer before dot
+:'m,.d  // delete lines from marked with letter 'm to current line
+:/xyz/  // goto the "xyz" line
+:s/find/replace/  // substitute pattern "find" with "replace"
+:!<cmd> // run shell command <cmd> then wait for Return key
+
+address command prefixes in colon mode:
+:.  only the current line
+:13  only line 13 of the whole text
+:'a  only the line marked with letter a
+:%  the line containing matching char of pair () [] {}
+:x,y   all the lines from x to y (both are one or the above)
+
+colon mode "set" commands:
+:set tabstop=zzz  Set tab stops every zzz columns (no change in file)
+:set noxxx  Disables mode xxx
+:set xxx  Enables mode xxx (see remaining lines in section):
+ai, autoindent  copy indentation of previous line into new line
+fl, flash  screen instead of bell in case of errors
+ic, ignorecase  Ignore letter case in searches (only ASCII)
+sm, showmatch  Show matching () [] {} when entering one

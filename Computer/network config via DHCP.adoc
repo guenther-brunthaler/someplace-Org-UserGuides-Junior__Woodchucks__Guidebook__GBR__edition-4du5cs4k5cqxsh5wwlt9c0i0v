@@ -1,0 +1,78 @@
+Network configuration via BusyBox DHCP
+======================================
+v2021.356
+
+. Go to some working directory (best if empty)
+
+. Create a script for dumping its environment
++
+----
+$ echo "set > '`pwd`'/env" > s && chmod +x s
+----
+
+. Let BusyBox query the DHCP server
++
+----
+$ ifc=eth0
+$ ifconfig $ifc 0.0.0.0 up
+$ /boot/bin/busybox udhcpc -i $ifc -s "`pwd`/s" -fqo
+----
+
+Hint: If the DHCP server does not know the desired hostname for your client, add option `-F yourhostname` to the `udhcpc` command line in the script above where `yourhostname` is the desired name. It can either be a fully-qualified name or just a plain hostname. This will make future DHCP requests return this hostname for your client. (Or at least until the DHCP-server loses its volatile state. In case of `dnsmasq` this means loss of the `/var/run/dnsmasq/leases` file.)
+
+. Extract possible DHCP reply values from `env` into file `net`:
++
+--
+----
+$ sed '/^[[:alnum:]_]\{1,\}='\''.*'\''/!d' env > net && rm env
+----
+
+This will get rid of multiline-values, aliases, shell functions and so forth, which may be part of the environment but are of no interest regarding DHCP.
+--
+
+. Examine the contents of file `net`. It will look something like this:
++
+----
+$ cat net
+...
+boot_file='/srv/tftp/pxelinux.0'
+broadcast='10.157.255.255'
+dns='10.157.666.666'
+domain='your.domain.test'
+hostname='yourhostname'
+interface='eth0'
+ip='10.157.777.777'
+lease='4294967295'
+mask='16'
+opt53='05'
+router='10.157.666.666'
+serverid='10.157.666.666'
+siaddr='10.157.666.666'
+subnet='255.255.0.0'
+----
+
+Here, the above example values have the following meanings:
+
+`$dns`:: the list of nameservers
+`$ip`:: The IP address your machine has been assigned to
+`$hostname`:: The hostname of your machine according to the DHCP server
+`$interface`:: Same as `$ifc`.
+`$router`:: The default gateway you might use.
+`$subnet`:: The subnet mask of the local network.
+
+You can now used this information as follows to actually set up networking (review the actual values before doing this and skip all steps for which the DHCP server did not return valid values):
+
+----
+$ "$SHELL" # Use a nested shell so we can pollute its environment
+$ . ./net # Assign settings from `net` to local variables.
+
+$ ifconfig $interface $ip netmask $subnet
+
+$ route add default gw $router
+
+$ for ns in $dns; do echo nameserver $ns; done > /etc/resolve.conf
+
+$ hostname $hostname
+
+$ exit # Return from polluted environment back to original shell instance.
+----

@@ -1,0 +1,47 @@
+﻿Nanometer (Marketing Term)
+==========================
+v2025.97
+
+[options="header,autowidth"]
+|====
+| Process | Gate pitch | Metal pitch | Year 
+| 7 nm    | 60 nm      | 40 nm       | 2018 
+| 5 nm    | 51 nm      | 30 nm       | 2020 
+| 3 nm    | 48 nm      | 24 nm       | 2022 
+| 2 nm    | 45 nm      | 20 nm       | 2025 
+| 1 nm    | 42 nm      | 16 nm       | 2027 
+|====
+
+As such, 'nm' is used primarily as a marketing term by the semiconductor industry to refer to a new, improved generation of chips in terms of increased transistor density (a higher degree of miniaturization), increased speed, and reduced power consumption compared to the previous node generation.
+
+Historically, the number used in the name of a technology node represented the gate length, but it started deviating from the actual length to smaller numbers (by Intel) around 2011.
+
+
+MOSFET scaling (process nodes)
+------------------------------
+
+* 020 μm - 1968
+* 010 μm - 1971
+* 006 μm - 1974
+* 003 μm - 1977
+* 1.5 μm - 1981
+* 001 μm - 1984
+* 800 nm - 1987
+* 600 nm - 1990
+* 350 nm - 1993
+* 250 nm - 1996
+* 180 nm - 1999
+* 130 nm - 2001
+* 090 nm - 2003
+* 065 nm - 2005
+* 045 nm - 2007
+* 032 nm - 2009
+* 028 nm - 2010
+* 022 nm - 2012
+* 014 nm - 2014
+* 010 nm - 2016
+* 007 nm - 2018
+* 005 nm - 2020
+* 003 nm - 2022
+* 002 nm - 2025
+* 001 nm ~ 2027

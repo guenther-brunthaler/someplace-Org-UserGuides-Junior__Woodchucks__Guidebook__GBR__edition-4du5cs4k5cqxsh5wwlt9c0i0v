@@ -1,0 +1,474 @@
+Debian Package Management
+=========================
+Guenther Brunthaler
+v2024.74
+
+
+Abstract
+--------
+
+This guide explains how to create, extract and examine Debian binary packages manually using various special utilities provided for those tasks.
+
+It also explains how to handle configuration file updates and obtain missing package signing keys.
+
+It does *not* explain the various ways to create packages manually or extract further information from them. (Use the link:Debian%20Package%20Building.html[Debian Package Building] guide for that instead.)
+
+
+Basic update procedure
+----------------------
+
+The following commands are assumed to be run as user `root` (otherwise they need to be prefixed with `sudo`):
+
+----
+apt-get update
+debdelta-upgrade --deb-policy ""
+apt-get upgrade # --with-new-pkgs
+----
+
+The `debdelta-upgrade` is optional and only works if a delta-upgrades server is actually available. This is usually only the case for the stable main version of the official primary Debian distribution.
+
+In fact, the `debdelta-upgrade` is normally left out, and only attempted after `apt-get upgrade` asks whether upgrades should actually be downloaded (which is then denied and `debdelta-upgrade` is run instead).
+
+The `--with-new-pkgs` is normally not needed. But sometimes `apt-get upgrade` complains about some packages held back from upgrades because they depend on other packages which are "not going to be installed". In this case, adding the `--with-new-pkgs` option allows the installation of those new dependencies, and thus the depending packages will no longer held back and will be upgraded.
+
+Note that while `apt-get dist-upgrade` has a similar effect as `apt-get upgrade --with-new-pkgs` it can be dangerous, because it will also remove installed packages automatically which are no longer compatible with available upgrades of some packages. Such upgrades normally only occur when migrating to a new release of some Debian-based Linux distribution.
+
+Another option is to download the `*.deb` files required by updates manually and place them into the `/var/cache/apt/archives/` directory. Then use
+
+----
+$ apt-get upgrade --no-download --ignore-missing # --with-new-pkgs
+----
+
+in order to install available upgrades, but only those which can already by found in `/var/cache/apt/archives/` and need not be downloaded any more.
+
+The files which need to be downloaded manually can be determined by
+
+----
+$ apt-get upgrade --print-uris -qq # --with-new-pkgs
+----
+
+This will display a list of download URLs as well as the corresponding file names under which to save the downloaded files in `/var/cache/apt/archives/`, plus some additional information such as file size.
+
+
+Problems with Ownership
+-----------------------
+
+The commands in this guide have a problem:
+
+CAUTION: Packages built with `dpkg-deb -b` install files with wrong owners/groups when built by an unprivileged user.
+
+To be more specific, they record the actual ownership at the time the package is created. Which makes it normally necessary to `chown` the files to 'root' before creating the packages, unless special tools (maybe `fakeroot`?) are used to trick the package creation utilties accordingly.
+
+
+Automatically installed dependencies
+------------------------------------
+
+Every time "`apt-get install`" or "`dpkg -i`" is used to install, upgrade or re-install a package, this package is also registered as 'manually installed'.
+
+This means it will never be automatically uninstalled if it is no longer required by other packages. Be sure to run
+
+----
+$ apt-mark auto $PACKAGE.deb
+----
+
+after (re-) installation in order to reset the state to 'automatically installed' if the package is intended to serve only as a dependency for other packages.
+
+
+Installing packages non-interactively
+-------------------------------------
+
+When installing a large number of packages from a listing file, it is annoying if apt prompts interactive questions from time to time. It is also rather useless to write installation logs for a huge number of packages installed by such a batch installation.
+
+Use this command to install all packages from file 'list.txt' non-interactively:
+
+----
+$ while read p; do echo "**** $p ****"; DEBIAN_FRONTEND=noninteractive apt-get install -o Dir::Log::Terminal=/dev/null -o Dir::Log::History=/dev/null --assume-yes $p; echo "### waiting..."; sleep 1; done < list.txt
+----
+
+This also allows one to interrupt processing temporarily with `[Ctrl]+[z]` in order to run corrective manual `apt`- or `dpkg`-commands at the 'waiting...'-prompt before resuming batch installation with `fg`.
+
+
+Preferred commands
+------------------
+
+There are many tools available for modifying Debian archive files and dealing with packages.
+
+However, not all of those tools are always installed. The following tools will always be available because they are part of the low-level core package handling tools:
+
+----
+dpkg
+dpkg-deb
+----
+
+The following tools will also always be available on normal systems, but are less low-level and might therefore possibly not be available on stripped-down-to-the-bare-essentials system installations:
+
+----
+apt-get
+apt-cache
+apt-mark
+----
+
+
+Determine to which package a file belongs
+-----------------------------------------
+
+Use `dpkg -S` for this, passing the absolute name of the file, directory or other file system object which has been installed by some package as the argument.
+
+Any symlinks present in the pathnames to be checked should be resolved first.
+
+Example:
+
+----
+$ what=awk
+$ command -v -- "$what"
+/usr/bin/awk
+
+$ dpkg -S -- "$(command -v -- "$what")"
+dpkg-query: no path found matching pattern /usr/bin/awk
+
+$ readlink -f -- "$(command -v -- "$what")"
+/usr/bin/gawk
+
+$ dpkg -S -- "$(readlink -f -- "$(command -v -- "$what")")"
+gawk: /usr/bin/gawk
+----
+
+
+Extracting package name from .deb file
+--------------------------------------
+
+`dpkg-deb -W <file>.deb` extracts the actual package name as well as the package version from the file and prints both in that order as a single line, separated by ASCII `HT`.
+
+
+Show package information about a .deb file
+------------------------------------------
+
+`dpkg-deb -I <file>.deb` (upper case `I` like in `Internet`) displays the contents of `<file>.deb`'s control file as well as additional statistics about the metadata size.
+
+Use it for a quick peek what's the purpose of the package without actually unpacking it.
+
+
+Show files which would be installed by a .deb file
+--------------------------------------------------
+
+`dpkg-deb -c <file>.deb` displays the contents of the files which would be installed by `<file>.deb`, excluding any metadata information or files dynamically created on-the-fly be the installation script.
+
+Use it for a quick peek what "normal" files the package would install without actually unpacking it.
+
+
+Unpacking and rebuilding a `.deb` installation archive
+------------------------------------------------------
+
+The following command unpacks the contents of a `.deb` file in such a way that the `.deb` file can be rebuilt later as a new `.deb` file which provides the identical functionality.
+
+----
+$ dpkg-deb -R /var/cache/apt/archives/dpkg_1.18.25_armhf.deb dpkg_files
+----
+
+The 2nd non-option argument specifies the directory where to extract the files to, including a `DEBIAN`-subdirectory containing the package metadata. The output directory must not exist yet and will be created.
+
+For rebuilding the the contents of `dpkg_files` as a new file `./dpkg_files.deb`, run the following command:
+
+----
+$ dpkg-deb -b dpkg_files
+----
+
+Both commands are useful for modifying the Debian control file of an existing package, which can be found as `DEBIAN/control` within the extracted directory structure.
+
+
+Interacting with `aptitude`
+---------------------------
+
+`aptitude` can be used either as a command-line interface or - without arguments - as a text-mode GUI.
+
+
+Show packages selected to be installed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following command displays a list of package names which have been selected for installation (but have not actually been installed yet) during an interactive `aptitude` session:
+
+----
+$ aptitude search -F %p '?action(install) !~M'
+----
+
+The list will not contain indirectly pulled-in dependencies, only top-level packages.
+
+For getting a list of package names (including pulled-in dependencies) and download URLs of packages not yet present in the local package download cache, put the list of files into file `$PKG_LIST` and execute the following command:
+
+----
+$ apt-get install --print-uris -qq `cat < "$PKG_LIST"`
+----
+
+There is also a script `apt-get-uris2dls.sh` into which the output of the above command can be piped, which will create a `wget`-based shell script for downloading all the package files from `$PKG_LIST`.
+
+
+Display a list orphaned packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following command displays a list of packages which are currently installed, but are no longer present in the current package tree found in `/etc/apt/sources.list` and `/etc/apt/sources.list.d`:
+
+----
+$ aptitude search -F %p '~i ~o'
+----
+
+Those packages cannot be upgraded any longer. They cannot be installed via `apt-get install` either once they have been uninstalled.
+
+This command is especially useful before a release upgrade via `apt-get dist-upgrade` in order to detect old packages which are no longer supported by the new release. Such orphaned packages often cause dependency resolution failures.
+
+Note though that this command will also display custom-created packages and manually-installed packages which have been downloaded from non-standard repositories. So it is wise to review the list before blindly uninstalling any of the shown packages.
+
+
+Cancel scheduled actions
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+When an interactive `aptitude` session is quit, the program remembers any actions which have been scheduled for execution, but have not yet been executed. This allows continuing where one left off when the next interactive session is started.
+
+Sometimes it is useful to forget all those scheduled actions. This can be done with the following command:
+
+----
+$ aptitude keep-all
+----
+
+Note that there is also a menu command for this purpose in the `aptitude` GUI. However, the `aptitude` GUI sometimes crashes when starting because of scheduled actions, and in this case the menu command can never be reached. The above command-line command still works in those cases.
+
+
+Creating a minimum .deb package from scratch
+--------------------------------------------
+
+This can be useful for manually creating metapackages which install no files but declare dependencies.
+
+But it can also register files as being part of the package, so they will be removed automatically when the package is uninstalled.
+
+First, an empty package directory needs to be populated with a package description file:
+
+----
+no_maintainer=false
+test -e stage && rm -ri stage
+mkdir -p stage/DEBIAN
+user=`id -un`
+fullname=`grep ^$user: /etc/passwd | cut -d : -f 5 | cut -d , -f 1`
+test "$LOGNAME" && user=$LOGNAME
+test "$USER" && user=$USER
+test "$fullname" || fullname=$user
+host=`hostname -f`
+test "$host" || host=localhost
+test "$EMAIL" && host=$EMAIL
+fullname="$fullname <$user@$host>"
+$no_maintainer && fullname='None <none@nowhere.invalid>'
+cat << EOF > stage/DEBIAN/control
+Package: google-authenticator
+Version: 1.0
+Architecture: all
+Maintainer: $fullname
+Depends: libpam-google-authenticator, c-compiler, autoconf, automake, libtool, libpam0g-dev, libqrencode3
+Provides: meta-03e4d2fe9e3b11e88c3db827
+Section: misc
+Priority: optional
+Multi-Arch: foreign
+Description: Build and runtime dependencies for manually-installed package google-authenticator
+EOF
+----
+
+Edit and customize this file `stage/DEBIAN/control`, and optionally add normal files to the `stage` directory.
+
+TIP: The utility `installwatch` (from the 'checkinstall' package) often comes handy in capturing a list of files which have been installed by "make install" or other installation commands.
+
+
+Optionally, you can add a unique name suffix to the package name by adding a hash of the control file. This minimizes the chance for name clashes with package names used by any existing package:
+
+----
+if { : | md5sum | grep ^d4; } > /dev/null 2>& 1
+then
+        md5() {
+                md5sum -b | sed 's/ .*//'
+        }
+elif { : | openssl md5 | grep ' d4'; } > /dev/null 2>& 1
+then
+        md5() {
+                openssl md5 | sed 's/.*[[:space:]]//'
+        }
+else
+        die "md5sum or openssl is required to be installed!"
+fi
+
+sed -i 's/\(Package:.*\)-[0-9a-f]\{24\}$/\1/' stage/DEBIAN/control
+id=`md5 < "stage"/DEBIAN/control | cut -c 1-24`
+sed -i 's/^Package:.*/&-'$id'/' stage/DEBIAN/control
+----
+
+Finally, build the package archive file with:
+
+----
+dpkg-deb -b -Z none stage
+----
+
+This assumes the package will only be built temporarily for immediate installation. For long-term archival, remove the `-Z` option which will enable package compression.
+
+When actually installing `stage.deb` later, those additional files (but not the `DEBIAN` metadata subdirectory) will be installed to the root of the filesystem:
+
+----
+$ dpkg -i stage.deb
+----
+
+Renaming package files into proper repository names
+---------------------------------------------------
+
+Build commands like "`dpkg-deb -b`" usually create the binary package with an arbitrary user-defined name, but this might not be the name which should be used when uploading the package to an actualy package repository.
+
+The `dpkg-name` utility can be used to rename a package file based on the contents of its control file, and optionally also move it into a repository directory.
+
+That utility accepts a list of current `.deb` pathnames as arguments and renamed all of them.
+
+WARNING: `dpkg-name` does *not* support standard unix option switch clustering - all options must be provided as separate initial arguments.
+
+The following options are useful with `dpkg-name`:
+
+* `-k` - create symlinks rather than actually renaming/moving. Important: Requires absolute package pathnames as arguments to work correctly.
+
+* `-o` - do not complain about already-existing target files but rather overwrite them unconditionally
+
+* `-s` '<repo_root_dir>' - move (or symlink) the renamed file also a the specified directory.
+
+* `-c` (WARNING - does not seem to work sometimes for no obvious reason) do not just rename the actual package file name, but also move it into a proper subdirectory structure as expected in a real Debian repository. Unless `-s` is also specified, creates the subdirectory structure in the current directory.
+
+
+Upgrading configuration files
+-----------------------------
+
+
+Shipped configuration files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These are files which are usually provided by upstream and actual versions of those files are present in the package archive files.
+
+Define helper functions first:
+
+----
+$ e() { n=`find /etc -name "*.dpkg-dist" | head -n 1` && o=${n%.*} \
+  && u=$o.upstream && imediff -o "$o" "$o" "$n"; }; \
+  d() { diff -u "$o" "$n"; }; c() { rm -- "$n"; }
+----
+
+Then use `e` to merge the next difference, `d` to compare the result against remaining upstream changes, `c` to commit the changes (remove upstream copy).
+
+When you are done, undefine the helpers with
+
+----
+$ unset -f e d c && unset o n u
+----
+
+
+Dynamically created configuration files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Those are files algorithmically generated by pre- or postinstallation scripts, and no actual copies of those files exists in the package archives. Sometimes, such files are derived by expanding templates shippt as part od the package archives, though.
+
+Such configuration files are handled differently and modified versions of those files may be created with file extensions `.ucf-old` (old version of the file which shall be replaced, it is unclear whether it is the old user's or the old upstream version), `.ucs-new` (maybe the new version to be used for replacement) and `.ucs-dist` (the upstream version? I rather doubt that).
+
+A list of all dynamically generated configuration files as well as the packages to which they belong can be found in:
+
+----
+$ head -n 4 /var/lib/ucf/registry
+openssh-server   /etc/ssh/sshd_config
+localepurge      /etc/locale.nopurge
+chrony   /etc/chrony/chrony.conf
+chrony   /etc/chrony/chrony.keys
+----
+
+For all those files, the MD5 checksums of upstream-versions can be found in:
+
+----
+$ head -n 4 /var/lib/ucf/hashfile
+2cd28b9ea2133676fd51565128b12d29  /etc/chrony/chrony.conf
+73804919088bf06f338cc03296eb0bcf  /etc/chrony/chrony.keys
+c684a431cd2e8596ab8c791fc8711570  /etc/default/dictd
+463e97154b082c35947a0b026d1caa49  /etc/dma/dma.conf
+----
+
+and copies of the previous user-modified version of files seem to be available in:
+
+----
+$ find /var/lib/ucf/cache -type f | head -n 4
+/var/lib/ucf/cache/:etc:apt:listchanges.conf
+/var/lib/ucf/cache/:etc:locale.nopurge
+/var/lib/ucf/cache/:etc:samba:smb.conf
+/var/lib/ucf/cache/:etc:idmapd.conf
+----
+
+
+Obtaining missing package signing keys
+--------------------------------------
+
+If you get error messages like "NO_PUBKEY BB23C00C61FC752C", use the following command to get and import such a missing key:
+
+----
+$ sudo gpg --keyserver hkps://keys.openpgp.org --recv-key BB23C00C61FC752C
+$ sudo gpg -a --export BB23C00C61FC752C | sudo apt-key add -
+----
+
+
+More useful documentation links
+-------------------------------
+
+http://www.fifi.org/doc/libapt-pkg-doc/dpkg-tech.html/
+
+
+Fetching debugging symbols
+--------------------------
+
+Sometimes when a package is broken, expecting a post-mortem dump or just examining a hanging program in the debugger can be useful.
+
+In order for this to be useful, at least the debugging symbols are required. The source files should also be installed, unless you like debugging disassembled assembler source code.
+
+The easiest way to get the debugging symbols are to look into the "pool" subdirectory where the original package can also be found for download.
+
+As an example:
+
+....
+http://deb.debian.org/debian-debug/pool/main/t/thunderbird/thunderbird_91.7.0-2_i386.deb
+....
+
+and
+
+....
+http://deb.debian.org/debian-debug/pool/main/t/thunderbird/thunderbird-dbgsym_91.7.0-2_i386.deb
+....
+
+Be sure that the exact version number of the package and its debugging symbol is exactly the same!
+
+
+Low-level package installation
+------------------------------
+
+Sometimes you want to need to enforce the installation of a package.
+
+Let's say you have a package
+
+----
+$ pn=somepackage pv=1_3.5-1 arch=armhf
+----
+
+where the corresponding installation archive file has been saved as "`/var/cache/apt/archives/somepackage_1_3.5-1_armhf.deb`".
+
+Then you can enforce its installation via
+
+----
+$ dpkg  --force-all -i /var/cache/apt/archives/${pn:?}_${pv:?}_${arch:?}.deb
+----
+
+This is exactly the same as the sequence of the following two commands
+
+----
+$ dpkg --unpack --force-all /var/cache/apt/archives/${pn:?}_${pv:?}_${arch:?}.deb
+$ dpkg --configure --force-all ${pn:?}
+----
+
+It is sometimes necessary to first install all the executables and libraries before trying to `--configure` them, because `--configure` requires files which have not been installed yet.
+
+In this case, `dpkg -i` won't work properly, and it is best to `--unpack` all the packages first and to `--configure` them later.
+
+The following command displays the list of packages for which only be `--unpack` has been run so far and which still need `--configure` in order to be completely installed:
+
+----
+$ awk '$1 == "Package:" {p = $2} $1 == "Status:" {for (i = 1; i <= NF; ++i) if($i == "unpacked") print p}' /var/lib/dpkg/status
+----

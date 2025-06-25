@@ -1,0 +1,34 @@
+File type associations
+======================
+v2021.300
+
+How to create a custom file type and associate it with some applications using a typical Linux desktop environment.
+
+First you should install the `xdg-mime` utility. (On Debian systems, it is part of the `xdg-utils` package.)
+
+The utility can report the MIME-type of a given document file, and report or set the application which will be invoked by default when clicking on a document of that type.
+
+It can also install a user-provided XML-file which contains rules how to determine a specific MIME type and what the name of that MIME type shall be.
+
+The file can be installed either for the current user (which will typically put it into the `~/.local/share/mime/` directory) or system-wide (this normally then goes to `/usr/share/mime/`).
+
+Note that the file will be physically copied there; unless you intend to delete the file later there is no reason to keep the original file once it has been imported by the `xdg-mime install` command.
+
+Also make sure that the name of the file is unique, because its name must not collide with any of the other XML files already registered. I recommend including the date/time, a random number or a UUID into the name.
+
+Finally, the XML file can be uninstalled.
+
+But there is no command to retrieve the XML file for examination.
+
+After installing or uninstalling an MIME-type definition XML file, one of the commands
+
+----
+$ update-mime-database ~/.local/share/mime/
+$ sudo update-mime-database /usr/share/mime/
+----
+
+(depending where the XML file was put or deleted) should be run in order to update the MIME-type caches which are actually used by the system.
+
+The `man`-page of `xdg-mime` contains an example how the XML file should look like. Look into `/usr/share/mime/` for more practical examples.
+
+For more details, see the freedesktop.org Standard https://specifications.freedesktop.org/mime-apps-spec/latest/[Shared MIME-info Database ('shared-mime-info-spec')].

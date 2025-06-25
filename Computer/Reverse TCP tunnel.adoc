@@ -1,0 +1,337 @@
+Setting up a reverse TCP tunnel
+===============================
+Version 2025.169
+
+This guide sets on a tunnel server process on a machine with public IP adress (i. e. not hidden behind a proxy).
+
+Then a machine hidden behind a proxy or firewall creates a tunnel to that server, allowing one of its hidden services to be reached via the tunnel.
+
+Finally, a client accesses the hidden machine's service via the tunnel server machine.
+
+
+Example values for variables
+----------------------------
+
+Do *not* use the values from this section; they are just examples in order to give you an idea what to use as values. In order to actually set the variables, use the commands from the Section <<CONFIG,Configuration>>.
+
+The IP address or DNS name of the machine which shall act as the tunnel server which is reachable by everyone:
+
+----
+$ tunnel_server=210.217.99.34
+----
+
+The port to which the hidden server will connect at the tunnel server, creating a reverse tunnel from the tunnel server to the hidden server:
+
+----
+$ tunnel_server_revtunnel_port=443
+----
+
+The address used by the hidden server to reach itself:
+
+----
+$ hidden_server_reaches_itself=127.0.0.1
+----
+
+The port of the TCP service on the hidden server to which the clients shall be able to connect to:
+
+----
+$ port_of_hidden_service=22
+----
+
+The port on the tunnel server to which all clients will connect, and the connections will be forwarded to the hidden server:
+
+----
+$ tunnel_server_forwarded_port=10022
+----
+
+This name will be used to modify the actual port numbers to be used. This allows multiple tunnel instances to exist on the same tunnel server computer. vars.env will contain the base port numbers and the hostname to be used for indexing them. vars2.env will contain the hostname-derived actual port numbers to be used by the tunnel instance associated with the specified hostname.
+
+----
+$ hidden_server_hostname=xquad
+----
+
+
+[[CONFIG]]
+
+Configuration
+-------------
+
+This command lets you customize default settings and create a configuration file `vars.env` and creates another file `vars2.env` with postprocessed settings of the first file.
+
+----
+$ cat << EOF1 > vars2.env && test -e vars.env || { mv vars2.env vars.env && "${EDITOR:-${VISUAL:?Please set variable EDITOR}}" vars.env; } && . ./vars.env && cat vars.env - << EOF2 >> vars2.env && . ./vars2.env && cat << EOF3 >> vars2.env && . ./vars2.env && cat << EOF4 >> vars2.env && . ./vars2.env && cat << EOF5 >> vars2.env && . ./vars2.env || echo FAILURE
+client_options=keepalive,keepidle=60,keepintvl=1200,keepcnt=2
+server_options=reuseaddr,\$client_options,fork
+tunnel_respawn_seconds=10
+tunnel_server=8.8.8.8 # Definitely change this!
+tunnel_server_forwarded_port=54000
+tunnel_server_revtunnel_port=54100
+hidden_server_reaches_itself=127.0.0.1
+port_of_hidden_service=22
+hidden_server_hostname= #`hostname` # Uncomment this for host-specific tunnel port numbers
+EOF1
+ti=`test "$hidden_server_hostname" && printf %s:%s $hidden_server_hostname $port_of_hidden_service | cksum | awk '{print $1 % 100}' || echo 0`
+EOF2
+tunnel_server_forwarded_port=`expr $tunnel_server_forwarded_port + $ti`
+tunnel_server_revtunnel_port=`expr $tunnel_server_revtunnel_port + $ti`
+EOF3
+receiver_cmd="socat STDIO TCP-LISTEN:$tunnel_server_forwarded_port,bind=$tunnel_server,$server_options"
+EOF4
+receiver_cmd=`echo \"$receiver_cmd\" | sed 's/[:,]/\\\\&/g'`
+EOF5
+----
+
+Note that you don't have to source anything yourself; the above command will do everything.
+
+But if you neet do re-source the settings, note that you need to source vars2.env rather than vars.env. (The latter will only be used to create different tunnel instances, details can be found further down this document.)
+
+
+Start the tunnel server process
+-------------------------------
+
+This must be run on the tunnel server machine to create a script for running the tunnel server:
+
+----
+$ echo "socat -d -d TCP-LISTEN:$tunnel_server_revtunnel_port,bind=$tunnel_server,$server_options EXEC:\"$receiver_cmd\"" > "serve_tunnel_to_${hidden_server_hostname}_port$port_of_hidden_service.sh"
+----
+
+
+Start the reverse tunnel provider
+---------------------------------
+
+This must be run on the hidden server machine to create a script for establishing the reverse tunnel:
+
+----
+$ echo "while true; do socat TCP:$tunnel_server:$tunnel_server_revtunnel_port,$client_options TCP:$hidden_server_reaches_itself:$port_of_hidden_service,$client_options; sleep $tunnel_respawn_seconds; done" > "establish_reverse_tunnel_from_${tunnel_server}_back_to_${hidden_server_hostname}_port${port_of_hidden_service}.sh"
+----
+
+Here is a more sophisticated script for doing the same:
+
+----
+$ { cat << E1 && cat << 'E2' && cat << E3 && cat << 'E4'; } > fernwartungs-tunnel-alle-3-stunden-oeffnen
+#! /bin/sh
+trap 'echo "Tunnel closed!"; exit' INT
+common=$client_options
+E1
+delay=`expr x"$0" : x'.*[^0-9]\([0-9]\{1,\}\)'`
+case `expr x"$0" : x'.*[0-9][^[:alpha:]]*\([[:alpha:]]\{1,\}*\)'` in
+        sekunden | seconds) factor=1;;
+        minuten | minutes) factor=60;;
+        stunden | hours) factor='60 \* 60';;
+        *) false || exit
+esac
+delay=`eval expr $delay \\\\* $factor`
+
+while :
+do
+        echo "Press [Strg]+[c] to stop the tunnel! (`date`)"
+        socat \
+E2
+                TCP:$tunnel_server:$tunnel_server_revtunnel_port,\$common \\
+                TCP:$hidden_server_reaches_itself:$port_of_hidden_service,\$common
+E3
+                sleep $delay
+done
+E4
+chmod +x fernwartungs-tunnel-alle-3-stunden-oeffnen
+cat << EOF > fernwartungs-tunnel-oeffnen
+#! /bin/sh
+exec fernwartungs-tunnel-alle-10-sekunden-oeffnen
+EOF
+chmod +x fernwartungs-tunnel-oeffnen
+ln -s fernwartungs-tunnel-oeffnen fwt
+ln -s fernwartungs-tunnel-alle-3-stunden-oeffnen \
+ fernwartungs-tunnel-alle-10-sekunden-oeffnen
+ln -s fernwartungs-tunnel-alle-3-stunden-oeffnen \
+ fernwartungs-tunnel-alle-7-minuten-oeffnen
+ln -s fernwartungs-tunnel-alle-3-stunden-oeffnen \
+ fernwartungs-tunnel-alle-30-minuten-oeffnen
+ln -s fernwartungs-tunnel-alle-3-stunden-oeffnen \
+ fernwartungs-tunnel-alle-6-stunden-oeffnen
+----
+
+How external clients access the hidden service
+----------------------------------------------
+
+Obviously, this is application-specific. The solution presented here works if the hidden service is SSH. This creates a script for establishing an SSH connection. Edit if a different kind of connection is needed:
+
+----
+$ echo "ssh -p $tunnel_server_forwarded_port $tunnel_server" > "connect_to_${hidden_server_hostname}_port${port_of_hidden_service}_via_$tunnel_server.sh"
+----
+
+
+Modifying an existing configuration
+-----------------------------------
+
+Just
+
+----
+$ "${EDITOR:-$VISUAL}" vars.env
+----
+
+to update your existing settings, then re-run the above configuration command. It will update `vars2.env` based on your modifications of `vars.env`, and then load the settings from it into the variables of the current shell.
+
+
+When the configuration is final
+-------------------------------
+
+After the script files have been created and no more changes are likely to become necessary, the configuration files are not needed any more, and can optionally be removed:
+
+----
+$ rm vars.env vars2.env
+----
+
+
+Fine-tuning the generated scripts
+---------------------------------
+
+After the generated scripts have been tested to basically work, they can be improved.
+
+Improving a `serve_tunnel_to_...`-script:
+
+----
+socat -d -d TCP-LISTEN:...
+----
+
+The improvement consists of adding the "`-d -d`" Options to the `socat` command. This will make the command log to the current terminal if a connection has been established or terminated (e.g. due to the timeout for joining an existing tunnel for establishing an ssh session).
+
+Improving a `connect_to_...`-script:
+
+----
+#! /bin/sh
+trap 'echo "Tunnel closed!"; exit' INT
+common=keepalive,keepidle=60,keepintvl=1200,keepcnt=2
+while :
+do
+	echo "Press [Strg]+[c] to stop the tunnel! (`date`)"
+	socat \
+		TCP:99.99.99.99:99999,$common \
+		TCP:127.0.0.1:999,$common
+		sleep `expr 5 \* 60`
+done
+----
+
+is a version of the script which polls the tunnel server every 5 minutes in case it is not reachable.
+
+Because of the 1-minute timeout, this means that it will be necessary to wait up to 4 minutes before reaching the local host via the reverse tunnel from the outside.
+
+Adjust the values in the `expr` command in order to shorten or enlarge the polling interval. The recommended delay for a permanent tunnel are 10 seconds.
+
+However, if the tunnel server will only be made available on demand, larger delays are better - minimum 2 minutes, but better several hours.
+
+
+Using a cron job
+----------------
+
+The best way to enable periodic remote administration sessions might be a cron job which tries to connect to the tunnel server periodically.
+
+For instance, the following cron job will try to connect every day at 01:30 in the morning:
+
+----
+$ crontab -l
+#m h  dom mon dow   command
+30 1    *   *   *   ~/.local/libexec/remote-acess-check
+----
+
+and here are the contents of the executable script `~/.local/libexec/remote-acess-check`:
+
+----
+#! /bin/sh
+# Opportunity for a few minutes of establishing a remote access tunnel. common=keepalive,keepidle=60,keepintvl=1200,keepcnt=2
+socat \
+	TCP:99.99.99.99:99999,$common \
+	TCP:127.0.0.1:999,$common \
+	> /dev/null 2>& 1
+----
+
+The `socat`-Befehl is the same as the one from the `connect_to_...`-script, but the rest has been discarded. The loop and wait-delay are replaced by `cron` invocations.
+
+
+Start a temporary connection recovery loop
+------------------------------------------
+
+The following file `tunnel_bg.history`
+
+----
+# Open a reverse tunnel for remote access in the background so that it
+# will not be killed by a SIGHUP, i. e. by logging out.
+# Start.
+(trap '' HUP; sh /path/to/connect_to_... > /dev/null 2>& 1 < /dev/null) &
+# Finished.
+----
+
+contains an invocation of one of the improved `connect_to_...`-scripts (which must be replaced in the above listing). It is recommended to use a version of the script with a 10 second polling interval for this purpose.
+
+This command can then be sourced into the current bash history via
+
+----
+bash$ history -r /path/to/tunnel_bg.history
+----
+
+Pressing the cursor up key several times fetches this history entry, allowing to re-execute it.
+
+This will launch the the command in the background in such a way, that logging off will terminate the tunnel, but it will be re-established within 10 seconds.
+
+This allows frequent separate logins rather than just once a day as provided by the cron job.
+
+Once the remote administration session is complete, a `kill` command can be sent via SSH in order to kill the process executing the command from `tunnel_bg.history`, thus stopping the frequent polling of the tunnel server.
+
+
+Cleanly terminate a tunnel-keeper process 
+-----------------------------------------
+
+Let's say you have the script `fernwartungs-tunnel-alle-10-sekunden-oeffnen` running in a 'GNU screen' or 'termux' session on the remote machine using SSH connection sharing, but want to terminate all remote access processes involved there.
+
+If you press [Ctrl]+[c] to terminate the tunnel process, the connection will die, but the 'screen' or 'termux' session will still be running. Also, you will have a dead shared connection, because there was no time to send the "-O exit" command before the tunnel collapsed.
+
+Do the following in order to avoid those problems.
+
+* Install the `reptyr` utility onto the remote machine.
+
+* Use a non-shared SSH-Session (i.e. `ssh -o ControlPath=none user@remote.com`) for keeping the tunnel from your box to the remote box alive.
+
+* Use port forwarding (`ssh -L`) with the non-shared connection in order to connect additional local ports of your box with the SSH-Port on the remote machine.
+
+* Use only those local-port connections for logging into the remote machine as users for doing work. Do not use the non-shared connection for actual work. Just keep the shell running there idle.
+
+* Configure SSH connection sharing by default for the remote box, except for the non-shared tunnel-keeper connection. This eliminates the problem that only a single SSH-connection can be forwarded through the tunnel at any time. It also allows the remote box to run `sshd` as an `inetd` process rather than as a dedicated server. The high startup overhead induced by `inetd` would normally be a problem. But SSH connection sharing ensures the connections are relatively long-lived and few, so this problem goes away.
+
+Now take the following steps to terminate your remote-access session and keep no other processes than `inetd` running.
+
+First, exit all your normal shells in `screen`/`tmux`. Also kill any background processes you started (e.g. `x11vnc` or `wayvnc`).
+
+Cancel any additional forwarding you might have established (e.g. for screen access via VNC).
+
+Now only three processes initiated for remote access should be running:
+
+. The non-shared SSH shell, where the port-forwardings for different user connections are running, as well as representing the primary tunnel connection.
+
+. The `fernwartungs-tunnel-alle-10-sekunden-oeffnen` script as the only left-over 'screen' shell.
+
+. The shared SSH-connection accessing the 'screen' instance.
+
+In the non-shared SSH-Session where no 'screen' or 'termux' is attached, issue the following command:
+
+----
+$ reptyr -T `pidof -x fernwartungs-tunnel-alle-10-sekunden-oeffnen`
+----
+
+This will detach the running tunnel-server script from the 'screen' session and attach it to the same shell where the non-shared SSH-connection is running.
+
+Now you can use the shared SSH connection to `exit` the last 'screen' shell, making the 'screen' master process terminate cleanly.
+
+Next you log out of the shared connection with `exit`.
+
+Back on your box, execute the same SSH command as for logging in using a shared connection, except that you add the `-O exit` option. This will in fact terminate the shared SSH master process, thus cleanly terminating the SSH session for normal work.
+
+Now only the non-shared tunnel process is left running, and thanks to `reptyr` it is now running in this shell which has been idle before.
+
+All there is now left to do is pressing `[Ctrl]+[c]` in that shell.
+
+This will kill the `fernwartungs-tunnel-alle-10-sekunden-oeffnen` script, thus killing the tunnel-keeper process of the remote side.
+
+The remote tunnel will die. And so will the non-shared SSH-connection.
+
+No remote-access process on the remote box lives any longer!
+
+Just kill your tunnel server redirection process running on some box reachable from anywhere which forwarded your connection to the remote machine, and you are done.

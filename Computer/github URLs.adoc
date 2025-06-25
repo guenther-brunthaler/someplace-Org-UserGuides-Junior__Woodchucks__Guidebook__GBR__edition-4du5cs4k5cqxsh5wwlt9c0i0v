@@ -1,0 +1,290 @@
+My GitHub URLs
+==============
+v2023.259
+
+
+Abstract URNs
+-------------
+
+I use abstract URNs rather than URLs in my documents when refering to my repositories. I also use those URNs in actual submodule references.
+
+Right now all my repositories are hosted on GitHub. But I want to be able to easily migrate away from there if the need should arise and relocate by repositories to different URLs.
+
+Set up git to derive URLs automatically
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can actually use my URNs as repository URIs when working with git. However, it requires a little setup.
+
+By temporarily adding the following configuration entry to your `~/.gitconfig` file, git will automatically map my URNs to GitHub URLs:
+
+----
+$ git config --add --global 'url.https://github.com/guenther-brunthaler/.insteadof' 'tag:xworld.mine.nu,2009:'
+----
+
+Now you can use my URNs in all Git commands as if they were URLs.
+
+Once you are done with my repository and don't need to access it any any longer online, execute the following command to remove it from your configuration again:
+
+----
+$ git config --unset --global 'url.https://github.com/guenther-brunthaler/.insteadof'
+----
+
+
+Manual URL derivation
+~~~~~~~~~~~~~~~~~~~~~
+
+Instead of temporarily modify your git configuration to automatically resolve my URNs to actual URLs, you can also do this manually.
+
+There is a simple mapping between my Git URNs and GitHub URLs which works as follows.
+
+First you need to extract the project name from the URN. My Git URNs always have the format
+
+----
+tag:xworld.mine.nu,2009:${PROJECT_NAME}.git
+----
+
+Strip the prefix and suffix shown above from the URN so that only the `${PROJECT_NAME}` part remains.
+
+Next you have to insert that project name into one of the various forms (SSH-based repo, HTTPS-based repo, git-daemon based repo, direct HTTPS access to individual files without prior checkout or cloning) of URLs supported by GitHub which are explained in the following sections.
+
+If you just want to clone my repository, use the `https://` URL defined in the next section.
+
+
+WWW
+---
+
+For HTTPS clone/pull/fetch and browsing the repository's landing page:
+
+----
+https://github.com/guenther-brunthaler/${PROJECT_NAME}.git
+----
+
+
+Specific files from some repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is often useful to send someone a link directly to a file hosted on github without the receiver having to use/install Git or creating a check-out.
+
+
+Unmodified original file
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Short version
++++++++++++++
+
+----
+$ wget https://raw.githubusercontent.com/guenther-brunthaler/${PROJECT_NAME}/master/${FILE}
+----
+
+More generally
+++++++++++++++
+
+The URL is
+
+----
+https://raw.githubusercontent.com/guenther-brunthaler/${PROJECT_NAME}/${BRANCH}/${FILE}
+----
+
+This is the plain text version of the source file. This is what people should download if they actually want to run the script or compile the source file.
+
+
+
+Pretty-Formatted
+^^^^^^^^^^^^^^^^
+
+----
+https://github.com/guenther-brunthaler/${PROJECT_NAME}/blob/${BRANCH}/${FILE}
+----
+
+This is a syntax-highlighted view of the source file with line numbers and hyperlinks to the rest of the GitHub project. Nice for reviews or debate over some source file.
+
+`${BRANCH}` is usually `master`, or at least has been before the policital correctness debate reached `git`, too. If `master` does not work, it will probably be `main` instead.
+
+`${FILE}` is just the relative path from the project's top-level directory to the file of interest. Files directly in the top-level directory do not need any additional path prefix.
+
+
+e-mail
+------
+
+When using the following committer/author e-mail address, the resulting commit will be attributed to my GitHub account if the commit should ever get delivered to GitHub:
+
+....
+guenther-brunthaler@users.noreply.github.com
+....
+
+
+SSH
+---
+
+For secure push/pull access via git over ssh:
+
+----
+git@github.com:guenther-brunthaler/${PROJECT_NAME}.git
+----
+
+
+Indirect
+--------
+
+You can use a "`tag:`"-URI in the repository's remote definition, allowing to globally redirect that URI to some specific URL without having to edit the repository's local configuration.
+
+This is how all my GitHub URIs (actually URNs) are structured:
+
+----
+tag:xworld.mine.nu,2009:${PROJECT_NAME}.git
+----
+
+and your '~/.gitconfig' might contain something like this:
+
+----
+[url "https://github.com/guenther-brunthaler/"]
+[url "git@github.com:guenther-brunthaler/"]
+[url "rpo-rw:/srv/scm/replicas/"]
+        insteadof = tag:xworld.mine.nu,2009:
+----
+
+Commented-out `url`-entries will have no effect. If serveral ones are not commented out, the last one (before the "insteadof"-line) "wins". In the above example, the "`rpo-rw:`" SSH-URL will be used. In case it should get commented out, the "`git@`" URL would be used instead.
+
+In the above example, the matching tag-URIs of all local repositories currently refer to an SSH github 'push'-URL. By commenting out the other entry, it will refer the a public read-only 'pull'-URL instead.
+
+Note that you do not need to define different remotes because of this - a single "origin" can be used for both private pushing and public pulling. Only `~/.gitconfig` needs to be edited to redirect all remotes.
+
+Also note that the same technique can be used to temporarily redirect 'push/pull'-accesses to different mirror repositories, assuming the repository pathnames are identical on all mirrors, relative to some mirror-specific path prefix.
+
+The third entry shown above might be a 'push'-URL to some mirror. The "`rpo-rw:`" refers to a 'Host'-definition in `~/.ssh/config`, which might contain sections such as the following:
+
+----
+...
+
+Host rpo-rw
+        User rpowrite
+        IdentityFile "~/.ssh/keys/some_hostname/Repository Writer$rpowrite@some_hostname.test.com-port8746-ssh-v2-rsa-20200824.prv"
+
+Host rpo-ro
+        User rporead
+        IdentityFile "~/.ssh/keys/some_hostname/Repository Reader$rporead@some_hostname.test.com-port8746-ssh-v2-rsa-20200824.prv"
+
+Host rpo-ro rpo-rw
+        Port 8746
+        ControlPath ~/.ssh/shared_connections/%C
+        IdentitiesOnly yes
+        HostName some_hostname.test.com
+...
+
+Host *
+	# Set defaults that have not yet been set by specific sections.
+        Compression yes
+        # Disable control persistance by default.
+        ControlPath none
+        # The next line has no effect and is present only for easy copying.
+        ControlPath ~/.ssh/shared_connections/%C
+        # Note: $ mkdir -m 700 ~/.ssh/shared_connections
+        ControlMaster auto
+        ControlPersist 300
+----
+
+This will make 'rpo-ro:'-URLs map to the SSH-account 'rporead@some_hostname.test.com:8746' and will make 'rpo-rw:'-URLs map to the SSH account 'rpowrite@some_hostname.test.com:8746'.
+
+
+Git config
+----------
+
+----
+$ $PROJECT_NAME=...
+$ git remote add github "${PROJECT_NAME}"
+...
+$ git push github
+...
+$ git pull github master
+----
+
+SSH for both pushing and pulling (most secure):
+
+----
+[remote "github"]
+	url = git@github.com:guenther-brunthaler/${PROJECT_NAME}
+	fetch = +refs/heads/*:refs/remotes/github/*
+	push = refs/heads/*:refs/heads/*
+----
+
+For read-only public access (trust CAs):
+
+----
+[remote "origin"]
+	url = https://github.com/guenther-brunthaler/${PROJECT_NAME}.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+----
+
+Hybrid (pulling trusts CAs, pushing via SSH):
+
+----
+[remote "origin"]
+	url = https://github.com/guenther-brunthaler/${PROJECT_NAME}.git
+	pushurl = git@github.com:guenther-brunthaler/${PROJECT_NAME}
+	fetch = +refs/heads/*:refs/remotes/origin/*
+	push = refs/heads/*:refs/heads/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+----
+
+For comparison only: SSH-push/pull non-bare repositories:
+
+----
+[remote "${SOMEHOST}"]
+	url = ssh://user@${SOMEHOST_SERVER}:${SOMEHOST_PORT}/~/${PROJECT_RELPATH}/${PROJECT_NAME}
+	fetch = +refs/heads/*:refs/remotes/${SOMEHOST}/*
+	push = refs/heads/*:refs/remotes/${THISHOST}/*
+----
+
+
+2FA
+---
+
+GitHub can also issue OTP configuration URLs like
+
+----
+otpauth://totp/GitHub:LyaLya?secret=qmli3dwqm53vl7fy&issuer=GitHub
+----
+
+as a QR code which can be scanned by an OTP app like FreeOTP on Android.
+
+Then (in this example), "LyaLya" will be your GitHub login name displayed by the OTP app, and "GitHub" will be displayed as the primary entry name (specifiying the purpose for which te OTP code is intended to be used).
+
+Both names can usually be edited within the app after the QR code has been imported. The names are for display purposes only and do not affect the generated one-time codes.
+
+As of 2019-10, GitHub uses TOTP, SHA-1 and generates 6-digit verification codes.
+
+In order to generate an OTP verification code with a shell script instead of some app, install the 'oathtool' package first and then create the following script:
+
+----
+$ GITHUB_USERNAME=guenther-brunthaler
+$ cat > "2fa-generate-${GITHUB_USERNAME}.sh" << EOF
+#! /bin/sh
+exec oathtool -b --totp \`
+	sed 's/.*?secret=//; s/&.*//' "2fa-${GITHUB_USERNAME}.url"
+\`
+EOF
+$ chmod +x "2fa-generate-${GITHUB_USERNAME}.sh"
+----
+
+Before running the script, store your GitHub otpauth:// URL into file "2fa-${GITHUB_USERNAME}.url".
+
+The script will then extract the secret from the URL in that file and use it to generate a TOTP PIN required for 2FA-based GitHub logins.
+
+
+URN Alternatives
+----------------
+
+If you don't like URIs like `tag:xworld.mine.nu,2009:`, there are other URI schemes to choose from.
+
+Here are a few examples of other suitable URI-prefixes for git repositories:
+
+....
+urn.uuid.1f92f501-791c-41e8-b2e0-9511d68db291:git/
+tag:demo.test,2009:git/
+urn:oid:2.16.840/git/
+....

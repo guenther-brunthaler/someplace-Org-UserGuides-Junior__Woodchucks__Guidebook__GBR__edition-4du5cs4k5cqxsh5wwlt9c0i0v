@@ -1,0 +1,116 @@
+Service dependencies
+====================
+v2023.135
+
+This documents explains how service dependencies work and can be edited on various systems.
+
+
+sysvinit
+--------
+
+The 'UNIX System V' ("SysV") `init` process normally uses symlinks in `/etc/rc?.d/` for dependency ordering of services. Actually this is done by a bunch of support scripts rather than by `init` itself, but `init` and the scripts work together to implement what is referred to as the 'runlevel'-based 'sysvinit' system.
+
+The `?` is a placeholder here for a single decimal digit or letter which names a 'runlevel'. The symlinks point to scripts which are located elsewhere, frequently in `/etc/init.d/` or `/etc/rc.d/`.
+
+The symlinks are renamed versions of the scripts. They add `S??` or `K??` as additional prefixes to the scripts` names where `??` is a two-digit decimal number. This number controls the order in which scripts will be run.
+
+When entering a new runlevel, first the "K" scripts of its associated `/etc/rc?.d/` service directory are run. This shall stop any still-running services from any previous runlevel which must not run in this new runlevel.
+
+After this, all the "S" scripts in the runlevel's service directory are run. This shall start any not already-running services which must be running in this runlevel.
+
+So, basically the two-digit number in the symlink names control service startup- and shutdown order, while the 'S' and 'K' prefixes control whether a service shall be running in a particular runlevel.
+
+There are two environment variables $RUNLEVEL (the new runlevel name) and $PREVLEVEL (the previous runlevel name) defined which can be examined by the scripts.
+
+They can use them to avoid trying to start up a service which is already running, or shutting down a service which is already down.
+
+Also, the runlevel system itself is allowed to examine those variables itself, and omit runnig 'S' or 'K' scripts which also exist in the previous runlevel's service directory.
+
+The runlevel system may also cache whether an 'S' or 'K'-script has been run for a particular service no matter of the runlevel. Then running again that script as the result of a runlevel change can be omitted.
+
+Note that those are just optimizations - the system should work fine without them, and service script should be prepared to be invoked "unnecessarily" and handle this case correctly.
+
+Also note that there is the possibility that two different 'S' or 'K' scripts have the same 2-digit number because they are independent and require no particular before/after startup order with respect to one another.
+
+This case can be handled by running those scripts in an arbitrary order or even in parallel.
+
+The latter is tricky though if the scripts produce output, and the output for every script generally needs to be redirected to a temporary file or process in order to ensure individual messages are displayed on separate lines rather than mixing the output of different scripts together within the same line in an uncontrolled fashion.
+
+
+Runlevels
+~~~~~~~~~
+
+A SysV 'runlevel' is a basic operating mode the system currently operates under. It is normally a 1-digit number, but can in fact be any letter as well.
+
+The exact semantics of a runlevel are defined by the system's administrator, but the following assignments are frequently found:
+
+* Runlevel `0` (zero) ist used to "halt" the system. This shuts down the system by running all the 'K' scripts, which normally includes a script that terminates any still-runnung user processes and unmounts all filesystems (or re-mounts them as "read-only" if unmounting is not possible). It also flushes out any delayed still-unwritten data intended to be written to permanent storage. Normally the last 'K' script of this runlevel examines the environment variable $INIT_HALT. If it has been set to "`POWEROFF`", the machine is switched off (if supported by the hardware). If the variable has been set to "`HALT`" (or powering off is not possible), then the machine is just "halted". This means it keeps running but does not do anything any more. It just waits for an operator to manually switch of off or restart it. The variable $INIT_HALT is normally set by the `shutdown` command before it switches the system to runlevel `0`.
+
+* Runlevel `S` shall initialize the hardware, mount filesystems and so on, and generally "start up" the system. The system does not remain in this runlevel but switches to a "normal" runlevel when all 'S'-scripts have been run. Which runlevel this is has to be defined in the 'initdefault'-entry of /etc/inittab. Most installations specify the values `2` or `5` there. Runlevel 'S' is only used by Debian-based systems. Traditionally, systems either ran those scripts outside the runlevel system, or did not distinguish a special "startup"-phase. The required startup scripts where part of every runlevel.
+
+* Runlevel `1` is traditionally used for single-user maintainance/repair mode. Runlevel `S` is considered to be an alias for the same thing. This is also the case under Debian after the system has already been started up, even though runlevel `S` is handled there specially during system startup.
+
+* Runlevels `2` through `5` represent "normal" runlevels.
+
+* Runlevels `2` through `4` are all the same in most initial configurations (as shipped by the distribution maintainers) and are used for multiuser text mode logins. "Text mode" here means that no graphical user interface is presented to the user, but just text-based terminal.
+
+* Runlevel `4` is full multiuser text mode on some systems which do not consider runlevels `2` through `4` to be all the same. Such system may define runlevels `2` and `3` similarly, but only running a subset of all of the services running in runlevel `4`.
+
+* Runlevel `5` is usually reserved for a graphical user interface. This is the typical runlevel Desktop systems operate under. It is usually the same as runlevel `4` plus a graphical user interface. (Text-mode-only mouse support might have been disabled in this runlevel if conflicting with mouse usage in the graphical interface.)
+
+* Runlevel `6` is used for shutting down the system in order to reboot it afterwards. Runlevels `0` and `6` are therefore nearly identical, except for the very last action (halt or reboot) which occurs.
+
+
+Dependency declarations
+~~~~~~~~~~~~~~~~~~~~~~~
+
+As explained before, the order in which service scripts are run for starting up ('S'-symlinks) or shutting down ('K"-symlinks) basically depends on the 2-digit decimal number in the script symlink names which follow the 'K' or 'S'.
+
+In a naive implementation, switching the system from runlevel 5 to runlevel 4 could be accompished as follows:
+
+----
+export PREVLEVEL=5 RUNLEVEL=4
+for script in /etc/rc.$RUNLEVEL.d/*; do
+        sh "$script"
+done
+----
+
+Note that this will run all 'K'-scripts before all 'S'-scripts automatically, because the shell will sort the scripts lexicographically when expanding the `*` wildcard.
+
+Even though it is possible to assign appropriate 2-digit numbers in the symlinks names manually in order to fullfil all dependency requirements between services, it would be very hard to do so if more than just a very small number of services existed.
+
+Therefore, the numbers are usually generated by some utility, which examines dependency declarations within all the service scripts and calculates a suitable set of two-digit numbers for all the symlinks within a runlevel.
+
+For this reason, SysV init scripts place dependency declarations beween "`### BEGIN INIT INFO`" and "`### END INIT INFO`" comment-lines near the beginning of the scripts.
+
+Utilities can extract this information and compute appropriate 2-digit numbers for the service script symlinks.
+
+
+insserv
+~~~~~~~
+
+Debian systems which use 'sysvinit' rather than 'systemd' use this utilty in order to compute symlink-numbers and automatically rename the symlinks accordingly.
+
+Run the following command in order to display the order in which scripts will be started and stopped in all runlevels:
+
+----
+$ (PATH=$PATH:/usr/sbin:/sbin && t=${TMPDIR:-/tmp}/deps.$$ \
+&& mkdir -m 700 "$t" && (trap "rm -r -- '$t'" 0; insserv -s -f \
+| while IFS=: read o1 o2 r svc; do for r in $r; \
+do echo $r:$o1:$o2:$svc; done; done | tee -- "$t/1" | cut -d : -f 1 \
+| tr S1-57-9A-RT-Za-z60 0-9A-Za-z > "$t/2" && cut -d : -f 2- < "$t/1" \
+| paste -d : "$t/2" - | LC_COLLATE=C sort -t : | tee -- "$t/3" \
+| cut -d : -f 1 | tr 0-9A-Za-z S1-57-9A-RT-Za-z60 > "$t/4" \
+&& cut -d : -f 2- < "$t/3" | paste -d : "$t/4" -)) | less
+----
+
+The output columns of this command are separated by colon ("`:`") characters and represent the following fields per line:
+
+* Runlevel
+* 'K' / 'S'
+* 2-digit ordering number
+* basename of symlink target (the service script name)
+
+The output will be sorted by runlevel purpose first (startup levels before normal levels before shutdown levels) and by the order the scripts will be run when switching to a new runlevel second.
+
+In case of scripts which could be run in parallel, the command sorts them in lexicograhical order (which is as good as any).

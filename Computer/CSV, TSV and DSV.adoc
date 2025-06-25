@@ -1,0 +1,65 @@
+CSV, TSV and DSV
+================
+v2020.122
+
+'CSV' stands for 'comma-separated values', 'TSV' stands for '(horizontal) tabulation-character separated values', and 'DSV' stands for 'delimiter-separated values'.
+
+All are basically the same format, except that they use a different separator character:
+
+* 'CSV' uses "`,`"-characters (ASCII code value 44 decimal)
+* 'TSV' uses "`\t`"-characters (ASCII code value 9 decimal)
+* 'DSV' uses a user-defined character as the separator
+
+The separator character itself must not be part of the separated fields, unless the field is quoted.
+
+Quoting is normally done with "`"`"-character (ASCII code value 34 decimal).
+
+Quoting is optional if a field does not contain a literal quote character or the separator character.
+
+Within a quoted field, the separator character can be used literally. But a literal quote character has to be encoded by doubling it within the quoted field contents.
+
+Strictly logically it is not necessary to quote a field that contains a quote character somewhere other than at its beginning and that does not contain the separator character. However, this depends on the CSV parser, and it is prudent to quote such fields also, just to ensure the parser cannot interpret it incorrectly.
+
+RFC 4180 "Common Format and MIME Type for Comma-Separated Values (CSV) Files" defines a variety for CSV which has been defined as the MIME-type "'text/csv'".
+
+This format corresponds to the 'CSV'-definition given above and in addition required conforming writer applications to use ASCII CR + ASCII LF as newline sequence for terminating every line of text.
+
+While this might be a good idea for maximizing the portability of the created files, CSV parsers are usually more tolerant and accept files only using UNIX newline sequences (ASCII LF) also.
+
+One problem of CSV is that it requires parsing and cannot directly be processed by the usual UNIX text-processing tools.
+
+I therefore suggest a transformation of CSV which avoids the need for quoting, allowing the UNIX-tools to be used again.
+
+I have two ideas about how to achieve that.
+
+
+UTF-7 encoding
+--------------
+
+The first idea is to encode the field contents as UTF-7, and encode comma- and quote-characters also as base-64 even though this is not necessary.
+
+
+Escape-sequences
+----------------
+
+Transform the following characters to a backslash-escaped replacement:
+
+* "`,`" becomes "'\c'"
+* "`"`" becomes "'\q'"
+* "`\`" becomes "'\\'"
+* ASCII LF becomes "'\n'"
+* ASCII CR becomes "'\r'"
+* ASCII DEL becomes "'\d'"
+* ASCII ESC becomes "'\e'"
+* ASCII NUL becomes "'\0'"
+* ASCII BEL becomes "'\a'"
+* ASCII HT becomes "'\t'"
+* ASCII BS becomes "'\b'"
+* ASCII VT becomes "'\v'"
+* ASCII SPACE becomes "'\s'"
+
+while the latter substitution is only used if a field starts or ands with an ASCII space; any other SPACE characters are left alone and represent themselves literally.
+
+As a possible extension, any addtional ASCII control character might be replaced by their 3-digit octal code.
+
+In that case, some or all of the above substitutions can be replaced with the octal form.

@@ -1,0 +1,58 @@
+camelCase and similar notations
+===============================
+v2021.13
+
+
+CamelCase
+---------
+
+This is actually an ambiguous term which can refer to any of the following:
+
+* upper camel case
+* lower camel case
+
+Some organizations, especially Microsoft, use the term only for the lower camel case variant.
+
+
+Upper CamelCase, a.k.a. PascalCase
+----------------------------------
+
+The initial letter is upper case.
+
+Examples of languages using this notation are PASCAL and MODULA-2.
+
+
+Lower camelCase, a.k.a. humpStyle, dromedaryCase
+------------------------------------------------
+
+The initial letter is lower case.
+
+Examples of languages using this notation are Scala and Kotlin.
+
+
+snake_case
+----------
+
+Spaces are replaced by underscores, lower/upper case is not changed.
+
+Examples of languages using this notation are C and C++.
+
+
+SCREAMING_SNAKE_CASE
+--------------------
+
+Same as snake_case, except that all words are also upper-cased.
+
+
+lisp-case, kebab-case, spinal-case, param-case, dash-case 
+---------------------------------------------------------
+
+Used dashes instead of underscores in order to connect words.
+
+Examples of languages using this notation are LISP and SCHEME.
+
+
+TRAIN-CASE
+----------
+
+All upper-case connected with dashes.

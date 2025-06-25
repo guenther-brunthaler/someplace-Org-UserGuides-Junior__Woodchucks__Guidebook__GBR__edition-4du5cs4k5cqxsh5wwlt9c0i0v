@@ -1,0 +1,15 @@
+﻿`chroot` jail containers
+========================
+Günther Brunthaler
+v2020.349
+
+If you quickly want to set up a `chroot` environment for a command, use the following of my scripts like shown below.
+
+Let's say you wanted `/bin/sh` and `/bin/ls` in the chroot jail:
+
+----
+mkdir rootjail
+chroot-jail-populate rootjail /bin/sh /bin/ls
+----
+
+Alternatively, you could also have `chdir`ed into the "`rootjail`" directory and specified "`.`" as the first argument to the script.

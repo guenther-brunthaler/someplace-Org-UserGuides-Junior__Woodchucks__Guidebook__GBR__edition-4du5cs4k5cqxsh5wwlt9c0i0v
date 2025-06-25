@@ -1,0 +1,138 @@
+﻿APT configuration
+=================
+Günther Brunthaler
+v2019.358
+
+
+Sharing files downloaded by `apt-get update`
+--------------------------------------------
+
+This prints a list of the files to sync:
+
+----
+$ find /var/lib/apt/lists /var/cache/apt/archives -name lock -prune -o -type f -print
+----
+
+Note that the files in 'archives' should be added, while the files in 'lists' should replace any old contents.
+
+Use the following `rsync` command lines as a starting point for performing the synchronization:
+
+----
+$ apt-get autoclean
+$ find /var/cache/apt/archives/partial -name "*.FAILED" -exec rm -- {} +
+$ TARGET=.
+$ rsync -nvr -f 'H /lock' -f 'P /lock' --delete /var/lib/apt/lists/ "$TARGET"/var/lib/apt/lists/
+$ rsync -nvr -f 'H /lock' /var/cache/apt/archives/ "$TARGET"/var/cache/apt/archives/
+$ unset TARGET
+----
+
+Remove the `-n` option for actually excuting the `rsync` commands above.
+
+
+Keep packages in cache as long as they remain valid
+---------------------------------------------------
+
+----
+$ cat << 'EOF' > /etc/apt/apt.conf.d/10periodic
+# Look in "10periodic" for the "Enable" setting.
+# That setting effects the following settings also.
+
+APT::Periodic {
+        Update-Package-Lists "0";
+        Download-Upgradeable-Packages "0";
+        AutocleanInterval "0";
+};
+EOF
+----
+
+----
+$ cat << 'EOF' > /etc/apt/apt.conf.d/20archive
+# We don't want to keep the archives twice, so delete as much as
+# possible. All archives are cached by apt-cacher locally anyway.
+
+#  - Enable the update/upgrade script (0=disable) Note that this
+#    will effect the settings in "10periodic" too.
+APT::Periodic::Enable "0";
+
+#  - Set maximum allowed age of a cache package file. If a cache
+#    package file is older it is deleted (0=disable)
+#
+#    The only reason whe a package should ever be deleted is
+#    because it is outdated, but never because it is just too old.
+APT::Periodic::MaxAge "0";
+
+#  - Set minimum age of a package file. If a file is younger it
+#    will not be deleted (0=disable). Useful to prevent races and
+#    to keep backups of the packages for emergency.
+#
+#    The selected value reflects the minimum guaranteed lifetime
+#    of debdeltas in the cache, so we can use the old files to
+#    apply debdeltas for constructing new versions of those
+#    files.
+APT::Periodic::MinAge "10";
+
+#  - Set maximum size of the cache in MB (0=disable). If the
+#    cache is bigger, cached package files are deleted until the
+#    size requirement is met (the biggest packages will be
+#    deleted first).
+APT::Periodic::MaxSize "0";
+EOF
+----
+
+----
+$ cat << 'EOF' > /etc/apt/apt.conf.d/20keep_debs
+Binary::apt::APT::Keep-Downloaded-Packages "1";
+EOF
+----
+
+Other recommended APT configuration
+-----------------------------------
+
+----
+$ cat << 'EOF' > /etc/apt/apt.conf.d/50noautoinst
+APT {
+        # NEVER EVER install anything without the administrator's explicit
+        # consent!
+        Install-Recommends "0";
+        Install-Suggests "0";
+}
+EOF
+----
+
+----
+$ cat << 'EOF' > /etc/apt/apt.conf.d/55mount_boot
+DPkg {
+        Pre-Invoke { "/etc/libexec/dpkg_remount_boot make-writable"; }
+        Post-Invoke { "/etc/libexec/dpkg_remount_boot revert"; }
+}
+EOF
+----
+
+This assumes, however, that you actually do have the script `/etc/libexec/dpkg_remount_boot` installed.
+
+Then, before continuing, it is recommended to make a backup of the original version which will be modified next:
+
+----
+$ mkdir -p /etc/upstream-versions-dbkkywcqxlt7w1u854dz5hhbk.d/apt/apt.conf.d && cp -p /etc/apt/apt.conf.d/01autoremove /etc/upstream-versions-dbkkywcqxlt7w1u854dz5hhbk.d/apt/apt.conf.d/
+----
+
+Finally, manually replace the following sections (only) in file `/etc/apt/apt.conf.d/01autoremove` with the contents shown below.
+
+----
+  NeverAutoRemove
+  {
+        # No limits to automatic removal! The admin is expected to verify
+        # removals before actually allowing them.
+  };
+----
+
+----
+  Never-MarkAuto-Sections
+  {
+        # No limits for marking dependencies as "automatically installed"! How
+        # on earth would anyone mark dependencies as "automatically installed"
+        # by accident? If packages are marked as such, then with good reason.
+  };
+----
+
+and be sure to `unexpand` the sections after inserting, because the comments shall be indented by horizontal tabulation characters.

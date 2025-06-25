@@ -1,0 +1,11 @@
+mtime: The last time the contents of a file changed. Can also be manually set.
+
+atime: The last time some (non-zero) part of the contents of a file were read. Can also be manually set. This is the POSIX definition, however, and will be modified by Linux mount options: "strictatime" lets Linux comply to the POSIX definition. This is not the default for recent kernels, though, which is "relatime": In this case, the atime is only updated if it is either older than the mtime or ctime, or if it is older than 24 hours at the time a non-zero part of the file is read.
+
+ctime: Originally it meant the time when a file was created. Since then, its meaning has changed to "file status change time". It typically changes when file permissions, owner or hard link count changes. Such changes are not reflected in the atime or mtime. It also changes when the mtime changes. However, contrary to popular belief, ctime is *not* the inode change time: It does not change when the atime gets updated, for instance, even though the atime is stored in the inode. To maximize the confusion, the ctime *is* updated when "touch -a" is used to update "only the atime" of a file. The most helpful definition may therefore be as someone put it: "Only changes made to inodes by userspace processes are reflected in ctime." This does not apply if the atime is changed as a consequence of normal file operations by the kernel.
+
+btime: Birth time - the time when a file system object was created. This is what "ctime" was used for originally. However, many file systems do not support btime, and POSIX defines no way to access it. Many commands do not support the btime even if it is available. If can be displayed by the command
+
+$ birth() { DEBUGFS_PAGER=cat debugfs -R "stat <`stat -c %i -- "$1"`>" `df --output=source -- "$1" | tail -n 1` | sed 's/^crtime.*-- //; t; d'; }
+
+on ext3/ext4 file systems and requires superuser privileges.

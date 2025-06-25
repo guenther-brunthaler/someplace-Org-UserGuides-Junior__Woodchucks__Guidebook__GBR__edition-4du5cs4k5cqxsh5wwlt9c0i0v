@@ -1,0 +1,354 @@
+initramfs and early boot
+========================
+v2025.20
+
+
+Booting
+-------
+
+First, in order to bypass the default boot scripts and get control over the system as early as possible, add something like this to the kernel command line:
+
+----
+rdinit=/bin/sh
+----
+
+Note that this is only used for initramfs-based boot sequences. When booting from mass storage, use `init=` rather than `rdinit=`.
+
+In fact, neither option is necessary if the initramfs or block storage based root filesystem does not contain anything that the kernel considers to be an init process, such as `/sbin/init`, `/init` etc. In such cases, the kernel will try `/bin/sh` as one of its last-resort alternatives automatically.
+
+Anyway, after you managed to actually boot directly into `/bin/sh` (or any other shell you might have specified in the kernel command line), you will now have a shell that has no job control and does not react on `[Ctrl]+[c]`.
+
+This can be a real menace, because once you managed to run a command which does not finished by itself, there is nothing you can do except reboot the machine.
+
+In order to get a decent shell with job control, do the following in your rescue shell running on /dev/console:
+
+----
+$ setsid sh -c 'exec sh < /dev/tty1 > /dev/tty1 2>& 1'
+----
+
+This will launch a nested shell which now has job control and honors `[Ctrl]+[c]`.
+
+However, you probably do not want to work directly in the rescue shell window. Run this to start a shell in the next virtual console:
+
+----
+$ setsid sh -c 'exec sh < /dev/tty2 > /dev/tty2 2>& 1' &
+----
+
+You do not longer need the nested shell now, and can exit it, returning the original rescue shell instance:
+
+----
+$ exit
+----
+
+Now switch to the other terminal where you launched the working shell
+
+----
+$ chvt 2
+----
+
+and prepare it for actual work.
+
+Usually HOME, TERM oder PATH need to be set up and be exported, perhaps even LANG and PS1.
+
+Also "cd" to your new $HOME.
+
+Once everything is fine you can either start working here, or create clones of this shell in other terminals:
+
+----
+$ for c in 3 4 5 6; do setsid sh -c "exec sh < /dev/tty$c > /dev/tty$c 2>& 1" & done
+----
+
+In this case, I suggest you do not do any actual work in tty2. Just use it as a template shell and spawn more shells on other ttys once the existing shells running there get stuck or crash.
+
+
+Loading required drivers
+------------------------
+
+intramfs-based installations usually don't build most drivers statically into the kernel but rather implement them as dynamically loadable modules.
+
+The normal start scripts and `udev` usually manage to load the required drivers. But how can you do the same after booting manually?
+
+Here is the trick (after mounting `/proc`, `/sys`, `/dev` and `/tmp`):
+
+----
+$ find /sys -name modalias | while read m; do modprobe "`cat < "$m"`"; done
+----
+
+The dectected devices under /sys contain a `modalias` string, which can be passed to `modprobe` instead of the actual name of the kernel module. This allows to load the correct driver module for some device without even knowing the module's actual name.
+
+
+More history
+------------
+
+Shells like `bash` and `ash` support command line history, but by default it may be very small and needs to be activated properly.
+
+----
+$ export HISTFILE=~/.history HISTFILESIZE=7000 HISTSIZE=3000
+----
+
+This sets the file where the history will be stored by the shell and the history sizes (specified as maximum number of entries) for the file and in-memory, respectively.
+
+
+Terminal multiplexer
+--------------------
+
+If you want to run `tmux`, and to a lesser extend also for GNU `screen`, you need to install a suitable locale in your initramfs first.
+
+It is recommended to install 'C.UTF-8' as it is small yet fully UNICODE-aware. Typically, this involves copying the files in `/usr/lib/locale/C.UTF-8/*` to initramfs.
+
+Also, of course
+
+----
+$ export LANG=C.UTF-8
+----
+
+and unset any `LC_*` variable which might perhaps also be set.
+
+Also, you need a proper terminfo file matching your `$TERM` variable. Usually it is sufficient to copy the following files:
+
+....
+/lib/terminfo/s/screen
+/lib/terminfo/l/linux
+/etc/screenrc
+....
+
+The latter is only required for 'GNU screen', of course. This is especially important if `screen` launches the wrong shell or does not source all its initialization snippets. A typical way to fix this is a `/etc/screenrc` entry
+
+....
+shell -bash
+....
+
+or
+
+....
+shell -ash
+....
+
+If the installation of `tmux` or `screen` seems to have a too large size footprint on your initramfs, consider installing the minimalistic `dtach` multiplexer instead. It depends only on the C runtime libraries and consists of a single small executable.
+
+It is quite minimalistic though and does not save the screen contents when detaching. So it is best used with full-screen applications like most text editors which know how to redraw their displays. Recommended use:
+
+----
+$ mkdir -m 700 /tmp/dtach
+$ cd /tmp/dtach
+$ a() { dtach -A "${1:?screen}" -ze ^A "$SHELL" -l; }
+$ z() { dtach -A "${1:?session_name}" -E "$SHELL" -l; }
+$ PS1='DETACHED $ '
+$ a initial # Create the first "screen", detach with [Ctrl]+[a].
+----
+
+From now on, just enter the command "`a`" followed by a logical screen name. You will re-attach to that screen if it already exists, or create a new screen otherwise. In order to end a screen, just type "`exit`" while being attached to it.
+
+You see which screens are available for reattaching by looking at the socket files. They can be listed with "ls" or be entered using tab-completion.
+
+If `[Ctrl]+[a]` needs to be pressed literally within an attached session, attach to it with the `z` command rather than with `a`. In this case, the session will be controlled via the usual job control methods (`[Ctrl]+[z]`, `fg`, `bg`) rather than via any command key.
+
+One can work quite comfortable with this. The only problem is that `dtach` does not save the screen contents, so the output generated during detachment is lost. However, it is always possible to redirect output into a file with `tee`, so this is rarely a big problem.
+
+
+Installing OpenSSH
+------------------
+
+`dropbear` & friends are nice toys for occasional use, but sometimes the power of a full-fledged OpenSSH is required in the initramfs.
+
+Besides the OpenSSH binaries and library-dependencies, you should also to copy/install
+
+....
+/lib/*-linux-*/libnss_compat[.-]*
+/lib/*-linux-*/libnss_dns[.-]*
+/lib/*-linux-*/libnss_files[.-]*
+....
+
+If you want to use `sftp`, you need to install the `sftp-server` also.
+
+Furthermore, the following directory needs to exist:
+
+----
+$ mkdir -m755 /run/sshd
+----
+
+Then a user 'sshd' with home directory `/run/sshd` needs to exist.
+
+This user should have `nogroup` set as its primary group, which needs to exist also (usually with a GID of 65534).
+
+Finally, it you configured the `AllowGroups`-setting of `sshd_config`, then the group specified there must also exist and every user allowed for SSH logins must be a member of it.
+
+
+Get a simple yet decent prompt
+------------------------------
+
+Even though there are fancier prompts, the following prompt is nice enough and the command is short enough to be typed in manually if needed:
+
+----
+export PS1='${?#0}$ '
+----
+
+
+File manager
+------------
+
+When dealing with a large number of individual files which cannot be selected properly with shell wildcards or regular expressions alone, a file manager is highly useful even in an initramfs.
+
+`mc` would be a good choice, but unfortunately it is also quite large.
+
+The `nnn` file manager is quite small and depends only on the 'ncurses' and 'C runtime' libraries. Even though it is very minimalistic, can be an invaluable tool for copying/moving large numbers of small files between any number of directories. It cannot do much more than select files and copy/move/delete them, but even that can be a big help in large directories.
+
+
+Setting up from an emergency shell
+----------------------------------
+
+Thus assumes you have booted successfully into an emergency shell but nothing else has been done yet. It also assumes that
+
+----
+$ cat /boot/bin/sh
+#! /bin/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg ash
+exec /bin/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg ash ${1+"$@"}
+
+$ find /boot/bin /boot/*14*pae*
+/boot/bin
+/boot/bin/kexec-load.sh
+/boot/bin/busybox-static-pbyqxzl1ktqlk3fjm3arlrclg.xz
+/boot/bin/sash
+/boot/bin/sh
+/boot/bin/busybox-doc-pbyqxzl1ktqlk3fjm3arlrclg.txt.bz2
+/boot/bin/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
+/boot/bin/support
+/boot/bin/support/Uni2-TerminusBold28x14.psf.gz
+/boot/bin/support/lib
+/boot/bin/support/lib/terminfo
+/boot/bin/support/lib/terminfo/l
+/boot/bin/support/lib/terminfo/l/linux-16color
+/boot/bin/support/lib/terminfo/l/linux
+/boot/bin/support/lib/terminfo/l/linux-basic
+/boot/bin/support/de.kmap
+/boot/config-5.10.0-14-686-pae
+/boot/initrd.img-5.10.0-14-686-pae
+/boot/modules-5.10.0-14-686-pae.txz
+/boot/System.map-5.10.0-14-686-pae
+/boot/vmlinuz-5.10.0-14-686-pae
+----
+
+or similar (your kernel version/platform part of the filenames will likely be different).
+
+Then you can use the following commands to set up a decent BusyBox-based RAM-based system.
+
+----
+export HISTFILESIZE=3000
+
+export TZ=MEZ-1MESZ-2,M3.5.0,M10.5.0/3
+date
+#date 123107452021 # set clock (2021-12-31 07:45 local time)
+#date
+
+cd bin
+b=./busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
+$b mount -t tmpfs ramroot /bin
+$b tar -c . | $b tar -x -C /bin
+cd /bin
+mkdir root
+mv * root/
+b=root/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
+chmod 700 root
+$b chroot . root/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg ash
+b=/root/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
+export HOME=/root
+exec $b ash -l
+mkdir bin sbin usr usr/bin usr/sbin lib lib/modules \
+	var var/run var/lock var/log media srv
+ln -s var/run run
+mv root/busybox-sta* bin/
+b=/bin/busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
+$b unxz bin/busybox-static-pbyqxzl1ktqlk3fjm3arlrclg.xz
+/bin/busybox-static-pbyqxzl1ktqlk3fjm3arlrclg --install -s
+exec ash -l
+mkdir etc
+mv root/support/etc/terminfo etc/
+mkdir -m 0 proc sys dev tmp mnt boot
+mount -t proc proc proc
+mount -t sysfs sys sys
+mount -t tmpfs -o size=10m,mode=750 dev dev
+mount -t tmpfs -o size=380m tmp tmp
+cd etc
+> passwd > group > shadow > gshadow
+chmod 600 shadow gshadow
+addgroup -g 0 root
+adduser -h /root -s /bin/ash -G root -D -H -u 0 root
+
+passwd # Set your root password here!
+
+cd
+export TERM=linux
+hostname examplehost
+cat << '=====' > .profile
+#! /bin/false
+export TZ=MEZ-1MESZ-2,M3.5.0,M10.5.0/3
+case $- in
+	*i*) ;;
+	*) return
+esac
+LOGNAME=`whoami`
+HOSTNAME=`hostname`
+PS1=`echo; echo :`; PS1=${PS1%:}
+PS1=$PS1'$LOGNAME@$HOSTNAME $PWD'$PS1'${?#0}$ '
+export LOGNAME HOSTNAME PS1
+=====
+. ./.profile
+> /dev/mdev.seq
+mdev -s
+ln -s ../proc/self/fd /dev/fd
+ln -s fd/0 /dev/stdin
+ln -s fd/1 /dev/stdout
+ln -s fd/2 /dev/stderr
+cd /
+mkfs.vfat -n raminitrd dev/ram0
+mount -t vfat dev/ram0 mnt
+mkdir -m 0 mnt/fsroot
+exit
+cd /
+b=busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
+bin/bin/$b mount --move bin overlays
+overlays/bin/$b mount --move overlays/mnt bin
+overlays/bin/$b mount --move overlays bin/fsroot
+cd bin/fsroot
+pivot_root .. boot
+cd /fsroot
+HOME=/root exec chroot . bin/ash -l
+cd
+exec setsid sh -c 'exec ash -l < /dev/tty1 > /dev/tty1 2>& 1'
+xzcat /boot/modules.xz | (cd /lib/modules && cpio -idm `uname -r`/*)
+t=`printf '\t:'`; t=${t%:}
+mount | sed "s/ on /$t/; s/ type /$t/; s/ (/$t/; s/)/ 0 0/" > /etc/fstab
+sed -i /"$t"'\/boot'"$t"'/!b; s/relatime/noatime/' /etc/fstab
+d=`blkid /dev/mmcblk0p1 | sed 's/.*\(UUID=\)"\([^"]*\)".*/\1\2/'`
+sed -i "s|^/dev/root$t|$d$t|" /etc/fstab
+umount /boot
+mount /boot
+ln -s ../../../etc/inittab /var/run/inittab
+cat << '=====' > /etc/inittab
+::restart:/sbin/init
+tty1::respawn:getty 38400 tty1 linux
+console::respawn:getty 115200 console linux
+console::respawn:runsvdir /var/service
+=====
+mkdir /var/services /var/services/none
+ln -s services/none /var/service
+exec /sbin/init > /dev/null 2>& 1 < /dev/null
+----
+
+You will have lost your shell at this point and need to log in using your previously-set root password.
+
+----
+d=/dev/tty1
+loadkmap < support/de.kmap > $d 2>& 1
+sleep 2
+zcat support/Uni2-TerminusBold28x14.psf.gz | loadfont
+cd /
+base64 -d << ===== | zcat | cpio -idm
+H4sIAAAAAAAAA7WSwYrCMBCGc85TpOy5ZNJuTa5qUlhYWFBfwK1Ry0qEJhYXfPhtanSrWOnF/zIz
+TIZ8/yTAgQODRgkXuY+Cjd/hsdgIMsFkykIt7tpJ71hQvazobr+h9tf6UOzNutwgmwFgk2H4Z5Fn
+BsGUfMqSp+HONBvIorosVld1WWhLV3q9POwc/fFY1cGgt4jQ79JQu8VOW0fiOWkO1Z6enE5EH0uH
+9VEXxE+sSGwKwjBCqOOB8+kgDwqm5zLhwzwk1/d56CEs9+IEdb20yLZumenta+Ab9pEaxC7zsPd7
+1F72a/aMvYe7bfplO/lF4s5/eaEml2QxG398qlkURQ0a+gNQGA6JOAMAAA==
+=====
+ln -snf services/default /var/service
+----

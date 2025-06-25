@@ -1,0 +1,15 @@
+Standard Escape Sequences
+=========================
+
+For displaying help
+-------------------
+
+This typically displays a list of all or most available escape sequences.
+
+* SSH: [Enter],[~],[?]
+
+* GNU Screen: [Ctrl]+[a],[?]
+
+* TMUX: [Ctrl]+[b],[?]
+
+* Telnet: [Ctrl]+["]"]

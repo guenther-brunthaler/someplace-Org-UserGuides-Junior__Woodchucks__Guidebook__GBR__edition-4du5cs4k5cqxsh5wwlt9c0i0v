@@ -1,0 +1,73 @@
+Tap code
+========
+v2021.50
+
+
+Tap code ("AFLQV", look below) is an alternative to link:Morse%20Code.html[Morse code] which is much easier to learn and can be transmitted by knocking or banging against a pipe or something.
+
+link:Morse%20Code.html[Morse code] requires a signal which can be switched on and off rather than just sending pulses. It is also harder to learn.
+
+
+Details
+-------
+
+Create a 5x5 matrix and fill in the letters from A through Z (filling the rows first, from left to right).
+
+English:: Omit letter "K" and write it into the same cell as "C".
++
+....
+A B CK D  E
+F G H  I  J
+L M N  O  P
+Q R S  T  U
+V W X  Y  Z
+....
+
+German:: Omit letter "J" and write it into the same cell as "I".
++
+....
+A B C D  E
+F G H IJ K
+L M N O  P
+Q R S T  U
+V W X Y  Z
+....
+
+Number the rows and columns of the matrix with numbers 1 through 5.
+
+Then every letter can be tapped by tapping a pair of numbers: The row number of the letter first and its column number second.
+
+Tapping a number consists of that many pulses in short succession with a longer pause after every number.
+
+Sentences are separated by X and acknowledgements are signaled with K.
+
+Abbreviations are frequently used. Popular ones are GN for "good night" and GBU for "god bless you".
+
+The matrix is normally not written down.
+
+Instead, the participants learn the first letter of every matrix row by heart: "AFLQV".
+
+Then they tap the first number, indicating which of those 5 letters to start at.
+
+After that they "increment" the starting letter by knocking the second number until the desired letter is reached (except that the first knock is not an increment yet; it means the starting letter itself).
+
+Tap code can also be used without making a sound by pushing against one another when prisoners are not allowed to speak.
+
+
+A non-standard variant
+----------------------
+
+In my opinion, an obvious way to extend the above scheme is into an alphanumeric 6 x 6 matrix "06CIOU":
+
+....
+0 1 2 3 4 5
+6 7 8 9 A B
+C D E F G H
+I J K L M N
+O P Q R S T
+U V W X Y Z 
+....
+
+This will make the encoding larger and slower, but no merging of letters C/K or I/J will occur, making the encoding securely reversible without any context information. In addition, one does no longer need to distinguish between German and English.
+
+It also allows and even prefers numerical encoding, including hexadecimal. "M" can be used as a negative sign, "P" (or "K" in German) as a decimal point, "E" for introducing an exponent (decimal only).

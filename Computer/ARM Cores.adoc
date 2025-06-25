@@ -1,0 +1,19 @@
+﻿* Cortex-A5 is the smallest, lowest power ARMv7 application processor.
+
+* Cortex-A7 is the most efficient ARMv7-A processor. It provides up to 20% more single thread performance than the Cortex-A5 and incorporates all features of the high-performance Cortex-A15 and Cortex-A17 processors, including virtualization support in hardware, Large Physical Address Extensions (LPAE), NEON, and 128-bit AMBA 4 AXI bus interface.
+
+* Cortex-A17 is the highest performant ARMv7-A processor.
+
+* Cortex-A32 is ARM's smallest, lowest-power ARMv8-A processor optimized for 32-bit embedded applications. New power management features reduce leakage power in the CPU idle states. While already 25% more power efficient than the Cortex-A7, which was the flag bearer for the ultra efficient category in the ARMv7 days, the Cortex-A32 is actually even more efficient than the Cortex-A35, consuming 10% less power and taking up 13% less space. 1-4 Cores. 32-bit Armv8-A. TrustZone. NEON advanced SIMD. DSP & SIMD extensions. VFPv4 floating point. Hardware virtualization.
+
+* Cortex-A35 is the smallest and most power-efficient application processor designed by ARM. Armv8-A. Significant efficiency improvements when compared to the Cortex-A7 (Less active power and improved performance). 1-4 Cores. TrustZone. NEON advanced SIMD. DSP & SIMD extensions. VFPv4 floating point. Hardware virtualization.
+
+* Cortex-A53 is a high efficiency processor that implements the ARMv8-A architecture. Full backward compatibility with Armv7. TrustZone. NEON advanced SIMD. DSP & SIMD extensions. VFPv4 floating point. Hardware virtualization.
+
+* Cortex-A55 is ARM’s most power efficient mid-range application CPU built on ARM DynamIQ technology.
+
+* Cortex-A57 is a high-performance processor that implements the ARMv8-A architecture, which can be paired with the Cortex-A53 processor in a big.LITTLE configuration for mobile applications. 
+
+* Cortex-A73 is the most efficient Premium processor from ARM, which can be paired with the Cortex-A53 or Cortex-A35 processor in a big.LITTLE configuration for mobile applications.
+
+* Cortex-A75 is ARM's highest performance application CPU built on ARM DynamIQ technology. It is the most powerful Cortex-A processor as of 2018-10.

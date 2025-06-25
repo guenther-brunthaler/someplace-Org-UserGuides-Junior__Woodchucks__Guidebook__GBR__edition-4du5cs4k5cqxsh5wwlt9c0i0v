@@ -1,0 +1,33 @@
+Commandline utilties usage tipps
+================================
+v2025.18
+
+
+less: Scroll horizontally in smaller steps
+------------------------------------------
+
+By default, `less` scrolls in steps of the half terminal's width. That's a lot and often too much.
+
+Type "`-#`" while `less` is running and get prompted for the step size in characters. This also works as a command-line option:
+
+----
+$ less -# 1 file.txt
+----
+
+
+ViM: Text encrypting edited text documents
+------------------------------------------
+
+Start `vim` with the `-x` Option. It will ask for a password. When saving the edited document the next time, it will be saved in an encrypted format.
+
+Vim recognizes the encrypted format automatically when opening the file the next time, no `-x` necessary.
+
+The password can be changed or removed by executing the colon-command  "`:X`" (upper-case `X`). Vim asks for the old password first, then twice for the new password. Enter an emtpy text twice and the password will be removed, making the document un-encrypted again.
+
+The encryption algorithm can be changed with the colon-command
+
+----
+:setlocal cm=
+----
+
+and then pressing the tabulator key repeatedly for displaying all available encryption methods. As of 2025, "blowfish2" is the default method and seems solid. But ChaCha20-Variants are also availably, which might be even stronger.

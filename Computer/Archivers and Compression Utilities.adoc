@@ -1,0 +1,91 @@
+Archivers and Compression Utilities
+===================================
+v2022.145
+
+
+xz / lzma
+---------
+
+Both utilities compress a single file or data stream into `.xz` or `.lzma` files, respectively.
+
+`xz` and `lzma` use the same algorithm (LZMA), but `lzma` adds a smaller header to its compressed file and will therefore create smaller output files. This difference is only significant if the files are very small (less than a few kB in size), otherwise its is neglectible.
+
+`xz` provides more security because it can detect corrupted data more reliable. It is also more versatile.
+
+`xz` and `7zip` are the best general-purpose formats for compressing `.pdf` documents.
+
+`xz` is the best general-purpose format for compressing source archives and binary package archives.
+
+
+gzip
+----
+
+Creates `.gz` files. Can only compress a single file or data stream. Lousy compression for larger file, but excellent compression for small ones.
+
+One speciality of the program is the `--rsyncable` option which allows to create `.gz` files which can be synchronized with an older or newer versions of the same archive efficiently using the `rsync` or `zsync` utilities. No other known "solid state" archivers provide the same feature.
+
+If uncompressible files are compressed with `gzip`, it will notice its failure at compression and just store the original contents uncompressed. It just adds a small header every now and then within the (non-) compression stream in this case, which will increase the size of the output stream by 23 bytes for smaller files and about 0.2 per mille for large files.
+
+`gzip` also adds a CRC-32 to the output, which adds error detection capabilties to archive formats which normally lack such capabilities (`tar` in particular, but also most variants of `cpio`).
+
+One disadvantage of the `.gz` data format is that it only stores the size of the original input data as a value reduced modulo 2 ** 32.
+
+This means there is no way to determine the size of the uncompressed data for large files without actually uncompressing them - at least not without some amount of guessing.
+
+
+lrzip
+-----
+
+`lrzip` compresses a single file or data stream into a `.lrz` file.
+
+This archiver can usually create the smallest archives, except for very small ones where `gzip` is better. However, it requires a lot of RAM to run.
+
+The following options usually result in maximum compression:
+
+----
+$ lrzip -L9 -z -q -U $SOME_FILE
+----
+
+If the `-q` is left off, it will display progress information. The `-U` option allows unlimited use of memory. Remove it if `lrzip` fails because of insufficient memory.
+
+Note that a considerable portion of the memory used for compression will be required for decompression, too. So better omit the `-U` unless you know for sure that machines used for decompression also has a lot of RAM.
+
+
+lzip
+----
+
+`lzip` creates `.lz` archives from a single file or data stream.
+
+It uses a simplifies variant of the LZMA algorithm and nothing else for its compression. Compression ratio varies between `-0` (like `gzip`) and `-9` (a little better than `bzip2`).
+
+`lzip` is intended as a archive data format for long-term storage. The data format is very thoroughly documented and not intended to change. There are three different ways for detecting corruption of the contents. And if the contents are corrupt, there are better chances than with most other compression programs for repairing at least some of the damaged data.
+
+In contrary to `.gz` files, `.lz` files store the full 64 bit length of the original uncompressed data stream. No more guessing for large archives.
+
+The program als includes a feature for splitting the output into files of a given maximum size. Contrary to `split`, this will ensure that the different parts are decompressible independently. Which means that of some of the parts are missing, the remaining data can still be decompressed (minus the missing parts of course).
+
+For very large archives, the inferior compression ratio of `lzip` might become problematic. In those cases it might be better to use one of the other archivers with less robust data formats, and add error correction information for repair instead. `par2` can do this. This approach has also the advantage that `par2` can actually repair damaged parts of an archive, while `lzip` can only recover from the damages and restore the undamaged remaining parts of the archive.
+
+
+7zip
+----
+
+The `7zip` utility (often also named `7z` or `7za`) compresses multiple files into `.7z` archives.
+
+It has basically been designed as a more capable successor of the `.zip` file format and can be used as a replacement for the `zip` and `unzip` utilities, but unfortunately not as a drop-in replacement because of a widely different command syntax.
+
+In addition to the original weak `.zip` encryption algorithm, `7z` also allows to use much safer AES-128, AES-192 and AES-256 encryption instead in `.zip` archives. `.7z` archives use AES-256 + SHA-256 for encryption and there is the `-mhe` option for also encrypting the archive headers, which means the archive contents cannot even be listed without the password.
+
+The `.7z` archive format is the most capable because one can choose (via the `-m` switch) among the most compression (Copy, Deflate, Deflate64, BZip2, LZMA, PPMd), preprocessing (Delta, BCJ/BCJ2 for x86 executable code, ARM, ARMT, IA64, PPC, SPARC) and encryption (ZipCrypto, AES128, AES192, AES256) algorithms for the archive members.
+
+`.7z`-archives may also be compressed as "solid", which means they will be compressed as a single stream rather than independently compressed entries.
+
+`7z` is very versatile because it can create, list and extract the following archive types without external helper programs: `.7z`, `.bzip2`, `.gz`, `.tar`, `.wim`, `.xz`.
+
+In addition, it can list/extract the following archive types: `.apm`, `.ar`, `.a`, `.deb`, `.lib`, `.arj`, `.cab`, `.chm`, `.chw`, `.chi`, `.chq`, `.msi`, `.msp`, `.doc`, `.xls`, `.ppt`, `.cpio`, `.cramfs`, `.dmg`, `.ext`, `.ext2`, `.ext3`, `.ext4`, `.img`, `.fat`, `.hfs`, `.hfsx`, `.hxs`, `.hxi`, `.hxr`, `.hxq`, `.hxw`, `.lit`, `.ihex`, `.iso`, `.lzh`, `.lha`, `.lzma`, `.mbr`, `.mslz`, `.mub`, `.nsis`, `.ntfs`, `.mbr`, `.rar`, `.r00` (and `.r01` etc. as created by `rar`), `.rpm`, `.ppmd`, `.qcow`, `.qcow2`, `.qcow2c`, `.001` (and `.002` etc. as created by `split`),  `.squashfs`, `.udf`, `.iso`, `.scap`, `.uefif`, `.vdi`, `.vhd`, `.vmdk`, `.wim`, `.esd`, `.xar`, `.pkg`, `.Z`, `.taz`.
+
+Although not mentioned on the documentation, `7z` can also extract `cpio` archives (both the `crc` and `newc` format variants).
+
+This multitude of supported extraction formats allows `7z` to substitute a lot of separate archival utilities.
+
+`7z` can also substitute several checksum and hashing utilities via the built-in `h` command which can calculate CRC32, CRC64, SHA1, SHA256, BLAKE2sp checksums for files specified as arguments or read from standard input.

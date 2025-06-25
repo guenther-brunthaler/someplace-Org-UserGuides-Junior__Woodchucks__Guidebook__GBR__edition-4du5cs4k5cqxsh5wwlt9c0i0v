@@ -1,0 +1,39 @@
+
+If you are using vncviewer to remotely operate a Linux terminal console over the network, you might consider switching off cursor blinking in order to save traffic volume.
+
+Try this first:
+
+$ echo 0 > /sys/devices/virtual/graphics/fbcon/cursor_blink
+
+This assumes the console is using a frame buffer device. It if just uses the VGA character mode, try this:
+
+$ printf '\033[?17;0;127c' # Keyboard troubles? "["="\133" "?"="\077", ";"="\073".
+
+This will switch to a non-blinking block cursor.
+
+Here is avariant with fewer problematic special characters, although it outputs the useless (but harmless) string "000" at the beginning of the line:
+
+$ printf %s GAYD AG23 H4YT OOZQ HMYT EN3D | cksum
+4164992930 24
+$ printf %s GAYD AG23 H4YT OOZQ HMYT EN3D | base32 -d
+
+Here is a script which worked with the QEMU monitor for sending the sequence as key presses into a VM (with unix-domain socket for the monitor named "./monitor"):
+
+cat > qemu_vm_stop_blinking << '====='
+#! /bin/sh
+echo "printf %s GAYD AG23 H4YT OOZQ HMYT EN3D | base32 -d" \
+| qemu-monitor_sendkey-commands_from_text-lines \
+| pv -qL300 \
+| socat -u STDIN unix:monitor
+=====
+chmod +x qemu_vm_stop_blinking
+
+I have not yet found a way to switch to a non-blinking underscore-cursor.
+
+Additional information:
+
+There is a standard control sequence to turn off cursor blinking on terminals.
+
+$ printf '\033[?12l'
+
+But it rarely if ever works, so better forget it.

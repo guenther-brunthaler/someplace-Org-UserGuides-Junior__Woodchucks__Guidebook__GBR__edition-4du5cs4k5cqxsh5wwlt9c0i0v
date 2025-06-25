@@ -1,0 +1,29 @@
+Some free DNS servers
+=====================
+
+. Quad9.net
+* Only: 9.9.9.9
+
+. Open DNS
++
+* Preferred: 208.67.222.222
+* Alternate: 208.67.220.220
+
+. Cloudflare DNS
++
+* Preferred: 1.1.1.1
+* Alternate: 1.0.0.0
+
+. Google Public DNS
++
+* Preferred: 8.8.8.8
+* Alternate: 8.8.4.4
+
+. Comodo Secure DNS
++
+* Preferred: 8.26.56.26
+* Alternate: 8.20.247.20
+
+. More Public DNS Servers
++
+* https://en.wikipedia.org/wiki/Public_recursive_name_server

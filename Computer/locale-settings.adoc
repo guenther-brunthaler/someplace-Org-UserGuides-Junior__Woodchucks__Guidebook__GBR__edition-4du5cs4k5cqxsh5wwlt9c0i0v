@@ -1,0 +1,22 @@
+Obtaining locale settings
+=========================
+
+How to use the POSIX `locale` utility in a script in order to obtain specific information from the current locale.
+
+Let's say you are interested in the 3-character ISO 639-2 language code.
+
+First, show all settings avaiable in the current locale
+
+----
+$ locale | sed '/^LC_/ !d; s/=.*//; /^LC_ALL$/d' | xargs locale -ck | less
+----
+
+and then search that output for the `LC_*`-category of the desired information as well as its keyword name.
+
+Let's further say you found the ISO 639-2 code under category `LC_ADDRESS` with the keyword name `lang_term`.
+
+This is then how you extract that value from the locale and assign it to a shell variable of the same name as the keyword (i. e. `$lang_term` in this case):
+
+----
+$ eval `locale -ck LC_ADDRESS | grep ^lang_term=`
+----

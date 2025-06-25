@@ -1,0 +1,65 @@
+Recommended simple command prompt
+=================================
+v2023.80
+
+With all 'POSIX'-compliant shells, the following minimalistic prompt will work:
+
+----
+export PS1='${?#0}$ '
+----
+
+This prompt should work even with the dumbest terminal. The prompt only consists of a "`$`" preceded by the exit value of the previous command (`$?`). The most common return value `0` will be omitted from output, though.
+
+Use the above variant when you have to type in the command and cannot just copy/paste it. Otherwise, try the following prompts which include more information within the prompt.
+
+With many shells, the following even better will work:
+
+----
+export PS1='\n\u@\h \w\n${?#0}$ '
+----
+
+If it doesn't, the following should work with all 'POSIX'-compliant shells:
+
+----
+$ PS1=`echo; echo :`; PS1=${PS1%:}; export PS1="$PS1\$LOGNAME@`hostname` \$PWD$PS1\${?#0}\$ "
+----
+
+These prompts are similar to the minimalistic prompt shown at the beginning, except that the actual prompt line will be preceded by an empty line followed by another line displaying the username, hostname and current working directory.
+
+The empty line is helpful if an executed command forgets to emit a newline at the end of its last output line.
+
+Finally, here is a command line snippet which shall set up 'PS1' permanently for any 'POSIX'-compliant shell:
+
+----
+$ cat << 'EO_PR' > new.profile && cat << 'EO_RC' > new.shellrc \
+  && mv -i new.profile .profile && mv -i new.shellrc .shellrc
+#! /bin/false
+export ENV=~/.shellrc
+case $- in
+        *i*) . "$ENV"
+esac
+EO_PR
+#! /bin/false
+NL_3tpksfxagl803g976jdiv9g70=`echo; echo :`
+NL_3tpksfxagl803g976jdiv9g70=${NL_3tpksfxagl803g976jdiv9g70%:}
+export PS1="$NL_3tpksfxagl803g976jdiv9g70`logname`@`hostname` \$PWD$NL_3tpksfxagl803g976jdiv9g70\${?#0}\$ "
+unset NL_3tpksfxagl803g976jdiv9g70
+EO_RC
+----
+
+This command snippet will create files `.profile` and `.shellrc`, but only if they do not already exist. In the latter case, the user will be asked whether to replace the existing files or not.
+
+If the user denies this, the files will be created with different names instead: As `new.profile` and `new.shellrc`, respectively. The user can then merge the contents of those files into the existing files manually.
+
+
+GNU screen
+----------
+
+If the above prompt works outside of GNU `screen`, but not within `screen` sessions, modify the `screen` configuration files as follows:
+
+----
+$ export SHELL HOME
+$ echo 'shell -$SHELL' >> /etc/screenrc
+----
+
+This must be done before starting `screen`.

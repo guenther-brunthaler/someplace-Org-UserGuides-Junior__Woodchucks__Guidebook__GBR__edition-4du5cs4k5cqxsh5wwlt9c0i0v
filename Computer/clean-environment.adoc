@@ -1,0 +1,61 @@
+Setting up a clean environment
+==============================
+v2020.122
+
+
+Headless shell sessions
+-----------------------
+
+First make sure `$TERM`, `$HOME` and `$SHELL` are set as you want it. Then:
+
+----
+$ exec env -i TERM="$TERM" HOME="$HOME" SHELL="$SHELL" "$SHELL" -l
+$ . /etc/default/locale; export LANG LANGUAGE
+$ locale # Make sure this gives no errors!
+----
+
+
+With X11
+--------
+
+First, save important status information about the running X11 environment:
+
+----
+$ xset q > /dev/null || echo 'X11 is not accessible!' >& 2
+$ mkdir -m 700 /tmp/x11-save || message 'FAILURE to create save directory!'
+$ echo 'export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS' > /tmp/x11-save/env
+$ echo "DISPLAY='$DISPLAY'" >> /tmp/x11-save/env
+$ echo "DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> /tmp/x11-save/env
+$ xauth nextract "$DISPLAY" > /tmp/x11-save/nxauth
+$ xterm -ls  < /dev/null > /dev/null 2>& 1
+----
+
+Then do the same as for the headless case.
+
+After this, re-import the saved status information in the new `xterm` window:
+
+----
+$ . /tmp/x11-save/env
+$ xauth nmerge /tmp/x11-save/nxauth
+$ locale
+$ dbus-send --dest=org.freedesktop.DBus --print-reply / org.freedesktop.DBus.ListNames
+$ rm -r /tmp/x11-save
+----
+
+The `locale` and `dbus-send`-commands must not fail to work without warnings, or there is a problem!
+
+
+Other things not to forget
+--------------------------
+
+* Have the network interfaces been brought up in the new environment?
+
+* Has the default route been set?
+
+* Is `/etc/resolve.conf` valid?
+
+* Need those be running: `syslogd`, `klogd`, `udev`, `dbus-daemon --system`?
+
+* Has `/run/sshd` (normal directory with mode 755) for SSH privilege-separation been created?
+
+* What about `sshd` or `inetd`?

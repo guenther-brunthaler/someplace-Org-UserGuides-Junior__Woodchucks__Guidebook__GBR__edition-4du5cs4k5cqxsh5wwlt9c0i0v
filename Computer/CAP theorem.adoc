@@ -1,0 +1,23 @@
+﻿CAP theorem
+===========
+v2022.90
+
+In theoretical computer science, the CAP theorem, also named Brewer's theorem after computer scientist Eric Brewer, states that any distributed data store can only provide two of the following three guarantees:
+
+Consistency:: Every read receives the most recent write or an error.
+
+Availability:: Every request receives a (non-error) response, without the guarantee that it contains the most recent write.
+
+Partition tolerance:: The system continues to operate despite an arbitrary number of messages being dropped (or delayed) by the network between nodes.
+
+When a network partition failure happens, it must be decided whether to cancel the operation and thus decrease the availability but ensure consistency or to proceed with the operation and thus provide availability but risk inconsistency.
+
+CAP is often misunderstood as a choice at all times of which one of the three guarantees to abandon. In fact, the choice is between consistency and availability only when a network partition or failure happens. When there is no network failure, both availability and consistency can be satisfied.
+
+CAP has been used by many NoSQL database vendors as a justification for not providing transactional ACID consistency, claiming that the CAP theorem “proves” that it is impossible to provide scalability and ACID consistency at the same time. However, a closer look reveals that the CAP theorem does not refer at all to scalability, but only availability.
+
+Database systems designed with traditional ACID guarantees in mind such as RDBMS choose consistency over availability, whereas systems designed around the BASE philosophy, common in the NoSQL movement for example, choose availability over consistency.
+
+BASE:: Basically Available, Soft state, Eventual consistency
+
+ACID:: Atomicity, Consistency, Isolation, Durability

@@ -1,0 +1,74 @@
+popstate.dat
+------------
+
+The first lines are comments. Then a line follows:
+
+----
+*$POP_SERVER $USERNAME
+----
+
+Where $POP_SERVER ist then DNS name of the POP3 server and $USERNAME is the login username for this mail account.
+
+The remaining lines have the following format:
+
+----
+$FLAG $MSGID $TIMESTAMP
+----
+
+The file identifies a state for each message that Thunderbird has downloaded and left on the POP server. Each $FLAG state specifies what Thunderbird will do with the message the next time it gets mail from the POP server. The states are:
+
+[options="header,autowidth"]
+|====
+|Flag |	Applies to | Action
+|b    |	truncated  | Do nothing.
+|f    |	truncated  | Download message in full.
+|k    |	full	   | Keep message on server.
+|d    |	full       | Delete message from the server.
+|====
+
+The $MSGID can be found in dhe "X-UIDL:"-header field in the source text of the corresponding message.
+
+The $TIMESTAMP is a UNIX timestamp and refers to the date specified in the "From "-line at the top of the message source.
+
+This is also the date/time used to determine when to delete old messages based on the current retention policy for a mail folder.
+
+The file does not seem to be sorted in any way.
+
+
+Editing the file
+~~~~~~~~~~~~~~~~
+
+* You can edit the file using any text editor. Ensure that the editor you use saves the file as plain text, not in any wordprocessing format.
+
+* You do not need to exit Thunderbird before editing this file.
+
+Here are some techniques that you can use:
+
+* Download the full text of a truncated message
++
+Change the message's state to "f"
+
+* Keep a message on the server
++
+Change the message's state to "k"
+
+* Delete a message from the server
++
+Change the message's state to "d"
+
+* Prevent the deletion of a message from the server
++
+Change the message's state to k for a full message or b for a truncated message. 
+
+* Recover a message that you deleted by mistake
++
+Remove the message's entry from the file. 
+
+After you edit the file, save it and immediately get mail for the account. Thunderbird processes the actions that you have specified.
+
+Notes
+^^^^^
+
+* If you do not get mail immediately after editing the file, then Thunderbird might change some of the actions you specified. For example, if you delete a message before getting mail, then Thunderbird might ignore the action you speciied and delete the message from the server.
+
+* Avoid duplicate messages. If you plan to download a message again, delete the original before you edit the file. If you discover a duplicate message, delete one copy. Edit the file again if you want to prevent the deletion from affecting the server's copy.

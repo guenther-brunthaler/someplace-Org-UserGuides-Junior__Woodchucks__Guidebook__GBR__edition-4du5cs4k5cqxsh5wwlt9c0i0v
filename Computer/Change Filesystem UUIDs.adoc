@@ -1,0 +1,116 @@
+Change Filesystem UUIDs
+=======================
+v2025.86
+
+Sometimes, after the contents of some block device have been copied literally with `dd`, it is necessary to change the UUIDs of various on-disk layout structures such as filesystems of snapshots in order to avoid troubles and making the UUIDs unique again.
+
+
+ext2, ext3, ext4
+----------------
+
+----
+$ tune2fs -U `uuidgen` # arbitrary
+$ tune2fs -U time /dev/backing/filesystem # time-based
+$ tune2fs -U random /dev/backing/filesystem # randomly generated
+----
+
+This creates a time-based UUID which will also contain the MAC address of the network card. This only makes sense if it does not concern privacy and if it is a physical network card rather than a virtual one.
+
+If not, replace `time` with `random` in order to create a completely randomized UUID.
+
+
+btrfs
+-----
+
+----
+$ btrfstune -U `uuidgen -t` /dev/backing/filesystem # time-based
+$ btrfstune -u /dev/backing/filesystem # randomly generated
+----
+
+
+FAT, VFAT, ExFAT
+----------------
+
+Note that the "UUIDs" used by MBR, VFAT and ExFAT are not real DCE UUIDs, but rather unsigned 32-bit random numbers.
+
+They can be randomly generated with a command like this:
+
+[[gen_uuid]]
+----
+$ dd bs=1 count=4 if=/dev/random 2> /dev/null | od -A n -t x4 | tr -d ' '
+----
+
+IMPORTANT: Before changing the UUID, the filesystem needs to be unmounted.
+
+Then use `hexedit -s /dev/to/vfat_blkdev` in order to edit the first 512-byte sector of the file system's underlying block device.
+
+Search (command key "`/`") for the currently displayed UUID in reverse byte order.
+
+For example, if `blkid` reported `1234-5678`, then search for `78563412`. Ignore the dash. It is only used for display formatting.
+
+Once the position of the UUID has been located (in the case of VFAT, the found offset should be 0x0027), enter the new one, also byte-reversed.
+
+Press `[F2]` to save the changes, then quit `hexedit`.
+
+Verify the new UUID with `blkid`.
+
+Run `fsck.vfat` for the modified filesystem. This will complain about the differences between the modified boot sector and its backup. Select "Copy original to backup" and save the changes.
+
+
+LVM2
+----
+
+Make sure that the following changes are performed while the original PV is not accessible (only the copied PV containing the VG).
+
+----
+$ lvm vgchange -a n vg_orig
+$ lvm pvchange --uuid /dev/mapper/imgcpy_of_vg_orig_pv
+$ lvm vgchange --uuid vg_orig
+$ lvm vgrename vg_orig vg_old
+$ lvm vgchange -a y vg_old
+----
+
+Note that it does not matter whether the "`pvchange --uuid`" or the "`vgchange --uuid`" command is run first. Either order is fine.
+
+
+Swap
+----
+
+----
+$ swaplabel -U `uuidgen -t` /dev/blkdev_for_swap
+----
+
+
+Software RAID (md raid)
+-----------------------
+
+The UUID cannot be changed while the RAID is active. It has to be stopped first.
+
+----
+$ mdadm --stop $RAID_DEVICE
+$ mdadm --assemble $RAID_DEVICE --update=uuid --uuid=`uuidgen -t` $MEMBER_DEVICES...
+----
+
+
+LUKS
+----
+
+----
+$ cryptsetup luksUUID --uuid=`uuidgen -t` /dev/luks/backing
+----
+
+
+GUID Partition Table, GPT
+-------------------------
+
+Use `fdisk` and switch to "expert mode". There is a command for changing the UUID of a partition.
+
+
+NTFS
+----
+
+The NTFS UUID is a 64 bit random number. See <<gen_uuid,above>> how to create a 32 bit random number but replace the `count=4` with `count=8` in order to create a 64 bit number.
+
+----
+$ ntfslabel --new-serial=$NEW_UUID /dev/backing/filesystem
+----

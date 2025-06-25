@@ -1,0 +1,33 @@
+Netpbm Formats
+==============
+
+pnm: Any of the following formats.
+plain pbm: P1 $w $h ($h * $w * $bit)
+plain pgm: P2 $w $h $ms ($h * $w * $sample)
+plain ppm: P3 $w $h $ms ($h * $w * ($r + $g + $b))
+raw pbm: P4 $w $h ($num_images * $h * ceil($w / 8) * $eight_bits)
+raw pgm: P5 $w $h $ms ($num_images * $h * $w * $sample)
+raw ppm: P6 $w $h $ms ($num_images * $h * $w * ($r + $g + $b))
+raw pam: P7\nWIDTH $w\nHEIGHT $h\nMAXVAL $ms\nDEPTH $d\TUPLTYPE $t\nENDHDR\n($num_images * $h * $w * $d * $sample)
+
+The Tokens before the ":" in the list above are the recommended filename extensions. The format names are the same except written in upper case.
+
+In the format descriptions above, a space between tokens actually means "whitespace" (ASCII SPACE, HT, LF or CR). Except for the last whitespace character which separates the header from the image data, "whitespace" can actually be a sequence of one or more whitespace characters.
+
+"\n" means a single ASCII LF only.
+
+"#" line-comments are allowed after the initial P* marker and before the last line with information in the header. Most programs seem to insert a single line comment immediately after the P* marker (which is left in its own first line)), and nowhere else.
+
+$ms is the maximum sample value. For pbm it represents black, for pgm white or opaque (for transparency masks), and for ppm maximum intensity.
+
+$t is optional and gives the mandatory $d a predefined meaning: "BLACKANDWHITE" / "GRAYSCALE" = pgm, "RGB" = ppm. "GRAYSCALE_ALPHA" and "RGB_ALPHA" adds and additional sample for transparency information (0 = completely transparent and therefore invisible, $ms = completely opaque). $t suggests a value for $d but does not imply it.
+
+Raw formats: A single whitespace separates the data from the last header ASCII number. There is no padding, except for P4 while lines are '0'-bit padded to full octets. Sample values need to fit into 1 octet if $ms < 256 or 2 octets (most significant first) otherwise.
+
+Plain formats: One or more whitespaces separate the sample values, except for P1 where it is optional. Data should be split into lines no longer than 70 characters each. Trailing junk is allowed after the last sample value, if separated by at least one whitespace character.
+
+Caveat: At least ImageMagick assumes that each row needs to be put into its own line, restricting images to a width of 70 pixels. Such a restriction is not in the specs and the following works: $ { echo P1 4 4  1111 1001 1001 1111; } | pnmtoplainpnm | display -
+
+Format names: The initial "P" stands for "portable". Remaining letters: "N" = "any", "B" = "bit" (bi-level), "G" = "gray" (intensity without hue), "P" = "pix" (RGB), "A" = "arbitrary" (any number of color component channels) and "M" = "map".
+
+MIME Type: None officially assigned, but "image/x-portable-arbitrarymap" is normally used.

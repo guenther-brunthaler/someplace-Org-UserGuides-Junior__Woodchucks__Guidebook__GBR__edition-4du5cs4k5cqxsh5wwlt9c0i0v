@@ -1,0 +1,39 @@
+Captive Portals
+===============
+
+When using dhcp-client but with a static resolv.conv, start with
+
+----
+$ grep domain-name-servers /var/lib/dhcp/dhclient.leases | tail -n 1 | tr -dc 0-9. >> /etc/resolv.conf
+$ ${EDITOR:-$VISUAL} /etc/resolv.conf # comment out old DNS servers.
+----
+
+One possibility is to use DHCP Router Advertisement extension as in RFC 7710: DHCPv4 option 160 (1 octet) or DHCPv6 option 103 (2 octets); they return the URL of the landing page which must be visited (the URL frequently uses numeric IP-addresses in order to avoid the need for DNS lookups).
+
+Or the client tries to loop up a particular web page, comparing its HTTP return code.
+
+Just make sure to explicitly redirect the following urls to your captive portal with HTTP Success:
+
+Android / Chromebook:
+clients3.google.com (Frequently: "http://clients3.google.com/generate_204)
+
+iOS 6:
+gsp1.apple.com
+*.akamaitechnologies.com
+
+iOS 7:
+www.appleiphonecell.com
+www.airport.us
+*.apple.com.edgekey.net
+*.akamaiedge.net
+*.akamaitechnologies.com
+
+iOS 8/9:
+http://www.apple.com/library/test/success.html
+http://captive.apple.com/hotspot-detect.html
+
+Windows
+ipv6.msftncsi.com
+www.msftncsi.com
+
+Many vendors have also began to use the User Agent "CaptiveNetworkSupport", though it's not as common as the URL method above. Just check for that UA and always give it your portal page...doesn't work 100% though.

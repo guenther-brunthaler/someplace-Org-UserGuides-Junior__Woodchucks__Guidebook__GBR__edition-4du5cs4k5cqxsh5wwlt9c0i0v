@@ -1,0 +1,60 @@
+Deltification tools and applying compression to their results:
+
+29178984 susv4-2018.dfa
+28924731 susv4tc1.dfa
+17100083 susv4tc1.dfa.sig-susv4-2018.dfa.rdiff
+ 4893035 susv4-2018.dfa.gz
+ 4853370 susv4tc1.dfa.gz
+ 3122299 susv4tc1.dfa.gz.sig-susv4-2018.dfa.gz.rdiff
+ 2983911 susv4tc1.dfa.gz.sig-susv4-2018.dfa.gz.rdiff.lrz
+ 2164974 susv4-2018.dfa.lrz
+ 2128889 susv4tc1.dfa.lrz
+ 1067792 susv4tc1.dfa.sig-susv4-2018.dfa.rdiff.lrz
+  755123 susv4tc1.dfa-susv4-2018.dfa.bdelta
+  193728 susv4tc1.dfa.sig
+  152610 susv4tc1.dfa-susv4-2018.dfa.vcdiff
+  143275 susv4tc1.dfa-susv4-2018.dfa.vcdiff.lrz
+  109071 susv4tc1.dfa-susv4-2018.dfa.bdelta.lrz
+   80328 susv4tc1.dfa.gz.sig
+
+The *.dfa files are uncompressed archives containing only a directory tree mostly filled with HTML text files and a small number of bitmap image files. The files within the archives have been sorted by path and both archives use the same relative paths, i.e. without top-level directories containing different version numbers.
+
+*.dfa archives contain minimal metadata, not even modification date/times. In other words, they are very "delta-friendly" archives (hence the name).
+
+The *.gz files have been compressed with "gzip -9k --rsyncable" for the benefit of the "rdiff" utility.
+
+The *.sig and *.rdiff files have been created by the rdiff utility, the former ones are the "signature" and the latter the "delta" files created.
+
+The *.bdelta files have been created with "bdelta --all-in-ram".
+
+The *.lrz files have been compressed with "lrzip -L9 -z -U" (maximum compression via unconstrained memory usage).
+
+The *.vcdiff.lrz file has been created with "xdelta -I0 -9 -S none" and has then be compressed further with lrzip (with options as shown above).
+
+The *.vcdiff file has been created with "xdelta -I0 -9" without the -S option, which is the same as "-S lzma".
+
+In order to be actually useful, for rdiff the *.sig files need to be transferred from the host with the old version to the host with the new version, and the *.rdiff-file (optionally compressed) needs to be transferred back to the host with the old version.
+
+For bdelta, the host with the new version also needs the old version for creating the *.bdelta files, which then needs to be transferred to the host which only has the old version.
+
+For vcdiff it is the same as bdelta, except that *.vcdiff files are transferred back to the host which has only the old version.
+
+As one can see, in the above case transferring lrzip-compressed *.bdelta files were the best solution.
+
+Using lrzip-compressed xdelta files which have been created without secondary compression (-S none) was the next best solution.
+
+Using xdelta's built in default secondary compression came next and was only sligthly larger than using lrzip for providing external compression.
+
+Both vcdiff and xdelta beat rdiff by far.
+
+Using rdiff on --rsyncable compressed .gz files creates considerable larger files than lrzip-compressed rdiffs on the original files.
+
+Uncompressed rdiff deltas are the worst. The are about half as long as the original new files itself.
+
+On the other hand, lrzip compressed rdiffs are only half as long as the lrzip-compressed new archive (without using any delta).
+
+Comparing bdelta and xdelta, bdelta clearly beats xdelta but both are quite good. An advantage of xdelta is that it can create good compression on its own, while bdelta needs lrzip for additional compression in order to achive its good results. Also, xdelta implements a standard (VCDIFF, RFC 3284) while there are no long-term data-format stability guarantees for bdelta (unless archiving its source code).
+
+The inferior accomplishment of rdiff shows that rdiff ist not meant for diffing text files. It is meant for diffing block devices of file system images.
+
+However, even then, a simple XOR of the old and new contents, LZO-compressing the result, has also shown to be quite effective for storing the difference of image snapshots taken of the same filesystem. (The unused space in the file system has been filled with a large file containing only binary zeroes for eliminating deleted file contents before creating the snapshots.)

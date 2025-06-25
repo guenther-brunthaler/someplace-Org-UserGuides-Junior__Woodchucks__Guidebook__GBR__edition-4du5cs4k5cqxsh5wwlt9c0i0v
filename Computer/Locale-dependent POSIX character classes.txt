@@ -1,0 +1,106 @@
+
+POSIX Regular Expressions can contain locale-dependent character class-symbols which mach any character from that character class.
+
+
+[:upper:]
+
+Define characters to be classified as uppercase letters.
+
+In the POSIX locale, the 26 uppercase letters shall be included:
+
+A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+
+In a locale definition, no character specified for the keywords [:cntrl:], [:digit:], [:punct:], or [:space:] shall be specified. The uppercase letters <A> to <Z>, as defined in Character Set Description File (the portable character set), are automatically included in this class.
+
+
+[:lower:]
+
+Define characters to be classified as lowercase letters. In the POSIX locale, the 26 lowercase letters shall be included:
+
+a b c d e f g h i j k l m n o p q r s t u v w x y z
+
+In a locale definition file, no character specified for the keywords [:cntrl:], [:digit:], [:punct:], or [:space:] shall be specified. The lowercase letters <a> to <z> of the portable character set are automatically included in this class.
+
+
+[:alpha:]
+
+Define characters to be classified as letters. In the POSIX locale, all characters in the classes [:upper:] and [:lower:] shall be included.
+
+In a locale definition file, no character specified for the classes [:cntrl:], [:digit:], [:punct:], or [:space:] shall be specified. Characters classified as either [:upper:] or [:lower:] are automatically included in this class.
+
+
+[:digit:]
+
+Define the characters to be classified as numeric digits. In the POSIX locale, only:
+
+0 1 2 3 4 5 6 7 8 9
+
+shall be included. In every locale definition, those characters shall be specified in contiguous ascending sequence by numerical value. The digits <zero> to <nine> of the portable character set are automatically included in this class.
+
+
+[:alnum:]
+
+Define characters to be classified as letters and numeric digits. Only the characters specified for the [:alpha:] and [:digit:] keywords shall be specified. Characters specified for the keywords [:alpha:] and [:digit:] are automatically included in this class.
+
+
+[:space:]
+
+Define characters to be classified as white-space characters. In the POSIX locale, exactly <space>, <form-feed>, <newline>, <carriage-return>, <tab>, and <vertical-tab> shall be included.
+
+In a locale definition, no character specified for the keywords [:upper:], [:lower:], [:alpha:], [:digit:], [:graph:], or [:xdigit:] shall be specified. The <space>, <form-feed>, <newline>, <carriage-return>, <tab>, and <vertical-tab> of the portable character set, and any characters included in the class [:blank:] are automatically included in this class.
+
+
+[:cntrl:]
+
+Define characters to be classified as control characters. In the POSIX locale, no characters in classes [:alpha:] or [:print:] shall be included.
+
+In a locale definition, no character specified for the keywords [:upper:], [:lower:], [:alpha:], [:digit:], [:punct:], [:graph:], [:print:], or [:xdigit:] shall be specified.
+
+
+[:punct:]
+
+Define characters to be classified as punctuation characters.
+
+In the POSIX locale, neither the <space> nor any characters in classes [:alpha:], [:digit:], or [:cntrl:] shall be included.
+
+In a locale definition file, no character specified for the keywords [:upper:], [:lower:], [:alpha:], [:digit:], [:cntrl:], [:xdigit:], or as the <space> shall be specified.
+
+
+[:graph:]
+
+Define characters to be classified as printable characters, not including the <space>. 
+
+In the POSIX locale, all characters in classes [:alpha:], [:digit:], and [:punct:] shall be included; no characters in class [:cntrl:] shall be included.
+
+In a locale definition file, characters specified for the keywords [:upper:], [:lower:], [:alpha:], [:digit:], [:xdigit:], and [:punct:] are automatically included in this class. No character specified for the keyword [:cntrl:] shall be specified.
+
+
+[:print:]
+
+Define characters to be classified as printable characters, including the <space>. 
+In the POSIX locale, all characters in class [:graph:] shall be included; no characters in class [:cntrl:] shall be included.
+
+In a locale definition file, characters specified for the keywords [:upper:], [:lower:], [:alpha:], [:digit:], [:xdigit:], [:punct:], [:graph:], and the <space> are automatically included in this class. No character specified for the keyword [:cntrl:] shall be specified.
+
+
+[:xdigit:]
+
+Define the characters to be classified as hexadecimal digits. 
+In the POSIX locale, only:
+
+0 1 2 3 4 5 6 7 8 9 A B C D E F a b c d e f
+
+shall be included.
+
+In a locale definition file, only the characters defined for the class [:digit:] shall be specified, in contiguous ascending sequence by numerical value, followed by one or more sets of six characters representing the hexadecimal digits 10 to 15 inclusive, with each set in ascending order (for example, <A>, <B>, <C>, <D>, <E>, <F>, <a>, <b>, <c>, <d>, <e>, <f>). The digits <zero> to <nine>, the uppercase letters <A> to <F>, and the lowercase letters <a> to <f> of the portable character set are automatically included in this class.
+
+
+[:blank:]
+
+Define characters to be classified as <blank> characters. 
+
+In the POSIX locale, only the <space> and <tab> shall be included.
+
+In a locale definition file, the <space> and <tab> are automatically included in this class.
+
+Note that this class is a relatively new addition to the POSIX standard. Older versions of the standard do not support it.

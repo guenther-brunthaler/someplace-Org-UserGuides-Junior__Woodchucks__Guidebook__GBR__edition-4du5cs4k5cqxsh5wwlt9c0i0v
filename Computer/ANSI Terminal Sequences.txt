@@ -1,0 +1,300 @@
+ANSI terminal escape sequences
+==============================
+
+Common application - simple colors
+----------------------------------
+
+csi=`printf '\033['`
+normal=${csi}0m
+
+black=${csi}30m
+red=${csi}31m
+green=${csi}32m
+yellow=${csi}33m
+blue=${csi}34m
+purple=${csi}35m
+cyan=${csi}36m
+white=${csi}37m
+
+black_bg=${csi}40m
+red_bg=${csi}41m
+green_bg=${csi}42m
+yellow_bg=${csi}43m
+blue_bg=${csi}44m
+purple_bg=${csi}45m
+cyan_bg=${csi}46m
+white_bg=${csi}47m
+
+Of the above two-digit codes, the first digit specifies the color target:
+
+3: foreground
+4: background
+
+and the second digit represents the RGB color itself:
+
+start with value 0 representing black
+add 1 for adding red light
+add 2 for adding green light
+add 4 for adding blue light
+
+
+Sequence elements
+-----------------
+
+Sequences have different length. All sequences start with the character ESC (ASCII decimal 27 / hex 0x1B / octal 033), followed by a second character in the range ASCII 64 to 95 (@ to _ / hex 0x40 to 0x5F).
+
+In 8-bit environments, these two character sequences can be merged into single byte, using the 0x80 to 0x9F control character range. Devices that only support 7-bit ASCII recognize only the two-character sequence. The same is true for devices that support 8-bit characters but use the 0x80 to 0x9F control character range for other purposes. On terminals that use UTF-8 encoding, both forms take two bytes (the Control Sequence Introducer (CSI) in UTF-8 is 0xC2, 0x9B), but the ESC[ sequence is clearer.
+
+However, most of the sequences are more than two characters and start with the characters ESC and [ (left bracket / 0x5B). On 8-bit-capable systems there is a single character 155 / 0x9B / 0233 as well, still the ESC[ two-character sequence is more often used than the single-character alternative (for details see C0 and C1 control codes). This sequence is called CSI for Control Sequence Introducer (or Control Sequence Initiator). The final character of these sequences is in the range ASCII 64 to 126 (@ to ~ / hex 0x40 to 0x7E). Sequences that begin with the escape character are named escape sequences. Sequences beginning with the CSI are named control sequences. A sequence may be both an escape sequence and a control sequence.
+
+Though some encodings use multiple bytes per character, the following discussion is restricted to ASCII characters, and thus assumes a single byte for each character.
+
+
+Non-CSI codes
+-------------
+
+The following describe some of the control sequences that do not begin with the CSI sequence. Note that other C0 codes besides ESC - commonly BEL, BS, CR, LF, FF, TAB, VT, SO, and SI - may produce similar or identical effects to some control sequences when output.
+
+Some non-CSI escape sequences:
+
+Escape Sequence | Single-Byte Equivalent | Name | Effect
+
+ESC N | 0x8e | SS2 - Single Shift Two | Select a single character from one of the alternate character sets. In xterm, SS2 selects the G2 character set, and SS3 selects the G3 character set.
+
+ESC O | 0x8f | SS3 - Single Shift Three | 
+
+ESC P | 0x90 | DCS - Device Control String | Controls a device. In xterm, uses of this sequence include defining User-Defined Keys, and requesting or setting Termcap/Terminfo data.
+
+ESC \ | 0x9c | ST - String Terminator | Terminates strings in other controls (including APC, DCS, OSC, PM, and SOS).
+
+ESC ] | 0x9d | OSC - Operating System Command | Starts a control string for the operating system to use. OSC sequences are similar to CSI sequences, but are not limited to integer arguments. In general, these control sequences are terminated by ST. In xterm, they may also be terminated by BEL.
+
+ESC X | 0x98 | SOS - Start of String | Takes an argument of a string of text, terminated by ST. The uses for these string control sequences are defined by the application or privacy discipline. These functions are not implemented and the arguments are ignored by xterm.
+
+ESC ^ | 0x9e | PM - Privacy Message | 
+
+ESC _ | 0x9f | APC - Application Program Command | 
+
+ESC c | - | RIS - Reset to Initial State | Resets the device to its original state. This may include (if applicable): reset graphic rendition, clear tabulation stops, reset to default font, and more.
+
+Note: pressing special keys on the keyboard, as well as outputting many xterm CSI, DCS, or OSC sequences, often produces a CSI, DCS, or OSC sequence.
+
+
+CSI codes
+---------
+
+The general structure of most ANSI escape sequences is CSI  n1 ; n2...  letter. The final byte, modified by private mode characters and trailing intermediate characters, specifies the command. The numbers are optional parameters. The default value used for omitted parameters varies with the command, but is usually 1 or 0. If trailing parameters are omitted, the trailing semicolons may also be omitted.
+
+The final byte is technically any character in the range 64-126 (hex 0x40 to 0x7E, ASCII @ to ~), and may be modified with leading intermediate bytes in the range 32 to 47 (hex 0x20 to 0x2F, ASCII space to /).
+
+The colon (ASCII decimal 58, hex 0x3A) is the only character not a part of the general sequence. It was left for future standardization, so any sequence containing it should be ignored.
+
+Although multiple private mode characters or trailing intermediates are permitted, there are no such known usages.
+
+If there are any leading private mode characters, the main body of the sequence could theoretically contain any order of characters in the range 48-63 (hex 0x30-0x3F, ASCII 0 to ?) instead of a well-formed semicolon-separated list of numbers, but all known terminals use the non-digit characters in this range as flags. Sequences are also private if the final byte is in the range 112 to 126 (hex 0x70 to 0x7E, ASCII p-~).
+
+Examples of private escape codes include the DECTCEM (DEC text cursor enable mode) shown below. It was first introduced for the VT-300 series of video terminals.
+
+The behavior of the terminal is undefined in the case where a CSI sequence contains any character outside of the range 32 to 126 (hex 0x20-0x7E, ASCII space-~). These illegal characters are either C0 control characters (the range 0-31, hex 0x00-0x1F), character 127 (hex 0x7F, ASCII DEL), or high-ASCII characters (the range 128-255, hex 0x80-0xFF).
+
+Possibilities for handling illegal characters in a CSI sequence include:
+
+1. Assuming the end of the CSI sequence, ignoring it and treating further characters as data;
+
+2. Ignoring this sequence including all future characters through the next character that would normally end a CSI sequence (anything in the range 64-126 (hex 0x40-0x7E, ASCII@-~)); or
+
+3. Processing any control code as the terminal normally would outside of a CSI sequence before continuing to parse the rest of the sequence.
+
+Some ANSI control codes (not a complete list):
+
+Code | Name | Effect 
+
+CSI n A | CUU - Cursor Up | Moves the cursor n (default 1) cells in the given direction. If the cursor is already at the edge of the screen, this has no effect. 
+
+CSI n B | CUD - Cursor Down  | 
+
+CSI n C | CUF - Cursor Forward  | 
+
+CSI n D | CUB - Cursor Back | 
+
+CSI n E | CNL - Cursor Next Line | Moves cursor to beginning of the line n (default 1) lines down. (not ANSI.SYS)
+
+CSI n F | CPL - Cursor Previous Line | Moves cursor to beginning of the line n (default 1) lines up. (not ANSI.SYS)
+
+CSI n G | CHA - Cursor Horizontal Absolute | Moves the cursor to column n (default 1). (not ANSI.SYS) 
+
+CSI n ; m H | CUP - Cursor Position | Moves the cursor to row n , column m . The values are 1-based, and default to 1 (top left corner) if omitted. A sequence such as CSI ;5H is a synonym for CSI 1;5H as well as CSI 17;H is the same as CSI 17H and CSI 17;1H 
+
+CSI n J | ED - Erase in Display | Clears part of the screen. If n is 0 (or missing), clear from cursor to end of screen. If n is 1, clear from cursor to beginning of the screen. If n is 2, clear entire screen (and moves cursor to upper left on DOS ANSI.SYS). If n is 3, clear entire screen and delete all lines saved in the scrollback buffer (this feature was added for xterm and is supported by other terminal applications). 
+
+CSI n K | EL - Erase in Line | Erases part of the line. If n is zero (or missing), clear from cursor to the end of the line. If n is one, clear from cursor to beginning of the line. If n is two, clear entire line. Cursor position does not change. 
+
+CSI n S | SU - Scroll Up | Scroll whole page up by n (default 1) lines. New lines are added at the bottom. (not ANSI.SYS) 
+
+CSI n T | SD - Scroll Down | Scroll whole page down by n (default 1) lines. New lines are added at the top. (not ANSI.SYS) 
+
+CSI n ; m f | HVP - Horizontal and Vertical Position | Moves the cursor to row n , column m . Both default to 1 if omitted. Same as CUP 
+
+CSI n m | SGR - Select Graphic Rendition | Sets SGR parameters, including text color. After CSI can be zero or more parameters separated with ;. With no parameters, CSI m is treated as CSI 0 m (reset / normal), which is typical of most of the ANSI escape sequences. 
+
+CSI 5i | AUX Port On | Enable aux serial port usually for local serial printer 
+
+CSI 4i | AUX Port Off | Disable aux serial port usually for local serial printer 
+
+CSI 6n | DSR - Device Status Report | Reports the cursor position (CPR) to the application as (as though typed at the keyboard) ESC[n;mR, where n is the row and m is the column.) 
+
+CSI s | SCP - Save Cursor Position | Saves the cursor position. 
+
+CSI u | RCP - Restore Cursor Position | Restores the cursor position.
+
+CSI ?25l | DECTCEM | Hides the cursor. (Note: the trailing character is lowercase L.)
+
+CSI ?25h | DECTCEM | Shows the cursor.
+
+SGR (Select Graphic Rendition) parameters
+
+Code | Effect | Note
+
+0 | Reset / Normal | all attributes off
+
+1 | Bold or increased intensity | 
+
+2 | Faint (decreased intensity) | Not widely supported.
+
+3 | Italic: on | Not widely supported. Sometimes treated as inverse.
+
+4 | Underline: Single | 
+
+5 | Blink: Slow | less than 150 per minute
+
+6 | Blink: Rapid | MS-DOS ANSI.SYS; 150+ per minute; not widely supported
+
+7 | Image: Negative | inverse or reverse; swap foreground and background (reverse video)
+
+8 | Conceal | Not widely supported.
+
+9 | Crossed-out | Characters legible, but marked for deletion. Not widely supported.
+
+10 | Primary(default) font | 
+
+11-19 | n -th alternate font | Select the n -th alternate font (14 being the fourth alternate font, up to 19 being the 9th alternate font).
+
+20 | Fraktur | hardly ever supported
+
+21 | Bold: off or Underline: Double | Bold off not widely supported; double underline hardly ever supported.
+
+22 | Normal color or intensity | Neither bold nor faint
+
+23 | Not italic, not Fraktur | 
+
+24 | Underline: None | Not singly or doubly underlined
+
+25 | Blink: off | 
+
+26 | Reserved | 
+
+27 | Image: Positive | 
+
+28 | Reveal | conceal off
+
+29 | Not crossed out | 
+
+30-37 | Set text color (foreground) | 30 + n , where n is from the color table below
+
+38 | Reserved for extended set foreground color | typical supported next arguments are 5;n where n is color index (0..255) or 2;r;g;b where r , g , b are red, green and blue color channels (out of 255)
+
+39 | Default text color (foreground) | implementation defined (according to standard)
+
+40-47 | Set background color | 40 + n, where n is from the color table below
+
+48 | Reserved for extended set background color | typical supported next arguments are 5;n where n is color index (0..255) or 2;r;g;b where r , g , b are red, green and blue color channels (out of 255)
+
+49 | Default background color | implementation defined (according to standard)
+
+50 | Reserved | 
+
+51 | Framed | 
+
+52 | Encircled | 
+
+53 | Overlined | 
+
+54 | Not framed or encircled | 
+
+55 | Not overlined | 
+
+56-59 | Reserved | 
+
+60 | ideogram underline or right side line | hardly ever supported
+
+61 | ideogram double underline or double line on the right side | hardly ever supported
+
+62 | ideogram overline or left side line | hardly ever supported
+
+63 | ideogram double overline or double line on the left side | hardly ever supported
+
+64 | ideogram stress marking | hardly ever supported
+
+65 | ideogram attributes off | hardly ever supported, reset the effects of all of 60-64
+
+90-97 | Set foreground text color, high intensity | aixterm (not in standard)
+
+100-107 | Set background color, high intensity | aixterm (not in standard)
+
+
+Colors
+------
+
+The original specification only had 8 colors, and just gave them names. The SGR parameters 30-37 selected the foreground color, while 40-47 selected the background. Quite a few terminals implemented "bold" (SGR code 1) as a brighter color rather than a different font, thus providing 8 additional foreground colors. Usually you could not get these as background colors, though sometimes inverse video (SGR code 7) would allow that. Examples: to get black letters on white background use ESC[30;47m, to get red use ESC[31m, to get bright red use ESC[31;1m. To reset colors to their defaults, use ESC[39;49m (not supported on some terminals), or reset all attributes with ESC[0m.
+
+When hardware started using 8-bit DACs several pieces of software assigned 24-bit color numbers to these names. The chart below shows default RGB assignments for some common hardware and software.As 256-color lookup tables became common on graphic cards, escape sequences were added to select from a pre-defined set of 256 colors:
+
+ESC[ ... 38;5;<n> ... m Select foreground color
+
+ESC[ ... 48;5;<n> ... m Select background color
+
+0x00-0x07:  standard colors (as in ESC [ 30-37 m)
+
+0x08-0x0F:  high intensity colors (as in ESC [ 90-97 m)
+
+0x10-0xE7:  6 * 6 * 6 cube (216 colors): 16 + 36 * r + 6 * g + b (0 <= r, g, b <= 5)
+
+0xE8-0xFF:  grayscale from black to white in 24 steps
+
+As "true color" graphic cards with 16 to 24 bits of color became common, Xterm, KDE's Konsole, as well as all libvte based terminals (including GNOME Terminal) support ISO-8613-3 24-bit foreground and background color setting Quoting one of the text-files in its source-tree:
+
+ESC[ ... 38;2;<r>;<g>;<b> ... m Select RGB foreground color
+
+ESC[ ... 48;2;<r>;<g>;<b> ... m Select RGB background color
+
+The ITU's T.416 Information technology - Open Document Architecture (ODA) and interchange format: Character content architectures which was adopted as ISO/IEC International Standard 8613-6 gives more detail:
+
+ESC[ ... 38:2:<r>:<g>:<b>:<unused>:<CS tolerance>:<Color-Space: 0="CIELUV"; 1="CIELAB">m Select RGB foreground color
+
+ESC[ ... 48:2:<r>:<g>:<b>:<unused>:<CS tolerance>:<Color-Space: 0="CIELUV"; 1="CIELAB">m Select RGB background color
+
+Note that this uses the otherwise reserved ':' character to separate the sub-options which may have been a source of confusion for real-world implementations. It also documents using '3' as the second parameter to specify colors using a Cyan-Magenta-Yellow scheme and '4' for a Cyan-Magenta-Yellow-Black one, the latter using the position marked as "unused" in the above examples for the Black component.
+
+Xterm allows also setting colors by X11 color names using
+
+ESC]10;<foreground>BEL
+
+ESC]11;<background>BEL
+
+where <foreground> and <background> are text, and BEL is the ASCII BEL character (code 7). The closing bracket instead of an opening bracket reveals that it belongs to the operating system control commands.
+
+
+Xterm
+-----
+
+osc=`printf '\033]'`
+bel=`printf '\a'`
+echo "${osc}2;New Title$bel"
+echo "${osc}1;new_icon_name$bel"
+
+I have written a script `xterm-set-title` for this.
+
+For a list of all `xterm` control sequences, see
+
+$ man /usr/share/doc/xterm/ctlseqs.ms.gz
+$ zless /usr/share/doc/xterm/ctlseqs.txt.gz

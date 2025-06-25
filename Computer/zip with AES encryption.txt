@@ -1,0 +1,39 @@
+
+$ sudo apt-get install p7zip-full # install
+
+$ set example-3.5 && archive=$1 PASSWORD='my secret'
+$ rm -f -- "${archive:?}".zip && 7za a -tzip -p"${PASSWORD:?}" -mem=AES256 -mx9 -mx=9 -mfb=64 -- "${archive:?}".zip "$@" # create
+
+$ #rm -f -- "${archive:?}".zip && 7za a -tzip -p"${PASSWORD:?}" -mem=AES256 -mx9 -ms=on -m0=lzma -mx=9 -mfb=64 -md=32m -- "${archive:?}".zip "$@" # old; does not seem to work any more
+
+$ 7z l -slt -- "${archive:?}".zip # examine
+
+$ 7z x -- "${archive:?}".zip # extract
+
+Instead of "AES256" for creation above, "AES128" can also be used.
+
+Methods (first word) reported by -slt:
+* "AES-256" for "-mem=AES256"
+* "AES-192" for "-mem=AES192"
+* "AES-128" for "-mem=AES128"
+* "ZipCrypto" without "-mem=" (insecure)
+
+Under Android, use the "Total Commander" app to create/extract AES-encrypted ZIP archives.
+
+The Xarchiver application under Linux only supports the "ZipCrypto" algorithm.
+
+Never ever use the "normal" ZIP-encryption, it's extremely weak and no real protection at all.
+
+Caveat: Windows (unclear which version, but at least Windows XP) does not support AES-encryption, only "ZipCrypto". However, 7-Zip for Windows is free and can do it. Nevertheless, use "ZipCrypto" if portability is more important than security. Also, it is unclear whether all implementations support AES-192 or even AES-256.
+
+WARNING: Encrypted ZIP archives don't encrypt the filenames, only the contents of archived files!
+
+If the filenames are sensitive, create an unencrypted "inner" ZIP first, containing all the sensitive files and their names. Use an innocent name for the created archive.
+
+Then create another "outer" ZIP archive, this time non-compressed ("store only", add option "-mx0" for 7z) but AES-encrypted, containing just the single ZIP file with the innocent name as the only contents.
+
+$ set example-3.5 && archive=$1 PASSWORD='my secret'
+$ rm -f contents.zip && 7za a -tzip -ms=on -m0=lzma -mx=9 -mfb=64 -md=32m contents.zip "$@" # create compressed inner
+$ rm -f -- "${archive:?}".zip && 7za a -tzip -p"${PASSWORD:?}" -mem=AES256 -mx0 -- "${archive:?}".zip contents.zip # create encrypted outer
+
+Your enemies can only see the non-encrypted innocent name of the inner archive when looking into the otherwise encrypted outer archive.

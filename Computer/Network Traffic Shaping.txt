@@ -1,0 +1,45 @@
+﻿ip / ethernet port bandwidth limit:
+
+a) via tc -tool only
+
+set a bandwith limit via:
+
+tc qdisc add dev eth0 root tbf rate 100kbit latency 100ms burst 1540
+
+or:
+
+tc qdisc add dev eth0 root tbf rate 70kbit latency 100ms burst 1540
+
+remove the limit via:
+
+tc qdisc del dev eth0 root
+
+status:
+
+tc qdisc show
+
+
+b) via wondershaper-service and tc-tool (=better solution):
+
+Paket "wondershaper"
+
+IFACE="eth0"
+
+# Download rate in Kbps
+DSPEED="50000"
+
+# Upload rate in Kbps
+USPEED="10000"
+
+Start:
+/usr/local/bin/wondershaper -a $IFACE -d $DSPEED -u $USPEED
+
+Stop:
+/usr/local/bin/wondershaper -c -a $IFACE
+
+c.) Limitierung von einem Interface namens "tap105i1" entfernen:
+
+$ tc qdisc del dev tap105i1 root
+$ tc qdisc del dev tap105i1 ingress
+
+Ich bin nicht sicher welcher der beiden Befehle es tat - einfach beide ausführen.

@@ -1,0 +1,46 @@
+vi-Editor
+=========
+v2024.37
+
+
+Most of the features documented here apply to POSIX `vi` in general.
+
+However, some extensions of the popular `ViM` implementation will also be covered. In such cases, this fact will be pointed out.
+
+
+Filtering line ranges
+---------------------
+
+In order to pipe a range of lines into an external command and replace the range with the command's output, use the 'Escape' command "`!`":
+
+----
+:1,5!echo hello
+----
+
+This would replace the first 5 lines with the single line "`hello`".
+
+Note that the characters "`%`", "`#`" and "`!`" are treated specially and need to be escaped with an "`\`" in order to be interpreted literally.
+
+For instance, an unescaped "`%`" will be replaced by the current filename. Therefore, the current line can be replaced by it with the command
+
+----
+:.!printf '\%s\n' '%'
+----
+
+In order to replace the visual selection (from the line where `[Ctrl]+[v]` was issued to the current line) for the same thing, use
+
+----
+:'<,'>!echo hello
+----
+
+instead. However, this sort of address seems to be a ViM extension.
+
+Here is how to convert the visual selection into upper case in ViM:
+
+----
+:'<,'>!tr '[:lower:]' '[:upper:]'
+----
+
+Without any address specification, the 'Escape' command just executes the external command with the same standard file descriptors as the editor was invoked. The edited text will not be affected.
+
+As of 2024-02, the BusyBox implementation of `vi` only supports the last variant.

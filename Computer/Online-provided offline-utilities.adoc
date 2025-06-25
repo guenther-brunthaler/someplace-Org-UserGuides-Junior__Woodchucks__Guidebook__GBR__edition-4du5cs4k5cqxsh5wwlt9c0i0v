@@ -1,0 +1,137 @@
+Online-provided offline-utilities
+=================================
+v2020.348
+
+The following is a list of URLs which may prove useful as bookmarks.
+
+The references Websites provide web-browser based utilities for transforming local files or text entered into forms.
+
+"Transforming" may be as complicated as binary file encryption or as simple as converting text entered into an online-form to all-uppercase.
+
+All services mentioned work only locally in the web browser using JavaScript, that is they work off-line once the web-pages have been loaded and do not send any local data "home" to the web-sites.
+
+For maximum security, switch the web-browser into offline-mode before processing any data using the loaded web-page, and close the web-page before restoring on-line mode.
+
+
+List of web sites
+-----------------
+
+http://www.arndt-bruenner.de/mathe/mathekurse.htm
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A large number of mostly interactive applets for mathematical, statistical and even astronomical calculations. German only. Some highlights:
+
+* Programmable scientific calculator
+* percentage calculator
+* rational/fraction calculator
+* polynomial division
+* radix conversion (for bases 2 through 16)
+* Roman numerals conversion
+* extended Euclidian algorithm for multiplicative inverses in residue classes
+* linear and non-linear regression
+* equation systems solvers
+* numeric integration
+* inverse curve sketching (find function satisfying properties)
+* matrix calculations
+* function plotters
+* triangle calculator (plot it and calculate missing parameters)
+* normal distribution (and some other ones) calculator
+
+https://hat.sh/
+~~~~~~~~~~~~~~~
+
+Encrypt or decrypt local files with  and a pass phrase using the 'AES-256-GCM' algorithm. Also protects the encrypted file against tampering.
+
+Works on macOS, Windows and Linux. The encryption key is derived from the pass phrase via the 'PBKDF2'-algorithm (using 'SHA-512' and 80.000 iterations). This should be sufficiently secure for most purposes, assuming proper implementation.
+
+
+https://passwordsgenerator.net/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The main page can create passwords in many formats.
+
+May be good. Or not, because it remains unclear where the entropy for the password is taken from or how reliable that entropy source is.
+
+Might still be good enough for less important passwords, though.
+
+At the bottom of the page, hyperlinks lead to the following other offline-capable utilities:
+
+Hash calculator:: Calculate cryptographic hashes from text entered into a form. Available algorithms: 'SHA-256', 'SHA-512', 'SHA-1', 'MD5'.
+
+'QR'-Code generator:: Generate 'QR'-codes from text entered into forms. Forms are available for: arbitrary text, URLs, small e-Mails, vCard, 'SMS'.
+
+Character Count:: Shows the number of characters entered into a text form so far. Useful for obeying length-restrictions when composing text.
+
+Base64 Codec:: Encode or decode text entered into a form into/from Base64. Accepts 'UNICODE', too, provided the web-browser can handle it.
+
+Case-Convert:: Convert the letter case of text entered into a form. Several variations are also supported, such as title-case.
+
+
+https://onlinestringtools.com/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Performs many string operations on text entered into a form, especially several forms of quoting, escaping and reformatting.
+
+Unfortunately, the interface is not very user-friendly because it is over-crowded too many functions. Some highlights (most encoders provide decoders, too):
+
+* 'URL'-encode ("%"-encoding)
+* 'HTML'-encode (encodes "<", "&", etc.)
+* Backslash-encode
+* Split long strings into lines based on maximum line length
+* Join strings
+* Trim spaces
+* Left- and right-padding
+* Center- and right-align strings
+* Break string (called "transpose") at given delimiter characters into lines
+* Truncate to a defined maximum length (e.g. passwords)
+* Repeat a string a given number of times
+* Reverse the order of characters in a string
+* Substring extraction based on position/length
+* RegeEx matching-test, extraction of matches, and filtering of lines
+* 'Base-64'- and 'Base-16'-encoding
+* String as ASCII (UTF-8, actually) codepoints in arbitrary radixes
+* 'ROT-13'- and 'ROT-47'-transformations
+* Apply 'printf'-formatting
+* Sort strings
+* Add prefixes and suffixes to whole string or to all lines within it
+* Exchange spaces and newlines
+* Convert text formatted as columns into 'CSV' files
+
+Aside from string operations, the links exist to similar tools which process specific data formats (pretty-printing, syntax-highlighting, conversion, editing, validation, reformatting, extraction):
+
+* CSV (comma-separated values)
+* TSV (tab-separated values)
+* JSON
+* YAML
+* UNICODE
+* ASCII
+* UTF-8
+* XML
+
+And math tools:
+
+* Sum/multiply/min/max all values in a list
+* Add list of fractions and simplify result
+* Convert numbers into spoken Englisch words
+* GCM, LCM
+* Matrix calculations
+* Prime number operations, prime factors, primality test
+* Mathematical sequences (Fibonacci etc.)
+* Drawing fractal curves (Z-curve etc.)
+* Calculate digits of pi, Euler's e, etc. using multi-precision arithmetic
+
+All strings can be eithered entered manually and via the clipboard, or they can be loaded or saved to local files.
+
+Also, the output of any tool can be chained to be the input of any of the other tools as processing graphs, very much like UNIX shell pipelines.
+
+Finally, all data and processing graphs are also viewed as a (long..) URL, which can be pasted into the browser's URL line in order to regenerate the current scenario.
+
+
+https://opentimestamps.org/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Can calculate the 'SHA-256' hash of a local file.
+
+The file can either be selected via the usual "file open"-dialog, or by dragging it into a target form field using the mouse.
+
+It also tries to create and save some timestamp for that file, just press "Cancel" to avoid this.

@@ -1,0 +1,36 @@
+break=top - stop initramfs-processing (drop into a shell) immediately before executing the first script from /scripts/*. Not even the keymap will have been set yet. However, basic setup such as mounting /proc and installing BusyBox symlinks has already been done. "exit" resumes processing.
+
+break
+is the same as "break=premount".
+
+break=top
+break=modules
+break=premount
+break=mount
+break=mountroot
+break=bottom
+break=init
+spawns a shell in the initramfs image at the chosen phase before actually executing the corresponding scripts or action. The order of phases through which the initramfs-system passes through is the same as the order of possible "break="-values as shown above. Beware that if both "panic" and "break" are present, initramfs will not spawn any shells but reboot instead.
+
+panic=<sec>
+sets an timeout on panic, rebooting the machine after that many seconds in case of a panic. This is a documented security feature: It disables the debug shell.
+
+debug
+debug=vc
+generates lots of output. When specified without an argument, writes a log to /run/initramfs/initramfs.debug. When invoked with an arbitrary argument instead, output is written to console.
+
+BOOTIF
+is a mac address in pxelinux format with leading "01-" and "-" as separations. pxelinux passes mac address of network card used to PXE boot on with this bootarg.
+
+boot=local
+boot=NFS
+affects which initramfs scripts are run, see the "Subdirectories" section under boot scripts.
+
+blacklist=module1,module2
+disables load of specific modules.
+
+netconsole
+loads netconsole linux modules with the chosen args.
+
+all_generic_ide
+loads generic IDE/ATA chipset support on boot.

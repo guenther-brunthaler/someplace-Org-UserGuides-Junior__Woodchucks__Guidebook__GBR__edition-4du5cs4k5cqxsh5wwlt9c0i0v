@@ -1,0 +1,25 @@
+﻿REDUCE Computer Algebra System - Cheat Sheet:
+% (comment until EOL)
+precision 30; on rounded;
+on complex;
+setmod 2^32; on modular;
+reset;
+clear var1, var2;
+var:=xpr; ws [=last result]; ws(o_no); input(i_no)
+sqrt(9)=3; 2^3=2**3; 42 mod 10; atan(-1)*4; atan2(0,-1)
+ln(x)=log(x); ln(exp(x))=x; log10(10^x)=x; logb(n^x,n)=x
+pi; i (can be overridden in scopes); e; infinity; nan; nil (= 0); t (true); "str"; "str/w""quote"
+floor(4.9)=4; ceiling(4.1)=5; round(2.5)=3
+lhs = rhs; lhs(eq); rhs(eq); {e1, e2, ...}
+mat((m11,m12),(m21,m22)); mat((v1),(v2)); det(m); m^-1; tp(m); m1*m2; scalar*m; e:=m(r,c);
+solve(xpr,var); solve({xpr1,...},{var1,...});
+df(xpr,var); int(xpr,var); int(xpr, var, lb, ub); limit(xpr, var, dest);
+sum(2*x,x,1,10)=110;prod(x,x,1,5)=120;
+evenp; oddp; fixp [integer?]; primep;
+ACOS; ACOSH; ACOT; ACOTH; ACSC; ACSCH; ASEC; ASECH; ASIN; ASINH; ATANH; COS; COSH; COT; COTH; CSC; CSCH
+ERF; HYPOT; SEC; SECH; SIN; SINH; TAN; TANH
+load_package NAME;
+arbint(2) [=2nd arbitrary but specific int in xpr]
+
+Not working in JAVA version:
+s(xpr, v1->subst1,v2->s2,maxsubsts,maxdepth);

@@ -1,0 +1,86 @@
+Wi-Fi Ad-Hoc Networking Setup
+=============================
+
+This uses no access point, no encryption, and all nodes are peers.
+
+
+Common preparation
+------------------
+
+IFC=ibs0
+IP=10.252.xxx.yyy # *.ibss.wifi.wlan.emgenxx69lwyn5ctlr4nl64ul.local
+NETMASK=255.255.0.0
+SSID='xworld: IBSS+SSH+RSA_keys_only'
+MHZ=2412
+
+
+Using "iwconfig"
+----------------
+
+Enable
+~~~~~~
+
+rfkill unblock wlan
+ifconfig wifilan down
+iwconfig wifilan essid "$SSID" mode Ad-Hoc freq "$MHZ"M key off
+ifconfig wifilan up $IP netmask $NETMASK
+
+
+Use
+~~~
+
+iwconfig wifilan
+ifconfig wifilan
+iwlist wifilan scan
+
+
+Shutdown
+~~~~~~~~
+
+ifconfig wifilan down 0.0.0.0
+iwconfig wifilan mode Managed txpower off
+rfkill block wlan
+
+
+Using "iw"
+----------
+
+Enable
+~~~~~~
+
+for rf in /sys/class/rfkill/*
+do
+	test ! -d "$rf" && rf= && break
+	test wlan != "`cat "$rf"/type`" && continue
+	test 0 != "`cat "$rf/hard"`" && rf= && break || :
+done
+test -n "$rf" || echo 'Could not enable Wi-Fi!' >& 2
+PHY=
+for rf in /sys/class/rfkill/*
+do
+	test wlan != "`cat "$rf"/type`" && continue
+	n=`cat "$rf/name"`; test -n "$n"
+	if test -z "$PHY" || test ${#n} -lt ${#PHY}
+	then
+		PHY=$n
+	fi
+	echo 0 > "$rf"/soft
+done
+test -n "$PHY" || echo 'Could not identify Wi-Fi PHY!' >& 2
+iw phy $PHY interface add $IFC type ibss
+ifconfig $IFC $IP netmask $NETMASK up
+iw dev $IFC ibss join "$SSID" "$MHZ"
+
+
+Shutdown
+~~~~~~~~
+
+iw dev $IFC ibss leave
+ifconfig $IFC down 0.0.0.0
+iw dev $IFC del
+for rf in /sys/class/rfkill/*
+do
+	test ! -d "$rf" && continue
+	test wlan != "`cat "$rf"/type`" && continue
+	echo 1 > "$rf"/soft
+done

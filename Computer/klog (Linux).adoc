@@ -1,0 +1,116 @@
+Linux klog
+==========
+v2021.45
+
+
+The `dmesg` utility can be used to read and control the Linux kernel's built-in logging ring-buffer. The kernel writes all its messages there, and `klogd` reads from there. The recommended way to use it is:
+
+----
+$ sleep 3 && clear && dmesg -wex
+----
+
+This will write the kernel log to the terminal and then wait for new entries to appear which will also be displayed until the command is terminated by the user.
+
+The delay before the `clear` allows to disable terminal output temporarily using terminal multiplexers like GNU `screen`, `tmux` or `dtach` in SSH sessions in order to avoid the whole kernel log buffer's contents scrolling through the SSH connection.
+
+The `-e` option of `dmesg` does not show the year, but it can display successive events with microsecond precision. If you are unsure about the year, replace the `-e` with `-T` which will show the year, but only whole seconds. The order of entries will still reflect their absolute timestamps, though.
+
+Unfortunately the output of `-T` is much wider than that of `-e`, forcing most output lines to be wrapped. Removing the `-x` option can also save space within the output, but then neither the priority level nor the originating facility of the log entries will be displayed.
+
+The ring buffer is normally accessed via the `klogctl()` C library call, but may also be read via
+
+----
+$ dd if=/dev/kmsg iflag=nonblock 2> /dev/null
+----
+
+The format of this output is different from `dmesg` and seems to be as follows:
+
+....
+log_level,seqnum,microsecs,-;message
+....
+
+`microsecs` are the number of microseconds since the system was started. This is monotonic time as returned by the kernel's internal `sched_clock()` function. This time source may stop when the system is supended or enters powersave sleep modes, so its may be missing an arbitrary amount of time between such events. Which also means no-one can trust the absolute timestamp values reported by dmesg, except if the system gets never suspended. Otherwise, it might indeed by a better idea to let some klogd implementation fetch the kernel messages as soon as they arrive and add its own, real time datestamps instead.
+
+The "`-`"-field is the value of the 'continuation' flag, it indicates that this log line is not a continuation of the previous one. Otherwise it would have been "`c`". Continuation lines are used for especially long messages like stack backtraces of crashed driver processes, or the scores calculated by the OOM killer when it reaps a process.
+
+After this field, any number of additional fields are allowed, with message-dependent values. Normally they are missing. The additional fields are terminated with a "`;`".
+
+The `message` is a line of text, optionally followed by 'key=value'-lines which are indented by once space. The most prominent keys are `SUBSYSTEM` and `DEVICE`.
+
+At least inside the kernel, things are a bit different:
+
+* The timestamp is stored in nanosecond units there, and the key/value strings are separated with a null byte.
+
+* Both the message string and the concatenated string of all key/value pairs are not terminated with anything, but the kernel rather stores their length.
+
+* Even though it is a ring buffer, log messages are always stored contiguous. The last dozen bytes of the buffer are usually unused because of this. Before adding a new log entry, as many of the oldest entries are deleted as necessary in order to free enough space for the new entry.
+
+* The combined size if a log line is somewhat under to 1000 bytes. This seems to include the size allocated by the key/value pairs. If an attempt is made to add a longer message, it will be truncated with and the text "`<truncated>`" will be added.
+
+* If log messages contain non-printable or non-ASCII byte values, those will be converted into hexadecimal escapes, e. g. "`\xff`" for the byte value 255.
+
+* The maximum LOG_LEVEL supported by the kernel ist 7.
+
+* The maximum LOG_FACILITY supported by the kernel is 255.
+
+* The timestamp shown by `dmesg` in square brackets are at least 5 digits (left-padded with spaces if necessary) before the decimal point and 6 digits after it. It represents a number of seconds as the integral part and microseconds as the fractional part of the system's monotonic clock source.
+
+* See the kernel's `printk.c` file for more details.
+
+Some sysloggers abuse the kernel's ring-buffer in order to store normal userspace syslog messages there also. In that case, they seem to add the value 16 * facility to the log_level, abusing it for the combined `facility.priority` used by syslog().
+
+You can also write messages there:
+
+----
+$ echo test >> /dev/kmsg
+$ dd if=/dev/kmsg iflag=nonblock 2> /dev/null | tail -n 1
+12,1009,29509954807,-;test
+----
+
+However, `/dev/kmsg` does not seem to return all the entries shown by `dmesg`. There seems to be some filtering in effect.
+
+
+console_loglevel
+----------------
+
+Only messages with a log level lower than this value will be printed to the console. The default value for this field is `DEFAULT_CONSOLE_LOGLEVEL (7)`, but it is set to `4` if the kernel command line contains the word `quiet`, `10` if the kernel command line contains the word `debug`, and to `15` in case of a kernel fault (the `10` and `15` are just silly, and equivalent to `8`). The value of `console_loglevel` can be set (to a value in the range `1-8`) by a `syslog()` call with a type of `8`.
+
+
+Runtime configuration
+---------------------
+
+`/proc/sys/kernel/printk` is writable and contains 4 integers:
+
+`console_loglevel`:: The current level. See above.
+`default_message_loglevel`:: This value will be used as the log level for `printk()` messages that do not have an explicit level. The default value is defined by the kernel configuration option `CONFIG_DEFAULT_MESSAGE_LOGLEVEL`, which defaults to `4`.
+
+`minimum_console_loglevel`:: The minimum value to which `console_loglevel` can be set.
+
+`default_console_loglevel`:: This is the default value for `console_loglevel`.
+
+
+Log levels
+----------
+
+Every `printk()` message has its own log level. If the log level is not explicitly   specified as part of the message, it defaults to `default_message_loglevel`.
+
+[cols="<,^,<",options="header,autowidth"]
+|====
+|Kernel constant | Level value | Meaning
+|KERN_EMERG      |      0      | System is unusable
+|KERN_ALERT      |      1      | Action must be taken immediately
+|KERN_CRIT       |      2      | Critical conditions
+|KERN_ERR        |      3      | Error conditions
+|KERN_WARNING    |      4      | Warning conditions
+|KERN_NOTICE     |      5      | Normal but significant condition
+|KERN_INFO       |      6      | Informational
+|KERN_DEBUG      |      7      | Debug-level messages
+|====
+
+
+Sources
+-------
+
+----
+$ man klogctl
+----

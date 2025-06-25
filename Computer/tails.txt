@@ -1,0 +1,12 @@
+Tails
+=====
+
+Tails is a privacy-centric Linux distribution.
+
+It uses a GNOME desktop and is therefore very ressource-hogging, shitty to use and ugly.
+
+However, it does not access any accessible block devices (other than its own boot medium) by default and has NTFS write support.
+
+But it sucks at being remote operated, featuring not even an SSH server. Ob the other hand, this is probably intentional.
+
+Busybox and netcat are provided though, so one may invoke an unencrypted reverse shell with some effort.
