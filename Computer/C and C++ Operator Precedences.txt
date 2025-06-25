@@ -1,0 +1,92 @@
+Table of C/C++ Operator Precedences
+===================================
+version 2018.252.3
+
+ P   | A | Operator  Description
+-----+---+----------------------
+ 0.5 | N | ::  Scope resolution (C++ only)
+-----+---+
+ 1   | L | ++  Postfix increment
+ 1   | L | --  Postfix decrement
+ 1   | L | ()  Function call
+ 1   | L | []  Array subscripting
+ 1   | L | .  Element selection by reference
+ 1   | L | ->  Element selection through pointer
+ 1   | L | typeid()  Run-time type information (C++ only)
+ 1   | L | const_cast  Type cast (C++ only)
+ 1   | L | dynamic_cast  Type cast (C++ only)
+ 1   | L | reinterpret_cast  Type cast (C++ only)
+ 1   | L | static_cast  Type cast (C++ only)
+-----+---+
+ 2   | R | ++  Prefix increment
+ 2   | R | --  Prefix decrement
+ 2   | R | +  Unary plus
+ 2   | R | -  Unary minus
+ 2   | R | !  Logical NOT
+ 2   | R | ~  Bitwise NOT (One's Complement)
+ 2   | R | (type)  Type cast
+ 2   | R | *  Indirection (dereference)
+ 2   | R | &  Address-of
+ 2   | R | sizeof  Size-of
+ 2   | R | new, new[]  Dynamic memory allocation (C++ only)
+ 2   | R | delete, delete[]  Dynamic memory deallocation (C++ only)
+-----+---+
+ 2.5 | L | .*  Pointer to member (C++ only)
+ 2.5 | L | ->*  Pointer to member (C++ only)
+-----+---+
+ 3   | L | *  Multiplication
+ 3   | L | /  Division
+ 3   | L | %  Modulo (remainder)
+-----+---+
+ 4   | L | +  Addition
+ 4   | L | -  Subtraction
+-----+---+
+ 5   | L | <<  Bitwise left shift
+ 5   | L | >>  Bitwise right shift
+-----+---+
+ 6   | L | <  Less than
+ 6   | L | <=  Less than or equal to
+ 6   | L | >  Greater than
+ 6   | L | >=  Greater than or equal to
+-----+---+
+ 7   | L | ==  Equal to
+ 7   | L | !=  Not equal to
+-----+---+
+ 8   | L | &  Bitwise AND
+-----+---+
+ 9   | L | ^  Bitwise XOR (exclusive or)
+-----+---+
+10   | L | |  Bitwise OR (inclusive or)
+-----+---+
+11   | L | &&  Logical AND
+-----+---+
+12   | L | ||  Logical OR
+-----+---+
+13   | R | ?:  Ternary conditional
+-----+---+
+14   | R | =  Direct assignment
+14   | R | +=  Assignment by sum
+14   | R | -=  Assignment by difference
+14   | R | *=  Assignment by product
+14   | R | /=  Assignment by quotient
+14   | R | %=  Assignment by remainder
+14   | R | <<=  Assignment by bitwise left shift
+14   | R | >>=  Assignment by bitwise right shift
+14   | R | &=  Assignment by bitwise AND
+14   | R | ^=  Assignment by bitwise XOR
+14   | R | |=  Assignment by bitwise OR
+-----+---+
+14.5 | R | throw  Throw operator (exceptions throwing, C++ only)
+-----+---+
+15   | L | ,  Comma
+
+
+Legend
+======
+
+* P: Operator precedence. Lower values mean higher priority classes (they bind stronger). The numeric values are intended to correspond with the old K&R C manual. Therefore, additional priority classes have been inserted as fractional values.
+
+* A: Associativity of operators within the same priority class.
+  - "L": "a op b op c" means "(a op b) op c".
+  - "R": "a op b op c" means "a op (b op c)".
+  - "N": "a op b op c" is not allowed.

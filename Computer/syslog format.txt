@@ -1,0 +1,22 @@
+﻿syslog formatting
+=================
+Günther Brunthaler
+v2020.13
+
+I prefer the following syslog formatting:
+
+2020-01-13 06:36:39 +0100 xrpi2 kern.info Process accounting resumed
+
+in other words,
+
+YYYY-MM-DD HH:MM:SS ±HHMM HOSTNAME FACILITY.PRIORITY MESSAGE
+
+where
+
+HH:MM:SS = UTC ± HHMM
+
+and MESSAGE is one of the following:
+
+ACTUAL_MESSAGE
+PROGRAM: ACTUAL_MESSAGE
+PROGRAM[PID]: ACTUAL_MESSAGE

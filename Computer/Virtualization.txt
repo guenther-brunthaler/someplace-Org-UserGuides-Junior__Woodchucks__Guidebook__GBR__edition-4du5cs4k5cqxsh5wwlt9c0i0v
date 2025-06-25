@@ -1,0 +1,2 @@
+
+The term "hypervisor" was first used in 1965, referring to software that accompanied an IBM RPQ for the IBM 360/65. It allowed the model IBM 360/65 to share its memory: half acting like a IBM 360; half as an emulated IBM 7080.

@@ -1,0 +1,19 @@
+Bash has a couple of useful extensions.
+
+While they should never be used in a shell script for portability reasons, it's ok to use them in interactive shells.
+
+The following is useful for debugging scripts:
+
+$ PS4=$'# $? ${FUNCNAME[*]}\n{$LINENO} ' bash -xv $script $arguments ...
+
+This will prefix all lines logged by -x with a comment line, and will prefix the executed lines themselves with their line number between curly braces.
+
+The comment line shows the return code of the last command (0 means OK) followed by a stack trace of the executing shell function.
+
+Also note that bash interprets the first "-" argument quite similar like POSIX tools interpret "--", i. e. it ignores it but stops looking for options at this point. This is useful to change the "-xy" into "-" for temporarily disable debugging. This makes it easy to re-add the "xv" later for resuming debugging without changing anything else in the command line.
+
+If ANSI colors are available in a terminal with black background, the following command can instead be used for a colored debug log:
+
+$ PS4=$'\e[32m#\e[41;37m${?#0}\e[0;32m ${FUNCNAME[*]}\n\e[33m{$LINENO} \e[0m' bash -xv $script $arguments ... 2>& 1 | less -R
+
+The -R is necessary or the color codes will not be displayed properly by "less".

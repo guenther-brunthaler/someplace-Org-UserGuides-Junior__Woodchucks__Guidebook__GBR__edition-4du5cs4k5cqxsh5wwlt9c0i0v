@@ -1,0 +1,97 @@
+﻿Benchmarks
+==========
+v2022.87
+
+
+Linpack
+-------
+
+[cols=">,<,>,<,<",options="header,autowidth"]
+|===
+| MFLOPS ^| CPU                   | MHz ^| Datum     ^| Gerät 
+|    2917 | AMD Ryzen 7 2700      | 3200 | 2020-04-16 | No-Name
+|     653 | Intel Core2 Duo E8400 | 3000 | 2020-04-16 | HP Compaq dc7900 Convertible Minitower
+|      58 | ARMv7 with vfpv4      |  900 | 2020-04-16 | Raspberry Pi 2 Model B Rev 1.1
+|===
+
+The following source file versions must be used (actually the first one - the second checksum is just that of the original source before applying the patch):
+
+----
+$  patch -o - -i customize_N.patch -R linpack_bench.c | md5sum linpack_bench.c - customize_N.patch
+2358e1694c76eb601f293cb75cd0b737  linpack_bench.c
+patching file - (read from linpack_bench.c)
+fa0094833133dbab0a540f1a4e05a008  -
+3d92330cacdecc791cfaabc7bfdf8195  customize_N.patch
+----
+
+Note that this is only a single-core benchmark. Any additional cores will not be used.
+
+The megaflops column has been https://en.wikipedia.org/wiki/Rounding#Round_half_to_even[odd-even rounded] to a whole number.
+
+
+Running it yourself
+~~~~~~~~~~~~~~~~~~~
+
+If you want to run the benchmark yourself, first download the original https://people.sc.fsu.edu/~jburkardt/c_src/linpack_bench/linpack_bench.c[source file] and then apply the patch to it:
+
+----
+$ { base64 -d || openssl base64 -d; } << EOF 2> /dev/null \
+  | gzip -d | patch linpack_bench.c
+H4sICPkel14CA2N1c3RvbWl6ZV9OLnBhdGNoAI2R2WrDMBBFn6uvuCQUYit2vKV2
+EgoO9DHNFxSKY8uJqCMZ2YUuP99RlrYJfeiAhhEz5+pK8jwPjVRtUb48b4Qqd37p
+ayO3N1EQBV6QeOEUYTKP43ky9ZPpLA3TLA7AAwrGOb+Gr7lknqT+LIjSMMqyM5fn
+8JJgnIJTniHPGWysITv0O4HW6E0j9ujkh/AZ3AnDJ+NDWatK1FgzDEGFVIKQ8GBk
+KFQl61+N1cMSI2pzhHAY7AGVfiVVuMXiYCC9swbSjPLRQGuk6muiBsBj0Rv5Bm0q
+YUjlMu5xWz2pwZgazuKaXImikmqL/VGhknuhOqnVwdE3aTeWZR6g244ao7M/h8oI
+Lomfl4MJYp8eDxFl93L0NLJg/G8l//9S4c+s9TZx7d2WTaPLohfo6JsFam1QGFO8
+d8eP+QLCLVvZQAIAAA==
+EOF
+----
+
+Verify that the md5sum of `linpack_bench.c` is the same as shown above.
+
+Then build the program like this:
+
+----
+$ gcc -D N=5000 -D NDEBUG -O3 -march=native -l m linpack_bench.c -o linpack_bench
+----
+
+And finally run it like that (in this case, using `bash` as a shell):
+
+----
+$ time ./linpack_bench
+----
+
+
+openssl
+-------
+
+[format="csv",cols=">,>",options="header,autowidth"]
+|===
+Hash,Speed
+md4,19.1
+md5,12.2
+sha1,8.7
+ripemd160,6.6
+blake2s256,6.2
+sha256,5.8
+sha224,5.8
+md5-sha1,5.3
+sm3,5.1
+blake2b512,4.3
+shake128,2.4
+sha3-224,2.2
+shake256,2.1
+sha3-256,2.1
+sha512-256,2.0
+sha384,2.0
+sha512,2.0
+sha512-224,2.0
+sha3-384,1.7
+sha3-512,1.3
+whirlpool,0.9
+|===
+
+The above values represent relative performance: Their sum is 100. Larger values are better.
+
+This benchmark has been run on a Raspberry Pi 4 (ARMv8-A but compiled for ARMv6) using only a single core.

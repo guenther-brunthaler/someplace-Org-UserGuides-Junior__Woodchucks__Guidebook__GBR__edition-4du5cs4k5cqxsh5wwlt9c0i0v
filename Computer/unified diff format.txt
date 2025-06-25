@@ -1,0 +1,51 @@
+A unified diff looks like this:
+
+===EXCLUDED_BEGIN_OF_FILE===
+diff --git lao tzu
+index 3c2d8e2..de2a5a7 100644
+--- lao    2002-02-21 23:30:39.942229878 -0800
++++ tzu    2002-02-21 23:30:50.442260588 -0800
+@@ -1,7 +1,6 @@
+-The Way that can be told of is not the eternal Way;
+-The name that can be named is not the eternal name.
+The Nameless is the origin of Heaven and Earth;
+-The Named is the mother of all things.
++The named is the mother of all things.
++
+Therefore let there always be non-being,
+  so we may see their subtlety,
+And let there always be being,
+@@ -9,3 +8,6 @@
+The two are the same,
+But after they are produced,
+  they have different names.
++They both may be called deep and profound.
++Deeper and more profound,
++The door of all subtleties!
+===EXCLUDED_END_OF_FILE===
+
+The first two lines only specify the old ("---") and new ("+++") files and associated timestamps.
+
+A block of additional lines is allowed before the ("---") line and must not contain an empty line. Some tools evaluate some of those lines.
+
+Before this block of additional lines, an empty line is allowed, prefixed by a comment as an arbitrary number of lines which will be ignored by "patch".
+
+The @@ lines start sections containing changes. The format is
+
+@@ -<first_old_line>,<line_count> +<first_new_line>,<line_count> @@
+
+<first_old_line> and <first_old_line> are the 1-based line numbers within the old and new files where the block of changes starts.
+
+<line_count> is the number of lines contained in the changes block of the old/new file.
+
+Also, ",<line_count>" can be omitted and defaults to ",1".
+
+The <line> count for the old file consists of the "-"-prefixed and " "-prefixed lines of the patch chunk.
+
+The <line> count for the new file consists of the "+"-prefixed and " "-prefixed lines of the patch chunk.
+
+If a chunk is followed by anything other than another "@@"-line, this marks the end of the current patch.
+
+"patch" then restarts searching for another "---"-line, which would start the next patch within the same file if found. A patch file can contain therefore contain multiple patches.
+
+If there is trailing garbage after the last patch in a patch file, "patch" may display a warning message.
