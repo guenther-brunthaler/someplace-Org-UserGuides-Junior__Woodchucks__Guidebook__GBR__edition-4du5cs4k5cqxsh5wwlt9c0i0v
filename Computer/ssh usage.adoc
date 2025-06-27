@@ -1,6 +1,6 @@
 SSH
 ===
-v2021.24
+v2025.177
 
 My favourite `~/.ssh/config` default settings:
 
@@ -80,4 +80,37 @@ If the proxy needs a username "john" with password "secret" for authentication, 
 
 ----
 ,proxyauth=john:secret
+----
+
+
+Non-interactively change SSH key password
+-----------------------------------------
+
+----
+# Generate new password files out/*.psw for existing unprotected private key files out/*.prv:
+for f in out/*.prv; do pwgen-with-entropy-harvesting-as-base62 > ${f%.*}.psw; done
+
+# Create some helper scripts.
+f=askpass && unexpand << '===' > $f && chmod +x $f
+#! /bin/sh
+xmessage -buttons "Send PSW,Send Empty,Cancel" "$1"
+case $? in
+        101) cat psw;;
+        102) echo;;
+        *) :
+esac
+===
+f=sendpass && cat << '===' > $f && chmod +x $f
+#! /bin/sh
+cat $PWFILE
+===
+
+# Protect currently unprotected private keys out/*.prv with ChaCha20-poly1305 using passwords from files out/*.psw:
+chmod u+w out/*.prv
+
+# Load the now-protected files into the current SSH agent:
+for f in out/*.prv; do SSH_ASKPASS_REQUIRE=force SSH_ASKPASS=./sendpass PWFILE=${f%.prv}.psw ssh-keygen -Z 'chacha20-poly1305@openssh.com' -p -f $f; done
+chmod u-w out/*.prv
+
+for f in out/*.prv; do SSH_ASKPASS_REQUIRE=force SSH_ASKPASS=./sendpass PWFILE=${f%.*}.psw ssh-add $f; done
 ----
