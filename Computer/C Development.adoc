@@ -1,7 +1,7 @@
 ﻿Various notes about the C programming language
 ==============================================
 Günther Brunthaler
-v2023.140
+v2025.226
 
 
 [[cc_options_ivcs6e88l8n1elarieuccw5ud]]
@@ -173,6 +173,83 @@ Add the following lines to your C source file in order to ensure a C99-compliant
 ----
 
 This especially helpful when using types from the <inttypes.h> header or printf-formats such as "%z" which are not defined for C89.
+
+
+Detecting all currently published versions of the C standard
+------------------------------------------------------------
+
+Preprocessor expressions can be used to detect whether the compiler supports a particular revision of the C standard.
+
+* impossible for original C without a preprocessor (1972)
+* undefined for original C with preprocessor (1973)
+* `!defined(__STDC__)` for K&R C (1978)
+* `defined(__STDC__) && __STDC__ == 1` for C89 and C 90 ("ANSI C")
++
+----
+#if !defined(__STDC__) || __STDC__ != 1
+   #error "This source file requires a C89 compliant C compiler!"
+#endif
+----
+* `defined(__STDC_VERSION__) && __STDC_VERSION__ == 199409L` for C95 (Small addendum to C90)
++
+----
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 199409L
+   #error "This source file requires a C95 compliant C compiler!"
+#endif
+----
+* `defined(__STDC_VERSION__) && __STDC_VERSION__ == 199901L` for C99
++
+----
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 199901L
+   #error "This source file requires a C99 compliant C compiler!"
+#endif
+----
+* `defined(__STDC_VERSION__) && __STDC_VERSION__ == 201112L` for C11
++
+----
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L
+   #error "This source file requires a C11 compliant C compiler!"
+#endif
+----
+* `defined(__STDC_VERSION__) && __STDC_VERSION__ == 201710L` for C17
++
+----
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201710L
+   #error "This source file requires a C17 compliant C compiler!"
+#endif
+----
+* `defined(__STDC_VERSION__) && __STDC_VERSION__ == 202311L` for C23
++
+----
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L
+   #error "This source file requires a C23 compliant C compiler!"
+#endif
+----
+
+All revisions which define `__STDC_VERSION__` also define `__STDC__ == 1`. Because only this single value has been defined for `__STDC__`, most code only checks whether `defined(__STDC__)` and ignores its value.
+
+C89 is the same as C90 except for some formatting formatting changes.
+
+C95 is mostly the same as C90 with some minor corrections and a few additions for better international character set support.
+
+Note that it is strictly not necessary to check whether a macro is defined before comparing is value. The C89 standard defines that an undefined macro shall evaluate to 0 in a preprocessor expression on its own.
+
+However, some widely-used C compilers seem to ignore this and report a syntax error when comparing an undefined macro to some numerical literal. Also, a K&R C compiler might be running which does not need to comply to the C89 rules.
+
+
+Best available free copies of the C standard
+--------------------------------------------
+
+Unfortunately, the final versions of the C standard are not free. However, there are free working drafts available, which include most except last-minute changes of the standard revisions.
+
+The following working drafts come closest to the finally published standards:
+
+* C78: Not available. Defined by the book "+The C Programming Language+", First Edition, 1978, ISBN 9780131101630.
+* C89, C90: https://github.com/sys-research/c-standard-drafts/raw/main/C89:C90.pdf[+ISO-C 89 (ANSI C) Standard (1990) - ANSI∕ISO 9899-1990 (R1997)+]
+* C99: https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf[+ISO-C 99 Standard Draft - ISO∕IEC 9899-TC3 (N1256, 2007-09-07)+]
+* C11: https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf[+ISO-C 11 Standard Draft - ISO∕IEC 9899:2011 (N1570, 2011-04-12)+]
+* C17: https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf[+ISO-C 17 Standard Draft - ISO∕IEC 9899:2017 (N2176, 2017-11-01)+]
+* C23: https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3220.pdf[+ISO-C 23 Standard Draft - ISO∕IEC 9899:2024 (N3220, 2024-02-21)+]
 
 
 A portable Makefile for small projects

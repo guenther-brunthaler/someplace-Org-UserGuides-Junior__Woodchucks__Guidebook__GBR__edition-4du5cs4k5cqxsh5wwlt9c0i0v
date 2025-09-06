@@ -1,6 +1,6 @@
 Pike
 ====
-2025.22
+2025.237
 
 The Pike stream cipher was invented by Ross Anderson to be a "leaner and meaner" version of FISH after he broke FISH in 1994. Its name is supposed to be a humorous allusion to the pike fish.
 
@@ -14,7 +14,7 @@ b[i] = mod(b[i - 57] + b[i - 7], 2 ^ 32)
 c[i] = mod(c[i - 58] + c[i - 19], 2 ^ 32)
 ....
 
-The carries of the additions (before the modulo reduction) are compared in order to form a control decision.
+The carry bits of the additions are compared in order to form a control decision. (If the modulo operation returns a sum unchanged, its carry bit is 0. Otherwise it is 1.)
 
 The decision is true if at least one of the other two generators has the same carry bit value as the generator in question. Otherwise it is false.
 
@@ -26,9 +26,11 @@ At the end of the current cycle, the next output of the algorithm is the 16 low-
 
 Then the algorithm repeats by running all three generators again for one cycle, forming the next control decision.
 
+PIKE must re-seeded after generating 2^32^ output words. The method of re-reeding is not defined by PIKE's specification. One possibility would be to use another "seeding" instance of PIKE for initial seeding and later re-seeding of a second "working" instance.
+
 Obviously, the endianness how to output the 16 result bits must be decided and declared by an implementation.
 
-The key of the generator is the initial state of the three 32-bit arrays `a[55]`, `b[75]` and `c[58]`, i.e. 6016 bit.
+The key of the generator is the initial state of the three 32-bit arrays `a[55]`, `b[57]` and `c[58]`, i.e. 5440 bit (680 octets).
 
 As usual for this kind of generators, at least one of the seed words in each array must be odd. I suggest setting the LSB of the element in the middle of the arrays to 1 if all entries of the seed array are even.
 

@@ -1,6 +1,6 @@
 ﻿Random Number Generators
 ========================
-v2025.22
+v2025.204
 
 
 Additive Random Number Generator
@@ -173,9 +173,32 @@ There are also variants 'xorshift+' und 'xorshift*' which add to the algorithm a
 An interesting variant is:
 
 ----
-uint64_t state[2]; /* Initialize with not all zero. */
-uint64_t xorshift128plus(void) {
-   uint64_t x = state[0], const y = state[1];
+static uint_fast64_t xorshift128plus(void) {
+   /* Initialize with not all zero. */
+   static uint_fast64_t state[2] = {
+      /* In this case, we fill it with the leading binary digits of Pi.
+       * This is a seed as good as any other.
+       *
+       * Generate the constants yourself for verification with:
+       *
+       * $ n=2 b=64 tabw=3 && echo \
+       *   "m = 2 ^ ($n * $b);" \
+       *   "d = l(m * 2) / l(10);" \
+       *   "scale = 0; d /= 1; scale = d;" \
+       *   "x = 4 * a(1);" \
+       *   "while (x >= 1) x /= 2;" \
+       *   "x *= m;" \
+       *   "scale = 0; x /= 1; obase = 16; x" \
+       *   | bc -l | { tr -dc 0-9A-F; echo; } | tr A-F a-f \
+       *   | fold -w `expr $b / 4` \
+       *   | sed "s|.*|,  UINT${b}_C(0x&)|; 1s|^,| |" \
+       *   | unexpand -a -t 3 | expand -t $tabw
+       */
+         UINT64_C(0xc90fdaa22168c234)
+      ,  UINT64_C(0xc4c6628b80dc1ccd)
+   };
+   uint_fast64_t x = state[0];
+   uint_fast64_t const y = state[1];
    state[0] = y; x ^= x << 23;
    return (state[1] = x ^ y ^ x >> 17 ^ y >> 26) + y;
 }

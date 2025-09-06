@@ -1,6 +1,6 @@
 Copy whole filesystems with GNU `tar`
 =====================================
-v2024.58
+v2025.208
 
 Add the following options when running GNU tar in order to preserve as many attributes as possible when creating or extracting the archive (as superuser):
 
@@ -17,30 +17,44 @@ The `--acls` and possibly `--xattrs` options may trigger many warnings if the fi
 Here is how to create a local replacement Bourne Shell function for `tar` that will add those options automatically:
 
 ----
-$ tar_opts='--numeric-owner --sparse --xattrs --acls' && export tar_opts &&
-tar_xa() { command tar $tar_opts --totals=SIGUSR2 "$@"; } && export -f tar_xa
+tar_opts='--numeric-owner --sparse --xattrs --acls' # With everything.
+#tar_opts='--numeric-owner --no-xattrs --no-acls' # No ACLs/EAs.
 
-$ tar_opts='--numeric-owner --nosparse --no-xattrs --no-acls' # Later.
+tar_xa() { command tar $tar_opts --totals=SIGUSR2 ${1+"$@"}; }
+
+export tar_opts
+export -f tar_xa
 ----
 
-Here is another helper function for locally copying whole directory trees using the above helper function:
+Here are more helper functions for locally copying whole directory trees using the above helper function:
 
 ----
-$ tar_cp() { test -d "$1" && test -d "$2" && tar_xa -C "$1" -c . | tar_xa -C "$2" -x || echo "failed with RC $?" >& 2; } && export -f tar_cp
+tar_src_opts=
+#tar_src_opts='--one-file-system' # Don't traverse into other filesystems.
 
-$ tar_chk() { killall -USR2 tar; } && export -f tar_chk
+export tar_src_opts
+
+renice -n 10 -p $$ && ionice -n6 -p $$ # Optional: Make current shell nice.
+
+tar_cps() { test -d "$1" && test -d "$2" && tar_xa $tar_src_opts -C "$1" -c . | tar_xa -C "$2" -x || echo "failed with RC $?" >& 2; }
+
+tar_cp() { tar_cps ${1+"$@"} & }
+
+tar_chk() { killall -USR2 tar; }
+
+export -f tar_cps tar_cp tar_chk
 ----
 
 And here is how to get rid of the changes to the shell environment later:
 
 ----
-$ unset -f tar_xa tar_cp tar_chk; unset PID_OF_TAR
+unset -f tar_xa tar_scp tar_cp tar_chk; unset tar_opt tar_src_opts
 ----
 
 But while the changes are in effect, the `--totals`-Option allows you to
 
 ----
-$ tar_cp /src/dir /dst/dir &
+$ tar_cp /src/dir /dst/dir
 $ tar_chk # Repeat this as often as desired
 ----
 

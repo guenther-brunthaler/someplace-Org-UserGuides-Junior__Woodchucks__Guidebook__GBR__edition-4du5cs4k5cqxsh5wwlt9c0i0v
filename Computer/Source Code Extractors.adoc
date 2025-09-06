@@ -1,0 +1,61 @@
+Source Code Extractors
+======================
+v2025.218
+
+The following extractor allows to extract any number of files into the current directory.
+
+Already-existing files will be renamed silently by adding "`.old`" to the file name before the extracted new file will be written.
+
+Tab characters present in the text and trailing whitespace at the end of lines will be extracted as-is but will not be converted automatically from leading spaces.
+
+Therefore such scripts are suitable for e-mail text attachments, but not in the body text where tab characters might be converted into spaces automatically by the MUA.
+
+----
+#! /bin/sh
+
+# Contents: v2025.218.1
+
+# Extractor minus here-doc redirection: v2025.218
+set -e
+trap 'test $? = 0 || echo "\"$0\" failed!" >& 2' 0
+sep=
+while IFS= read -r line
+do
+	case $sep in
+		'') sep=${line%%" "*}
+	esac
+	case $line in
+		"$sep "*)
+			file=${line#"$sep "}
+			printf '%s\n' "$file..." >& 2
+			test -e "$file" && mv -- "$file" "$file".old
+			exec > "$file"
+			continue
+	esac
+	printf '%s\n' "$line"
+done << '======='
+===== minmal.c
+int main(void) {
+   return 99;
+}
+===== Makefile
+.POSIX:
+
+# You may redefine these settings via the "make" command line or export them
+# as environment variables and (in the latter case only) also
+# "export MAKEFLAGS=e". Or just edit this file.
+CPPFLAGS = -D NDEBUG
+CFLAGS = -O
+LDFLAGS = -s
+
+# No need to redefine these.
+TARGETS = minimal
+
+.PHONY: all clean
+
+all: $(TARGETS)
+
+clean:
+	-rm $(TARGETS)
+=======
+----

@@ -1,6 +1,6 @@
 LVM2
 ====
-v2025.64
+v2025.234
 
 
 Units of measurement
@@ -34,9 +34,9 @@ dev=/dev/mapper/xxxx-level0-dec && vg=vg_xxxx
 
 echo "VG '${vg:?}' @ PV '${dev:?}'."
 
-pvcreate -M lvm2 --bootloaderareasize 0 --dataalignment 4k --metadatacopies 2 "${dev:?}"
+lvm pvcreate -M lvm2 --bootloaderareasize 0 --dataalignment 4k --metadatacopies 2 "${dev:?}"
 
-vgcreate -M lvm2 --physicalextentsize 16m --dataalignment 4k --metadatacopies 2 "${vg:?}" "${dev:?}"
+lvm vgcreate -M lvm2 --physicalextentsize 16m --dataalignment 4k --metadatacopies 2 "${vg:?}" "${dev:?}"
 ----
 
 Notice:
@@ -52,8 +52,8 @@ Logical Volume creation
 -----------------------
 
 ----
-lvcreate -n vol1 -L 10G  "${vg:?}"
-lvcreate -n volN -l 100%FREE  "${vg:?}"
+lvm lvcreate -n vol1 -L 10G  "${vg:?}"
+lvm lvcreate -n volN -l 100%FREE  "${vg:?}"
 ----
 
 
@@ -61,7 +61,7 @@ Metadata extraction
 -------------------
 
 ----
-$ vgdisplay -vvv 2>& 1 | grep -iE 'Found metadata.*text.*at.* size' | uniq
+$ lvm vgdisplay -vvv 2>& 1 | grep -iE 'Found metadata.*text.*at.* size' | uniq
 ----
 
 shows:

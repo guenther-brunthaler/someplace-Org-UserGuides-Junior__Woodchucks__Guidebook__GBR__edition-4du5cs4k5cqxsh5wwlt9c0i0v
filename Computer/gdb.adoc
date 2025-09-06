@@ -1,7 +1,7 @@
 ﻿GDB, the GNU Debugger
 =====================
 Günther Brunthaler
-v2025.152
+v2025.243
 
 Enable automatic loading of `./.gdbinit` GDB scripts in all subdirectories below +/home/joe/prj+ for user 'joe':
 
@@ -90,10 +90,10 @@ Also, your program might take advantage if the `mcheck()` functions for debuggin
 If your platform supports the address sanitizer feature of gcc, also consider adding the following options:
 
 ----
-CFLAGS: -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fsanitize=undefined -fsanitize-address-use-after-scope
-LDFLAGS: -l asan
-ASAN_OPTIONS: detect_invalid_pointer_pairs=1
-ASAN_OPTIONS: help=1
+$ CFLAGS=$CFLAGS' -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fsanitize=undefined -fsanitize-address-use-after-scope'
+$ LDFLAGS=$LDFLAGS' -l asan -l atomic'
+$ ASAN_OPTIONS='detect_invalid_pointer_pairs=1'
+$ ASAN_OPTIONS='help=1'
 ----
 
 Finally, consider running your program under `valgrind` for enhanced memory checks:

@@ -270,3 +270,19 @@ Protecting against unwanted formatting
 Sometimes, asciidoc interprets some character sequencing as formatting instructions when it shouldn't because those characters are intended to be literal ones.
 
 In such cases, enclosing them within hash marks ("`#`") often does the trick. Those are no-op formatting instructions.
+
+
+Tables
+------
+
+A typical simple table with a header line:
+
+----
+[options="header,autowidth"]
+|===
+|   ID | type name
+| 0x07 | HPFS/NTFS/exFAT
+| 0x83 | Linux
+| 0xda | Non-FS data
+|===
+----
