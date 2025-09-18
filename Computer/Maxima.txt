@@ -2,86 +2,90 @@ Maxima CAS
 
 ? sum /* show help for "sum" (does not require ";" at end) */
 ?? sum /* same but with approximate matching */
-example(do); /* show an example for using "do" */
+example(do) /* show an example for using "do" */;
 /* This is a comment! */
 /* Exprs must be terminated with ";" or "$" */
-describe(do); /* same as "?", but is a regular function */
+describe(do) /* same as "?", but is a regular function */;
 
-x+y+z,x=3,z=4; /* "y+7" */
-subst(x+1,v,v**2); /* "(x+1)**2" */
+x+y+z,x=3,z=4 /* "y+7" */;
+subst(x+1,v,v**2) /* "(x+1)**2" */;
 
-% /* last result */
-%i3; /* 3rd input xpr */ %o6; /* 6th result */
+% /* last result */;
+%i3 /* 3rd input xpr */; %o6; /* 6th result */;
 
-3/4 ,numer; /* shows 0.75 in libm precision */
-sin(1.0) ,simp; /* same for irrationals */
-bfloat(xpr); /* big float approx. w. fpprec accuracy */
-fpprec: 30; /* Set prec. */
-fpprec; /* Show cur. prec. */
-ibase: 10; obase: 16; /* but no input support for digits beyond 9 */
+3/4 ,numer /* shows 0.75 in "libm" precision */;
+sin(1.0) ,simp /* same for irrationals */;
+bfloat(xpr) /* big float approx. w. fpprec accuracy */;
+float(1.5b3) /* "libm"-float from "big float"-literal 1500 */;
+block(ratprint, ratprint: false, rat(1.5e3)) /* libm-float to exact w/o warning */;
+fpprec: 30 /* Set big float prec. Does not affect libm-floats */;
+fpprec /* Show cur. big float prec. */;
+ibase: 10; obase: 16 /* but no input support for digits beyond 9 */;
 
-myvar:123; /* Assign global variable. */
+myvar:123 /* Assign global variable. */;
 myvar:myvar+1; remvalue(myvar); [myvar,myvar2]:[myvar2,myvar]; remvalue(myvar,myvar2);
 myfunc(x,y):=x+y; remfunction(myfunc); myfunc:lambda([x,y],x+y); remvalue(myfunc);
 remvalue(all);
 
 2**3; 2^3; mod(xpr,256);
 5!; binomial(n, k);
-sqrt(144); sqrt([4,9,16]); /* map func. to many args */
-%e; %pi; inf; /* +1/0 */ minf; /* -1/0 */
-zeroa, zerob, ind, true, false, und; /* undefined */
+sqrt(144); sqrt([4,9,16]) /* map func. to many args */;
+%e; %pi; inf /* +1/0 */; minf /* -1/0 */;
+zeroa, zerob, ind, true, false, und /* undefined */;
 
-log; /* base %e; no other variants built-in */
+log /* base %e; no other variants built-in */;
 sin, cos, tan, exp, abs, floor, ceiling;
 asin, acos, atan; atan2(y, x);
 min(xpr1, ...); max(xpr1, ...);
 sum(x+1, x, 1, n);
 
-ratsimp(xpr); /* with common denominator */
+ratsimp(xpr) /* with common denominator */;
 factor(xpr); expand(xpr); horner(xpr); expandwrt(xpr,var1,...); multthru(xpr);
 
-solve(x+3=5); /* "x=2" */
+solve(x+3=5) /* "x=2" */;
 solve(x+3=5*y,x);
 solve([2*x+y=4,3*y=6]);
 solve([2*x+y=4,z-3*y=6],[x,y]);
 lhs(eq); rhs(eq);
-reveal(expr, depth) /* describe kind of subterms nested at depth >= 1 */
+reveal(expr, depth) /* describe kind of subterms nested at depth >= 1 */;
 
-diff(xpr, var);
+diff(xpr, var) /* differentiation */;
 integrate(xpr, var); integrate(xpr, var, from, upto);
-limit(xpr, x, val, dir); /* dir="plus" from above, or "minus" */
-limit(xpr, x, val); /* from both sides, towards val */
-limit(xpr); /* Just optimize infinities */
+limit(xpr, x, val, dir) /* dir="plus" from above, or "minus" */;
+limit(xpr, x, val) /* from both sides, towards val */;
+limit(xpr) /* Just optimize infinities */;
 
-h[5]:42 /* no decl: hashed array */ remarray(h);
-length([4,5,6]); /* 3 */
-charlist("abcde")[4]; /* "d" */
-array(a,4); a[3]:42; /* normal indexed array */ remarray(a);
+h[5]:42 /* no decl: hashed array */; remarray(h);
+length([4,5,6]) /* 3 */;
+charlist("abcde")[4] /* "d" */;
+array(a,4); a[3]:42 /* normal indexed array */; remarray(a);
 array(matrix,r,c); matrix[r-1,c-1]:42;
-arrayinfo(a); /* kind and keys or index range */
-listarray(a); /* values for keys or index range */
+arrayinfo(a) /* kind and keys or index range */;
+listarray(a) /* values for keys or index range */;
 
-nounify("$perlvarname"); /* Name with reserved characters as symbol. */
-assume(xx > 0, yy < -1, zz >= 0, aa < bb and bb < cc) /* only relationals */; facts(); /* show assumptions */; forget(aa < aa); is(xx > yy); /* query */
-declare(atom, prop1, prop2, ...); /* set other assumptions */
-features; /* list of all props such as "integer" */
-featurep(atom, integer); /* query */
+nounify("$perlvarname") /* Name with reserved characters as symbol. */;
+assume(xx > 0, yy < -1, zz >= 0, aa < bb and bb < cc) /* only relationals */;
+facts() /* show assumptions */; forget(aa < aa); is(xx > yy) /* query */;
+declare(atom, prop1, prop2, ...) /* set other assumptions */;
+features /* list of all props such as "integer" */;
+featurep(atom, integer) /* query */;
 
-values; functions; arrays; /* global arrays of user-defined items */
+values; functions; arrays; /* global arrays of user-defined items */;
 
-print("text"); /* newline */
+print("text") /* newline */;
 (for pa in ["One sentence", "in one", "line."] do sprint(pa), newline());
-print(xpr1, ...); /* only results, space-separated within line, newline at end */
-printf(true, "1st='~a'~%2nd='~a'~%", xpr1, xpr2);
-grind(xp1); /* Convert to string formatted as Maxima input syntax. */
-fortran(xp1); /* Convert to string formatted as FORTRAN expression. */
-display(xpr1, ...); /* display xprs & results, one per line */
+print(xpr1, ...) /* only results, space-separated within line, newline at end */;
+printf(true, "1st='~a'~%2nd='~a'~%3rd='~a'~%", "xpr1", "xpr2", "xpr3");
+printf(true, "1st='~2@*~a'~%2nd='~1@*~a'~%3rd='~0@*~a'~%", "xpr3", "xpr2", "xpr1");
+grind(xp1) /* Convert to string formatted as Maxima input syntax. */;
+fortran(xp1) /* Convert to string formatted as FORTRAN expression. */;
+display(xpr1, ...) /* display xprs & results, one per line */;
 
 for x: 1 thru 9 step 2 do display(x);
 for x: 1 step 2 while x <= 9 do display(x);
 for x in [1, 2, 3] do display(x);
 if cond1 then xpr1 elseif cond2 then xpr2 else xpr3;
 and, or, not; /* bool ops */
-(<expr1>, <expr2>, ...); /* block without local variables. */
-block([<var1>, ...], <expr1>, <expr2>, ...); /* dynamically scoped local variables. */
+(<expr1>, <expr2>, ...) /* block without local variables. */;
+block([<var1>, ...], <expr1>, <expr2>, ...) /* dynamically scoped local variables. */;
 block([i], i: 1, label_repeat, if i > 10 then go(label_end), sprint(i), i: i + 1, go(label_repeat), label_end, newline());
