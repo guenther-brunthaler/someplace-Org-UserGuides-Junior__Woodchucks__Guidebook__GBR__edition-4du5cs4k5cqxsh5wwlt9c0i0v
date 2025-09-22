@@ -1,6 +1,6 @@
 ﻿Bézier splines and curves
 =========================
-v2022.142
+v2025.265
 
 Bézier curves of degree `N` have two end-points and `N - 1` control points. Only Bézier curves of degrees 2 and 3 are commonly used.
 
@@ -87,7 +87,7 @@ When choosing `t = 0.5`, all line segments only need to be split in half at thei
 ....
 x[mid]= (x[a] + x[b]) / 2
 y[mid]= (y[a] + y[b]) / 2
-.....
+....
 
 For rasterizing a Bézier spline, it can be recursively split until start and end points are adjacent and then plotting only the start point. After all recursions, the still-missing end point of the last partial spline is plotted separately.
 
