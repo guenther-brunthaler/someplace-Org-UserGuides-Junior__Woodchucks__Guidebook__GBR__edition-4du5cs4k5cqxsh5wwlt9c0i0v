@@ -1,7 +1,10 @@
 A structure for constant databases
 ==================================
-D. J. Bernstein, djb@pobox.com
-v19960914, Copyright 1996
+D. J. Bernstein
+
+
+Classical "cdb" format
+----------------------
 
 A cdb is an associative array: it maps strings (`keys`) to strings (`data`).
 
@@ -32,3 +35,11 @@ Further notes (not from upstream):
 * Linear probing for a key wraps around to the first bucket when encountering the end of a hash table.
 
 * Supposedly the reason for the 2-level approach is the idea of creating every secondary hash table in memory individually and then flushing them out to the cdb file, re-using the memory for the next hash table after this.
+
+
+cdb64 format
+------------
+
+Seems to be the same as the classical format, except that all values are stored as 8-byte 64-bit quantities.
+
+Theoretically this would allow databases up to 16 EiB in size, but currently existing implementation code limits the database size to 1 EiB.
