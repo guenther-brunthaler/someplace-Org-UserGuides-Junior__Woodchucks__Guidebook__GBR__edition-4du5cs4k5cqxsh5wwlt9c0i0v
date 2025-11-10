@@ -5,6 +5,9 @@ ifconfig vs. ip
 old$ ifconfig
 new$ ip addr
 
+old$ LC_MESSAGES=C ifconfig eth0 | grep '[RT]X packets'
+new$ LC_COLLATE=C ip stats show dev eth0 | grep -A1 '[RT]X:.*packets'
+
 old$ ifconfig eth0 up
 new$ ip link set eth0 up
 

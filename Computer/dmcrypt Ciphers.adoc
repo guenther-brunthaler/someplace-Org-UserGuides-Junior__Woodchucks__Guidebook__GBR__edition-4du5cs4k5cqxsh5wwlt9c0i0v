@@ -1,6 +1,6 @@
 dm-crypt Ciphers
 ================
-v2025.44
+v2025.309
 
 
 Table entry format
@@ -25,6 +25,7 @@ where "$bytes" is the number of binary bytes required for the dmcrypt-table key 
 32 aes-cbc-plain64
 32 aes-ctr-essiv:sha256
 32 aes-ctr-plain64
+32 aes-ebc-plain64
 32 aes-pcbc-plain64
 32 aes-xts-benbi
 32 aes-xts-plain64
@@ -32,8 +33,10 @@ where "$bytes" is the number of binary bytes required for the dmcrypt-table key 
 64 aes-xts-benbi
 64 des3_ede-ctr-plain64
 64 serpent-xts-benbi
-32 xchacha20,twofish-adiantum-plain64
 32 xchacha12,aes-adiantum-plain64
+32 xchacha20,twofish-adiantum-plain64
+32 aes-ebc-plain64
+32 twofish-ctr-plain64
 ....
 
 The dmcrypt table setup is as follows:

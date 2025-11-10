@@ -1,7 +1,7 @@
 Debian Package Management
 =========================
 Guenther Brunthaler
-v2024.74
+v2025.314
 
 
 Abstract
@@ -48,6 +48,85 @@ $ apt-get upgrade --print-uris -qq # --with-new-pkgs
 ----
 
 This will display a list of download URLs as well as the corresponding file names under which to save the downloaded files in `/var/cache/apt/archives/`, plus some additional information such as file size.
+
+
+Complete installation of a minimal system without need for a real installer
+---------------------------------------------------------------------------
+
+This approach uses the "debootstrap"-script rather the regular Debian installer.
+
+Any normal Linux Installation is usable as an intermediate plattform for installing the new system, sich as a read-only Live Desktop USB ISO-Image.
+
+In order to be more useful, the following instructions separate downloading a tarball containing everything needed for an offline installation, and said offline installation itself.
+
+
+Downloading debootstrap installation variants
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are (currently) 4 possible basic variants for a debootstrapped minimal system.
+
+The command below allow to create all variants at once. The key is setting the `$variants` variable.
+
+In this example, all variants are built.
+
+In this case, the installation of `fakechroot` and running the instructions in a nested shell is necessary (which is finished by executing the "exit" command.
+
+However, those additional steps are only required if the "`fakechroot`" variant is included within `$variants`. As this variant is not particularly interesting, the steps have been commented out below. If you actually want to include the `fakechroot` varinant, you need to de-comment the commented-out commands below.
+
+----
+$ #apt-get install fakechroot # Only required if next line is also required
+$ #fakechroot # Enter fakechroot environment; only required if "fakechroot" is within $variants (see below).
+
+$ distro=devuan suite=excalibur variants='default minbase buildd fakechroot' arch=amd64 url=http://deb.devuan.org/merged
+
+for variant in ${variants?}; do if test "$variant" = default; then variant=; fi && tgz=${distro:?}-${suite:?}-debootstrap${variant:+"-"}$variant-${arch:?}-`date -u +%Y%m%d%H%M%S`.tgz && echo "$tgz" && debootstrap --arch="${arch:?}" --make-tarball="${tgz:?}" ${variant:+"--variant=$variant"} "${suite:?}" tmp_download_dir "${url:?}"; done
+
+$ #exit # Exit fakechroot environment; only required if "fakechroot" has been above.
+----
+
+Here are the resulting tarballs produce by the above instruction für Devuan "Excalibur" 6, which roughly correspondents to Debian "Trixie" 13 except for using `sysvinit` instead of `systemd`:
+
+----
+$ du --si "${distro:?}"*.tgz
+58M     devuan-excalibur-debootstrap-amd64-20251107022443.tgz
+130M    devuan-excalibur-debootstrap-buildd-amd64-20251107022721.tgz
+63M     devuan-excalibur-debootstrap-fakechroot-amd64-20251107023428.tgz
+47M     devuan-excalibur-debootstrap-minbase-amd64-20251107022609.tgz
+----
+
+Here are a few considerations which variant to choose:
+
+* `minbase` is perfectly fine for installing a complete new system. Only the absolute minimum is included so that "apt" can install further packages. Not even a text editor is included, let alone Kernel or a boot loader. However, none of those are required to build a minimal container either. For a "real" system, everything missing can easily be installed with "apt". `minbase` is a strict subset of all the other variant. All of them include everything `minbase` also provides.
+
+* `default` is not a real variant name; it is actually selected when not specifying any variant. But my instructions above use it as a dummy name in order to allow building all 4 tarballs with a single run of the instructions. It adds a the text editors `vim-tiny` and `nano` to `minbase`, as well es `less` and a few basic administrative commands like `passwd`. It is noch much larger than the `minbase` tarball, so it is an OK choice to start with. However, I don't like `nano`, and all the other additional packages can as easily be post-installed in `minbase`. I therefore do not suggest using `default`, although there is only little which actually disencourages this.
+
+* `fakechroot` is nearly identical to `default`. Only the `binutils` package has been added. Which seems rather odd, considering `fakechroot` does not contain any other build tools (such as a C Compiler). Perhaps just a mistake? The only real reason I can see for this variant to exist, ist that it can be built by an unprivileged user with the help of the `fakechroot` utility. I see little practical value in that, considering every regular user can download QEMU, compile it from scratch, and then wield superuser privileges within the emulation. On the other hand, building a full-system emulator requires significant time and effort, so `fakechroot` is likely much quicker for achieving the same goal. When a user has access to superuser privileges, such as via `sudo`, there is very little to no advantage when chosing this variant over `default`.
+
+* `buildd` is the most interesting variant in my opinion. It is the same as `minbase`, but adds a "C" Compiler, "make" and a basic Perl installation. This is incredibly powerful and could be used to bootstrap a complete new system only from source code without the need for further precompiles binaries. Even though its tarball is rougly thrice the size of `minbase`, I think those additional possibilities justify the additional size. Especially because it is still very small for a base installation image. One exception would be the usage for populating a minimal container. No one wants a C compiler or Perl there; the same power mentioned before could be mis-used by malware. But as the base of a "real" system, `buildd` ist the most powerful. It can also be used within an initramfs environment for building missing utilities (or bootstrapping a repair system) there from source code without requiring help from any other computers (provided the source code has been downloaded in advante and is available to the initramns from a USB pen drive or such).
+
+
+Actually installing debootstrap tarballs downloaded in advance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This assumes only the "`buildd`"-variant has been built, which ist the most useful for downloading in advance in my opinion. Otherwise, modify the first line to match the downloaded tarball.
+
+----
+$ tgz=`ls *-buildd-*.tgz`
+$ tar xzf "${tgz:?}" debootstrap
+$ debootstrap/debootstrap --unpack-tarball="$PWD/${tgz:?}" "${suite:?}" .
+$ rm -- "${tgz:?}"
+----
+
+This also removes the tarball after the installation.
+
+For the Devuan-variant corresponding to Debian "Trixie" 13, installing the `buildd`-variant into the current directory resulted in the following installation size:
+
+----
+$ du --si -s
+659M    .
+----
+
+Note that this included a workable C compiler (including the basic header files and libraries, capable of compiling and linking at least a "hello, world"), "make" und a "Perl" installation. All those would note have been included in any of the other variants.
 
 
 Problems with Ownership
