@@ -1,0 +1,228 @@
+Algorithms
+==========
+Günther Brunthaler
+v2022.47
+
+
+AES-256-GCM
+-----------
+
+* Type: cryptographic, symmetric cipher
+* DOLM: 2021-10-09
+
+For AES-256-GCM, it is recommended to encrypt at most 2^32 block. The more the data stream grows above that, the more likely it gets that a nonce gets reused and the two corresponding blocks become decryptable by an adversary. Other blocks would not be affected, but an adversary being able to access those two blocks is bad enough.
+
+See Section 8.3 in https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf
+
+
+Argon2
+------
+
+* Type: cryptographic, hash
+* DOLM: 2020-04-28
+
+Argon2 is a key derivation function that was selected as the winner of the Password Hashing Competition in July 2015.
+
+Argon2d und Argon2i have problems (side-channel and GPU-attacks, respectively.)
+
+Argon2id combines parts of both algorithms and seems to avoid both problems. The Internet draft https://datatracker.ietf.org/doc/draft-irtf-cfrg-argon2/ recommends using Argon2id except when there are reasons to prefer one of the other two modes.
+
+Argon2 makes use of a hash function capable of producing digests up to 2**32 bytes long. This hash function is internally built upon Blake2.
+
+
+BLAKE
+-----
+
+* Type: cryptographic, hash
+* DOLM: 2020-04-28
+
+BLAKE is a cryptographic hash function based on Dan Bernstein's ChaCha stream cipher, but a permuted copy of the input block, XORed with round constants, is added before each ChaCha round.
+
+BLAKE was submitted to the NIST hash function competition by Jean-Philippe Aumasson, Luca Henzen, Willi Meier, and Raphael C.-W. Phan [...] made it to the final round consisting of five candidates but lost to Keccak in 2012 [...]
+
+The BLAKE2 hash function, based on BLAKE, was announced in 2012, created by Jean-Philippe Aumasson, Samuel Neves, Zooko Wilcox-O'Hearn, and Christian Winnerlein. The design goal was to replace the widely used, but broken, MD5 and SHA-1 algorithms [...] Digest sizes: up to 64 bytes (BLAKE2b); up to 32 bytes (BLAKE2s); arbitrary (BLAKE2X).
+
+BLAKE2b is faster than MD5, SHA-1, SHA-2, and SHA-3 on 64-bit x64 and ARM architectures, provides security superior to SHA-2 and similar to that of SHA-3. Interestingly, according to http://bench.cr.yp.to/results-hash.html, BLAKE2b is also faster than BLAKE2s.
+
+BLAKE2b and BLAKE2s are specified in RFC 7693.
+
+BLAKE2X allows for digests of up to 256 GiB.
+
+BLAKE3 is a single algorithm, in contrast to BLAKE and BLAKE2, which are algorithm families [...] The BLAKE3 compression function is closely based on that of BLAKE2s, with the biggest difference being that the number of rounds is reduced from 10 to 7. Internally, BLAKE3 is a Merkle tree, and it supports higher degrees of parallelism than BLAKE2.
+
+Although BLAKE3 can generate hashes up to a result length to 2^64 octets, its internal security gurantees are only those of a 128 bit hash. (However, the same applies to AES as well.) As BLAKE3 builds on BLAKE2, the same is likely to also apply for the latter.
+
+Which means BLAKE cannot be considered secure enough against attacks by quantum computers.
+
+
+Blowfish
+--------
+
+* Type: cryptographic, symmetric cipher
+* DOLM: 2022-10-11
+
+Blowfish has a 64 octet internal block size and uses a key of arbitrary size between 0 and 448 octets. The key does not need to be random-looking.
+
+A fixed-size set of 1042 internal 32-bit working constants is derived from the provided variable-length input key.
+
+Those derived 32-bit constants are interpreted as an array of 18 subkeys and 4 s-boxes of 256 entries.
+
+Key setup may fail when a weak input key is detected. This is the case if any s-box contains non-unique entries within that s-box.
+
+Key expansion combines the fractional binary digits of pi with the input key and applies the Blowfish encryption algorithm to it iteratively, every time updating the working previous key. This results in a computationally-wise quite expensive key setup.
+
+The algorithm is a classical Feistel network using 16 half-rounds. Its core function consists only of addition, XOR and shifts.
+
+Blowfish is no longer considered secure because of its small block size.
+
+
+ChaCha20
+--------
+
+* Type: cryptographic, stream cipher
+* DOLM: 2020-03-25
+
+ChaCha20 is a stream cipher developed by D. J. Bernstein. It is a refinement of Salsa20 and was used as the core of the SHA-3 finalist, BLAKE.
+
+ChaCha20 is basically a same-length hash function, mapping 64 input octets into 64 output octets. Input and output consist of 16 words. All words are 32 bit.
+
+By convention, 8 of the input words consist of a 256-bit key, 4 are constants and the remaining four are a nonce and a block counter.
+
+The output words are converted to bytes and XOR-ed with the plaintext to produce ciphertext. In order to generate sufficient output bytes to XOR with the whole plaintext, the block counter is incremented and ChaCha20 is run again, as many times as needed, for up to 2^70 bytes of output.
+
+ChaCha20 uses only 4 constants in its algorithm, which are "nothing up my sleeve"-numbers representing the 32-bit little-endian encoding of the ASCII text "expand 32-byte k".
+
+ChaCha20 uses 20 rounds applying a core function for transforming 4 words.
+
+The core function consists of add, XOR and rotations. It has a simple regular structure and seems to be symmetrical and balanced.
+
+The rounds apply the core function to different input words in a non-arbitrary order governed by geometric features of the word indexes arranged as a square matrix, using rows, columns and diagonals as features. In other words, the round's variable selections have also "nothing up my sleeve"-characteristics.
+
+ChaCha20 does not need any special key-setup preprocessing. Binary key, block-counter and nonce are used directly as-is by the algorithm. Which means changing the key is cheap. It bears no more overhead than incrementing the block counter.
+
+
+Edon_R
+------
+
+* Type: cryptographic, hash
+* DOLM: 2020-04-28
+
+Edon is variable length hashing algorithm which is supposedly (due to its authors) strongly collision resistant.
+
+The variant edonr512 was fastest in several benchmarks according to http://bench.cr.yp.to/results-hash.html, interestingly even faster than edonr256.
+
+The algorithm seems to have been developed together with a related algorithm Edon_C (which seems rarely to be used, perhaps because it is much slower) at the Institute of Informatics of an university in Macedonia.
+
+Its authors are D. Gligoroski, S. Markovski and V. Bakeva.
+
+"Edon - Infinite class of strongly collision resistant hash functions with variable length of output"
+
+According to NIST https://en.wikipedia.org/wiki/NIST_hash_function_competition, Edon-R has "substantial cryptographic weaknesses".
+
+
+Fortuna
+-------
+
+The successor of Yarrow. Its uses a similar yet different design, and also requires a block cipher and a message digest algorithm to work.
+
+The default choices for Fortuna are AES-256 and SHA2-256.
+
+The big advantage of Fortuna over Yarrow is the fact that Fortuna does not require to estimate the amount of entropy delivered by entropy sources into the generator. There is no way to do this reliably or in a way that is correct in all situations. Yarrow therefore needed to use heuristics, but those could be wrong. The requirement of an entropy estimator was therefore Yarrow's biggest flaw.
+
+Fortuna uses a block cipher with a block size of 128 bit and a key size of 256 bit. Normally AES-256 is used for this, but SERPENT or TWOFISH would also work fine.
+
+Internally, the generator consists just of a 128 bit counter and a 256 bit block cipher key. Both are initialized to 0.
+
+This block cipher is run in CTR mode, and the result is the pseudorandom stream generated as "random data" by Fortuna. The size of a single request is limited to 2 ** 16 blocks for statistical reasons, that is 1 MiB of pseudorandom data.
+
+After each such request, the generator generates 2 blocks for its own use and replaces the current block cipher key with those 256 bit.
+
+However, the generator refuses to run if the counter value is zero, because this means it has never been seeded.
+
+For the seeding, an entropy accumulator is used. It consists of 32 pools, into which new data from available entropy sources is feed in a cyclic fashion.
+
+Stop... I need to learn about the algorithm more before I can finish this.
+
+
+GHASH
+-----
+
+* Type: cryptographic, hash
+* DOLM: 2020-11-21
+
+This is only mentioned here for the sake of completeness. It is not actually a cryptographic hash algorithm but represents rather the "G" part of the GCM authenticated encryption algorithm.
+
+It is pretty much useless on its own, and the only reason it is available separately seems to be that it can be combined with a block cipher to provide the GCM chaining mode. GHASH can thus only be used securely in crypto modes specially designed for it.
+
+
+K12
+---
+
+* Type: cryptographic, hash
+* DOLM: 2020-11-13
+
+K12, also known as "Kangaroo Twelve", seems to be a round-reduced and possibly otherwise simplified version of keccak (the SHA-3 algorithm).
+
+It was second fastest in several benchmarks according to http://bench.cr.yp.to/results-hash.html.
+
+It is based on a tree hash mode with kangaroo hopping on top of the sponge construction as well as on the Keccak-p[1600, 12] permutation.
+
+A Go implementation can be found here: https://github.com/mimoo/GoKangarooTwelve.
+
+
+xxHash, XXH32, XXH64, XXH3, XXH128
+----------------------------------
+
+* Type: hash
+* DOLM: 2022-02-16
+
+xxHash is a family of fast non-cryptographic hash algorithms.
+
+A prominent application is `rsync`, where the names `xxh64`, `xxh128`, `xxh3` and `xxhash` (alias for `xxh64`) are used. Newer versions of `rsync` seem to use `xxh128` by default as a "strong" hash algorithm; older versions only supported `md4`.
+
+The hash functions use a seed value (may be 0 if not needed) for customization.
+
+They primarily use the operations rotation, addition and multiplication.
+
+Those operations are performed only modulo `2 ** 32` (XXH32) or modulo `2 ** 64` (XXH64).
+
+On 64-bit systems, XXH64 is faster than XXH32. On 32-bit system, it is the other way around.
+
+Two multiplications are used for hashing every (32 or 64 bit) data word. The remaining operations are cheap and neglectible by comparison.
+
+The least significant (32 or 64 bit) word of the input stream size is included within the hash calculation.
+
+I suppose, despite the multiplications the algorithms can be expected to be much faster than even the fastest cryptographic hash algorithms. The question is only if that also applies to machines without hardware integer multiplier.
+
+Because of the multiplications, there is some simularity between the xxHash and FNV-hash families. The latter are much simpler, yet xxHash is faster because the only multiply twice per data word, whereas FNV multiplies once per data byte.
+
+A comparison published by the xxHash authors claims that xxHash is faster than even CRC-32 and also has higher "quality". I severly doubt the latter, though, because CRCs offer mathematical guarantees about error detection which xxHash cannot provide.
+
+The above directly applies to XXH32 and XXH64 only.
+
+XXH3 is a newer entry to the xxHash families. It is claimed to be superior to XXH32 and XXH64. According to the authors, it benefits "greatly" from SIMD and 64-bit arithmetic, but does not require it. As of 2022, SIMD-optimized version are available for AVX512, AVX2, SSE2, NEON, POWER8, ZVector and "scalar" targets.
+
+XXH3 provides two variants for 64 and 128 bit output. They work similarly, but the 64 bit version is slightly faster and should therefore be preferred in cases where a 64 bit hash is wide enough.
+
+XXH3 also supports a "secret" key of arbitrary size in addition to the seed. If used, this key must have the same statistical properties as high-quality random numbers, or it can reduce the quality of the produced hash. The "secret" feature does provide any cryptographic guarantees or turn the hash into a stream cipher. However the authors claim (without any proof) that usage of the "secret" feature makes it "difficult" for attackers to prepare a message for a hash collision. This feature, when used, makes the hashing somewhat slower, but not too much. I presume it will be much faster than a real stream cipher.
+
+A disadvantage of XXH3 is the fact that its details have not yet been finalized and they might therefore produce different results in future versions. The authors therefore recommend to use XXH3 only in situations where the hash value is not required for long-term storage. This is the case for real-time communication applications and for temporary ad-hoc checksumming.
+
+A package "libxxhash" is available on Debian as an implementation.
+
+Using the xxhash library seems to be an easy way to add a very fast hash to one's application without investing considerable effort into this task. Whether this otherwise also true, I have my doubts.
+
+There are many hash algorithm which claim to be "the fastest" and are missing in the comparison published by the xxHash authors. For instance, Jenkins, ISAAC, CRC-64 and CRC-128 are all not mentioned.
+
+
+Yarrow
+------
+
+* Type: cryptographic, random number generator
+* DOLM: 2021-03-09
+
+Yarrow is a cryptographic random number generator which also takes care about managing the amount of entropy available. It is the predecessor of Fortuna, which fixes several flaws in Yarrow's design.
+
+Yarrow, like Fortuna, is based on the combination of a block cipher and a message digest algorithm.
+
+The default-choice of parameters is Yarrow-160 which uses 3DES-EDE and SHA-1.

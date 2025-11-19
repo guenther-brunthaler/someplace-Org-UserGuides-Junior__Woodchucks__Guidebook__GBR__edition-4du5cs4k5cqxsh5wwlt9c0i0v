@@ -1,0 +1,20 @@
+Adblock Plus:
+Adblock Plus Element Hiding Helper:
+Autofill: Has only a single list and no "profiles". This actually makes it easier to use, except for 2 problems: The rule-creation wizard only sees field names, not field labels. And it immediately starts to fill out a form. This is dangeraous because Scripts could send the values automatically "home" before the user has a chance to submit let alone review the form.
+Autofill Forms: Better Support for field names. It is possible to postpone automatic filling-in until the user gives the command.
+BetterCache:
+BetterPrivacy:
+Binnen-I be gone:
+ChatZilla:
+Customizable Shortcuts:
+DOM Inspector:
+FlashGot:
+Image Zoom:
+InFormEnter:
+JavaScript Debugger:
+Linkification:
+NoScript:
+Nuke Anything Enhanced:
+PrefBar:
+Searchbar Autosizer:
+Secure Login:

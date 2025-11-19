@@ -1,0 +1,15 @@
+Data Format Conversion Procedures
+=================================
+Günther Brunthaler
+
+From LaTeX
+----------
+to EPUB
+~~~~~~~
+Instructions from http://therandymon.com/content/view/240/98/:
+
+. Convert LaTeX to XHTML (use: htlatex, found in the tex4ht package)
+. Clean up the XHTML (use: htmltidy)
+. Convert XHTML to EPUB (use: Calibre)
+. Tweak the EPUB's XHTML docs (use: any text editor) 
+

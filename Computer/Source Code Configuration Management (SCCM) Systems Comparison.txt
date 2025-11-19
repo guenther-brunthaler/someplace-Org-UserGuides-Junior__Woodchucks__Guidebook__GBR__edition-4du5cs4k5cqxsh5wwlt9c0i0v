@@ -1,0 +1,462 @@
+Version Control Systems - Features And Shortcomings
+
+ABBREVIATIONS:
+* arch: GNU Arch
+* arx: ArX - a fork of GNU Arch
+* baz: Bazaar (old "tla" clone)
+* bzr: Bazaar-NG
+* cvs: CVS Concurrent Versions System
+* darcs: Darcs Revision Control System
+* fossil: Fossil Version Control System
+* git: GIT - The Stupid Content Tracker
+* hg: Mercurial
+* monotone: Monotone
+* rcs: RCS Revision Control System
+* svk: SVK
+* svn: Subversion
+* tla: GNU Arch
+* vssafe: Microsoft Visual SourceSafe
+* vv: Veracity
+
+Project Origins:
+* bzr: Bazaar war formerly known as Bazaar-NG and "baz" before that, where "baz" was branched from GNU Arch. baz was a drop-in replacement for tla, and also shared its disadvantages such as its strange directory layout for implementing the repositories. bzr has little in common with baz and has become a very nice SCCM until active development effectively stopped around 2012.
+* Git: Git was written as a replacement for the commercial Bitkeeper product. The primary goal was an SCCM tool for maintaining the Linux kernel source code. Besides Bitkeeper, ideas from the Monotone SCCM tool have also been integrated into Git. The author of Git states Mercurial as a comparable system, although the implementation details and data structures differ vastly. The intended key features of Git are speed, being distributed, and automatic integrity verification of the repository data structures during most operations.
+* Fossil was written by SQLite's primary developer.
+* Veracity is a commercial open source project, developed by a company with minimal community involvement. Its mission is to bring distibuted version control to corporate users.
+
+URLs:
+* arch:
+* bones: http://bkhome.org/bones/index.html
+* bzr:
+* bzr: http://bazaar.canonical.com/
+* cvs:
+* darcs: http://darcs.net/
+* dim: http://www.oligem.com/dim/dim_man.html
+* git:
+* hg:
+* monotone:
+* rcs:
+* svk:
+* vssafe:
+* vv: http://veracity-scm.com/
+
+Repository Tracking Concept:
+* Based on relative path.
+Used by: cvs, rcs, monotone, hg, fossil.
+Such SCMs track file-level objects based on their file system path relative to the root directory of a project. All objects with the same path name will be regarded to refer to the same logical object. This usually leads to problems when an object is moved or renamed within the project's directory tree. Most often, such an action is interpreted as a deletion and re-creation. History is either lost or must be copied in the case of such an event.
+* Based on content.
+Used by: git.
+Such SCMs track object contents only. Each revision is considered a snapshot of objects which map to a specific hash value. The current path names of those objects are recorded as well when a new version is committed (in a metafile usually referred to as "manifest"), but there is no connection between those path names and the same (or changed) path names in previous or later revisions.
+PRO: Renaming or moving or duplicating a file system object within the working directory will not create a new repository object but only change entries in the manifest. That is because such operations do not change the file contents hash value, and it is this value only which identifies an object. This typically saves space in the event of duplicate files - just imagine GPL.txt or other boilerplate files.
+CONTRA: Tracking contents only makes efficient delta compression difficult, because it is hard or even impossible to determine which object of the new revision is a modified version of which object of the last revision. Typically, objects are sorted by size, date, current path name or other criteria when delta-compression is attempted. But there is never a guarantee that this sorting operation will put things in the right order.
+* Based on object id.
+Used by: svn, svk, bzr, vv.
+This model tracks file system objects, but identifies those object by some internally assigned id rather than by path name. Usually unique integers or UUIDs are used as object IDs.
+PRO: Has nearly all the advantages of the pathname tracking approach, but also allows moving and renaming an object without losing its history. It also allows different objects with the same path name to exist in different versions, both with independent histories, or re-creating an object deleted several versions ago, continuing its history.
+CONTRA: It is hard to guess the meaning of the repository metafiles in case something gets corrupted and manual repair is to be attempted, because the Repository must index its meta-objects either by object-id or revision-number in order to be effective, but not by path name.
+
+Tracking of directories.
+Several SCMs only track files and their paths, but have no idea of tracking directories which have no files in them. Those SCMs consider an empty directory to be equivalent to a non-existing directory.
+SCMS which can also track empty directories: svn, svk, cvs, rcs.
+SCMS which cannot track empty directories: hg, git, fossil.
+
+Static Publishing.
+Some SCMs can export their changesets in a self-contained archive format which can be published on a read-only web-page, ftp-account or similar. In those cases, the clients fetching the new changesets do not require more than read (and usually seek) access to the published archive. It is especially not necessary to set up a dedicated (or inetd-based) repository server daemon or SSH handler for serving "pull" requests.
+Although publishing a repository as a bunch of static files usually creates more traffic than actually necessary, it also has its advantages.
+There is not only no need to set up some sort of server process. What is more important is that no weaknesses in the SCCM server process implementation or in the protocol itself can be exploited that way.
+Static publishing also allows better caching by web-servers and web-proxies.
+And as it is not necessary to install any special server software for static publishing, no special administrative rights are required for setting up a public repository. This allows most free webspace-hosters to be used for publishing a repository.
+* tla and arx both support this type of publishing.
+* hg normally needs to launch a server-side hg handler for processing http:// and ssh:// protocols, but there is also a http-static:// protocol available which allows dumping a copy of the repository as static files to a web server. However, http-static is inferior in terms of transmission efficiency.
+* fossil requires a Fossil "smart server" process on the server side. It is possible to launch it from a CGI script though, so it does not need to be a permanently running process. In other words, Fossil does not allow static publishing. It *is* however possible to download a complete repository as a static SQLite3 database file containing the repository, as long as it is not currently being updated by a running Fossil instance.
+
+Support of non-ASCII characters in path names of tracked objects.
+Some SCMs consider a file or directory name as a series of bytes only, while other associate (implicitly or explicitly) a character encoding scheme such as UNICODE with such names.
+Regarding path names as byte sequences only simplifies many things when an SCCM is always used within the same environment (same locale settings), but will give undesired results when the same repository is accessed from different platforms and locales.
+Most SCMs which consider the locale of filenames choose to store them as UTF-8 encoded strings.
+* bzr stores all path name components as UTF-8 encoded data and therefore has no problems at all with non-ASCII characters in path names.
+* Git interprets all commit messages as well as any pathname specifications as bytes. No conversion is attempted between clients on different platforms. It is therefore impossible to use UTF-8 encoded Umlauts on the Linux side and check out the same repository on a Windows machine where typically a different character set encoding will be used for filenames.
+
+Support of non-ASCII characters in commit messages.
+See the section about support of non-ASCII characters in path names of tracked objects. This is basically the same, but refers to the contents of commit messages and whether they support non-ASCII characters across platform and locale boundaries.
+* Git has no support for converting commit messages to different character sets when displaying them on machines using different locale settings.
+* Bazaar records all commit messages in UTF-8 and is able to convert them on-the-fly upon output, matching the locale of the local machine.
+
+Support of non-ASCII characters in branch names or other symbolic identifiers.
+See the section about support of non-ASCII characters in path names of tracked objects. This is basically the same, but refers to the branch or tag names used to identify specific versions, releases or other user-provided symbolic identifiers within the repository structure.
+
+ZZZ_UNHANDLED__ZZZ
+
+darcs:
+CONTRA
+* Poor performance with large repositories. Some of the algorithms used for various operations such as merging seem to expose exponential resource demands. For instance, a repository containing 2000 patches needed more than 4 GB of RAM in order to retrieve even a single historic version of the working tree.
+* Darcs does not provide a historic timeline of revisions like other SCMs do; instead it just records patches to existing revision. Even though the patches can be listed in the same chronological order in which they have been created, patches can be removed or added to the working tree at any time (unless restricted by specific patch-interdependencies). This is powerful but also makes it unclear which of the patches have been actually applied to the working tree at a certain time. While Darcs does allow to record the set of applied patches at a certain time by assigning tags manually, it does not do so automatically, and therefore there is no automatic recording of branch history as it is standard in all the other SCMs.
+* As of 2009, Darcs still seems to be very buggy and even its supporters wish its most
+known annoying bugs would be fixed sometime soon. For all I know, they are still waiting.
+* As a consequence of the well-known remaining bugs in Darcs, it is still considered to be an experimental SCCM and not recommend for production use.
+* Darcs is written in Haskell and needs the ghc compiler to be compiled, which is a 300+ Megabyte install. However, this is an issue only it you want to build Darcs from source code, of course. The darcs executable itself is about 6 MB in size when compiled to native code by the ghc compiler.
+* Needs external tar, diff
+* No version number keyword support
+* Stores text diff deltas only
+* Binary files are stored asciihex-encoded
+* Weak conflict resolution tools, manual intervention required sometimes
+* Weak diagnostic warnings when commands may be run in an incorrect order; may lead to history corruption or unhandled conflicts
+* Too heavy use of environment variables for specifying external helper commands
+* Locks sometimes become stale for no apparent reason (Win32)
+* Has no provisions for platform-neutral newline-sequence encodings
+* Rather poor 8-Bit support
+* Very inchoate date/time and time zone support only
+PRO
+* Pollutes only root working directory with a single control directory
+* Tracks meta-information such as file/directory renaming, creation or deletion
+* Distributed by nature - conceptionally centered around patches for files instead of versioned files themselves. That way, the patches represent the version history. The same or different patches can be integrated into the various repository replicas.
+* Eliminates the necessity to handle branches differently - a branch is nothing more than a replica (temporarily) "out of sync".
+* Minimalistic design, not too complicated to comprehend
+* Rather simple and straightforward storage format (if manual repair should become necessary)
+* Supports a highly distributed development style of highly independent subteams
+* Enables a developer to use version control locally while not currently connected to the team repository, and later merge back the local changes to the team repository
+* Special types of patch are available which have no equivalent in any of the other SCMs. For instance, a keyword-replacement patch allows to replace a given identifier in a set of source files by a new keyword, independent of the number of changes or their exact location. On the downside, such patches must be created manually, they will not be generated automatically when Darcs tries to determine the changes against the working tree in order to record a new patch.
+
+Subversion:
+PRO
+* Written by the CVS developers who have years of experience in the area.
+* Is in every way better than CVS except for installation size and ease of repository setup.
+* Extremely well documented.
+* Arbitrary metadata can be attached to each file, symlink or directory using key/value pairs. Keys starting with "svn:" are reserved for use by Subversion itself, such as for specifying ignore lists, keyword expansion modes or content format descriptions. Those can be defined per object and will be tracked and version-controlled like the actual file data.
+* Supports line-ending conversions for text files.
+* Uses binary deltas (xdelta or vdelta) which are much more effective on binary files as well es on text file
+* Good keyword-expansion support; can be controlled on a per-file basis; differences based solely on keyword expansions are automatically avoided
+* Full meta-information versioning support per file (attributes such as binary, newline-encoding, keyword expansion
+* Files can be tracked across renames and moves. Those operations will not split the history of the renamed or moved objects.
+* File duplications do not actually duplicate but rather inherit file history (via backlinks). This saves space for the metadata involved.
+* Copying or moving whole directory trees is a cheap operation that only involves the metadata, not the actual file contents.
+* If using the "flat" repository format, existing metadata files are never touched; only new ones are added. This is very friendly to incremental backups of the repository and does not even require "rsync"-like intelligence from the backup tool.
+CONTRA
+* External modules are not very useful due to the fact that they encode absolute paths directly into the reference entry, rather than providing a symbolic indirection layer.
+* Does not remember merges between branches. The user must manually keep track of which branches have already been merged and which have not.
+* Does not directly support character set normalization for text files.
+* Is not distributed.
+* Pollutes each version-controlled working directory with an associated control directory
+* Need to set up a repository server for practically working with it; cannot just directly access a repository in the local file system without running into deep troubles soon
+* Uses a database backend (or simulates one); rather complicated to set up
+* Still no "obliterate"-command which allows easy removal of a subtree of a repository
+* Restoring archive backup database dumps takes bloody ages if many files and revisions are recorded. However, this is generally necessary when incompatible internal database layout changes occur in major revisions of the tool. This is because each single set of changes to a separate object (file, directory) causes another database transaction
+* No "stop expanding further keywords after this point in the current file"-keyword
+* Version numbers are repository-global plain integers only with no apparent meaning for individual files
+* No automatical structured version numbering scheme per file or release
+* As branches and tags are actually clones of the same project (at least at some point in history), different directory names must be chosen for each of them - which means that an additional level of subdirectories is required to effectively group branches, tags and even the development main line (usually called "trunk"). Of course, it is possible to check out a "trunk"-directory under a different name, but this would inhibit automatic recursive checkouts - and so it is usually not done, and "trunk"-subdirectories are everywhere
+* "Log"-keyword expansion is not synchronized with archive meta-information if changes occur in the repository
+* Each revision, no matter how much change it introduces, is written by adding a single new file to the repository metadata (assuming the "flat" repository file format). While this is very efficient for large changes, it is quite inefficient for very small changes, especially for file systems like ext3 where small files waste much space in relation to their actual contents.
+* The large number of small files in the repository metadata can even slightly degrade performance on filesystems like ReiserFS where small files are stored efficiently, but directory names are hashed before they are stored. This is because a large number of objects also increases the chance for hash-collisions, which incurs additional overhead when accessing the files. The performance penalty should not be dramatical in practice, however, as Subversion does not ever have to search its metadata directoy for looking up existing file names; it always knows the exact file names to be used in advance.
+* Frightening cases of repository data corruption have been reported when using the BerkleyDB database-backend. As long as the database backend can work undisturbed, everything is file. But beware if there are exceptional conditions such as server crashes or unintended reboots - you might be screwed if you are unlucky. I have used the flat (filed based) backend which has proven to be rather immune to such corruption for a long time and can only recommend it. There are some usage scenarios when the db backend might be faster, but they won't apply frequently, and the hassle with the db setup is just not worth it. If you still want to use the db backend, just read http://www.cs.bris.ac.uk/~henkm/svn.html before you make your decision.
+
+CVS Concurrent Versions System:
+PRO
+* A de facto standard which is nearly everywhere available
+* Stable and well understood
+* Pre-existing RCS version control archives can easily be re-interpreted as part of a CVS repository.
+CONTRA
+* Pollutes each version-controlled working directory with an associated control directory
+* Problematic import of directories containing a mix of binary and text files
+* Differences only consisting of differently expanded keyword strings can create bogus conflicts
+* Keyword expansions are not stripped on check-in, i. e. they are handled as part of the actual contents of the working files. This often creates unnecessary artificial conflicts when merging if two branches of a file are identical except for the keyword expansions.
+* Does not track file or directory name changes within the version history, only the contents of files. Rename- or move-operations typically break version history tracking for the involved objects.
+
+RCS Revision Control System:
+PRO
+* Does not need to pollute the working directory with a dedicated control directory (but optionally can) - only a single companion file for each version controlled file is required which has the same path name as the original file with the extension ",v" added
+* There is no requirement to separate between repository creation and check-in. As every versioned file has its own associated ,v file which acts as a repository, the ,v files can be created automatically on a as-needed basis. In fact, if a file is checked in without an associated ,v file already existing, such a file is created. Otherwise, the already-existing ,v file is used to add another revision to it.
+* Although not reqired, the ,v files can also be moved into an RCS subdirectory to keep the source directory uncluttered. There is no need to tell this RCS; it looks for the subdirectory automatically and uses it if found.
+* Defines a basic storage format incorporated internally by many of the other version control systems, and may even be used to modify such foreign archives in many cases
+* Very good if only individual files should be version controlled - no repository setup actually necessary
+* Uses reverse deltas like the one created by plain "diff" for storing revision. This means that the lastest version is stored completely, while its predecessor can be reconstructed by applying a delta to it. Files tend to grow, and therefore most deltas can just be "delete" instructions which delete the new lines. This is efficient.
+* The RCS executables are rather small and have very little library dependencies. In fact, it only depends on the standard C library on most implementations.
+* RCS is written in C and does not require the installation of a scripting language for it to run.
+* This also means that compiling it just needs the source files and a working C compiler. It can therefore be compiled easily from source code on most platforms without requiring a large build system.
+* Transparent data format. Unless binary data files are contained in a ,v file, those files are plain text files and can be visually inspected with any text editor. The data format is also relatively self-explaining and simple. The format is line-oriented and does not use any absolute file offset references, allowing it to be modified with little fear of breaking anything.
+* RCS is the best version control system for starting the versioning of single files. One of the key advantages is that one does not decide which files to put in which repository, because all files are put in their private repositories. If one should decide to put files into a common repository, this can be done trivially by moving the ,v files into a separate directory tree and re-interpreting them as a CVS repository. Also, there is usually an easy migration path from CVS to any other version control system.
+* Symbolic tags are supported. Only a single tag can be assigned to a particular revision, though. Therefore tags are usually only used to bind revisions to specific release names.
+* Branches are supported, although merging only works by implementing a policy for mentioning merges in the check-in comments and finding those merge comments reliably later.
+* The amount of memory to be used by RCS operations can be limited by setting an environment variable. This might be useful on memory-restrained systems.
+* Common command line options to be used on each operation (such as overriding the author's name) can be taken from an environment variable. The variable has to be set up manually, though.
+* The ,v files can have completely different names than the version-controlled files. However, this requires specifying both filenames with most RCS commands, which is unpleasant.
+* ,v files support a single global description text in addition to the per-revision comments. Unfortunately, this text itself is not versioned and therefore needs to apply to all the revisions.
+CONTRA
+* Cannot actually be used for anything else. Very poor on features.
+* Does not use compression of any kind. Even the deltas are stored as plaintext diffs. On the upside, can be edited easily with any text editor in order to tweak the contents of desired.
+* Branches are supported, but merge-events are not recorded automatically. Unless someone adds information about merges manually in the commit comments, it is virtually impossible to find out when two branches were merged the last time, in case they have to be merged again. On the other hand, it is not impossible to add the required information manually if some discipline is kept when creating check-in comments. Subversion has similar problems with merging, though.
+* The reverse deltas might not work efficiently in the presence of merging. Reverse deltas do not care about branches but only about the order in which check-ins are made. Mercurial's branches have exactly the same problem - at least if multiple branches are stored in the same repository.
+* There is no security. There are no checksums, digital signatures or hashes in the ,v files. History can be changed as easily as editing the ,v file in a text editor. Files can be damaged by accident or modified maliciously without RCS detecting it.
+* There is no network support of any kind. Distributing the ,v files over a network is obviously possible, but it has to be done by the user himself.
+* There is no easy way to merge the contents of two ,v files which started as identical copies but have received different check-ins since then. Therefore, only a single copy of a specific ,v file should receive new commits at the same time, and only a copy of this newest file may receive new commits. Older ,v copies should be considered read-only. However, RCS does not care about this issue nor does it do anything to help enforcing a policy.
+
+GNU Arch:
+PRO
+* The many on-disk locations where the various archive repositories are stored are maintained in a central location (for each individual user only)
+* This location also allows to define a "current default directory" for subsequent commands
+* Established and standardized naming rules for archives, categories (project suites), branches and version numbers help improve interoperability between archives even from quite different administrative sources
+* The typical major/minor version numbering scheme is supported right out of the box
+* The documentation explains rather thoroughly the more important aspects of the control directories, which may allow manual control and repair if the need should arise; this also makes the user have a better feeling to know "what's going on" behind the scenes, leading to better understanding of the system
+CONTRA
+* Steeper learning curve required for successfully mastering the various commands required to create new repositories and populate them with files
+* Pollutes each version-controlled working directory with an associated control directory, and the root working directory is polluted even with two control directories
+* No native Win32 clients (must use some UNIX emulation layer)
+* Encodes meta-information within file names used in the repositories, which leads to rather long file names and requires host file systems which support this (i. e. no FAT 8.3 support possible, and even old-style 31 character UNIX filenames will not suffice) - however, virtually all the file systems widely used these days can handle it
+
+VSS Visual SourceSafe:
+A centralized commercial version control system. This review is based on the year ~2000 version of VSS.
+PRO
+* Easy to use for the most common tasks except for merging
+* Built-in intuitive graphical user interface
+* All-In-One GUI for the users; no external dependencies
+* Client executables can be used straight out of a shared directory; no complex client setup required
+* "NoKeywords"-keyword for keyword expansions which disables keyword expansion from that point of text onward up to the end of this individual file
+* Features visual merging and diff'ing tools built into the client
+CONTRA
+* Vendor-specific, commercial non-free software
+* Platform dependent
+* Mostly undocumented binary repository data format
+* Repositories easily get corrupted and cannot always successfully be repaired completely
+* Weak, incomplete, partially buggy and un-intuitive branching and branch-remerging support
+* In branch re-merging attempts, individual files can easily lose their complete version history by accident
+* Cannot store deltas between binary files at all - each version of a binary files is stored as an individual file - leads to skyrocketing repository storage demands in many usage scenarios
+* Rather limited set of features compared to the other version control systems
+* Awkward to maintain for the repository administrator
+
+Monotone:
+PRO:
+* Uses an SQLite Database to store most of its configuration.
+* Hooks can be written in builtin LUA-scripting language.
+* A single executable.
+CONTRA:
+* No version number keyword support
+* Binary files are stored asciihex-encoded
+* One needs to write callback hooks for nearly everything. It often seems that callbacks are preferred by design choice over even the simplest possible options in some configuration file.
+* Text/binary format determined only by heuristics, which can be wrong. But info is needed for diff. Thus need to write LUA hooks to be sure. No easy means to record this information in the repository.
+* No Linefeed-normalization.
+* No idea of UTF-8/UNICODE files.
+* Very slow for large projects.
+
+Mercurial:
+PRO:
+* Much more simpler to learn than Monotone, Subversion or git.
+* Also simple to use. Even people with no experience in version control can be instructed to efficiently work with Mercurial within a short period of time.
+* Cross-platform support. Available on Windows, Linux/UNIX and virtually any other platform providing a Python language implementation. Commit messages and file names are normalized into UTF-8.
+* Compressed binary diffs as deltas.
+* Simple, understandable database file structure.
+* Does not create an additional file for each revision.
+* Revision changes are append-only to the database files, which is advantageous if rsync is used to replicate repositories.
+* In comparison to git, Mercurial's repository files need not be re-packed in order to remain space-efficient.
+* Mercurial follows the file-oriented paradigm of CVS rather than the content-oriented paradigm of git. This allows tracking file histories even in the event of renaming or cloning files.
+* Hash-oriented, like "monotone". In essence, Mercurial looks like "monotone done a better way" in many aspects.
+* Although revisions are ultimately identified by SHA1-hashes, local integer revision numbers are also assigned to the revisions and can be used interchangably.
+* Even where SHA1 hashes are being displayed, they can be shortened for display purposes to make them look less nasty.
+* Every changeset essentially introduces a new branch; there is no special "upstream repository" required: Each repository is as good as any other one.
+* There is no problem creating different replicas of the same repository even on the same machine. Basically a replica is just a copy of the repository. Hardlinks are used by the builtin "clone" command for this purpose in order to save space (where hardlinks are available).
+* Written in Python and available as well as actively maintained for Windows and *NIX.
+* Binary-File oriented. File contents are treated as opaque data by Mercurial unless told otherwise.
+* Keyword expansion and line-ending conversion are not available in the default configuration but can be implemented by hooks.
+* Graphical (TCL/TK-based) repository browser available as an add-on.
+* Support for signing by hooks, but not required as for monotone.
+* Hooks can be normal scripts or executables, and need not be written in LUA or any other specific scripting language.
+* Not all changes are stored as deltas; if the amount of delta storage between two revisions exceeds some limit, a literal (although compressed) copy of that new revision will be stored instead. Like I-frames in compressed movie files, this allows to access any revision within a guaranteed maximum time.
+* As the repository metadata for files under version control will normally only be appended to, filesystem fragmentation will be rather low compared to systems which require frequent re-organizations of the repository metadata (such as git).
+CONTRA:
+* No version number keyword support installed in the default configuration; requires to set up some hook-scripts. Same for line-ending or character set conversion.
+* No metadata support except for the "executable" bit. This makes it impossible to specify line-ending conversions or keyword expansion modes for specific files in different ways than for the default case, because in order for doing this, the filter script would need custom metadata information. The lack of metadata support also includes group/ownership and access permissions which are not tracked by Mercurial.
+* No support for symlinks yet. And it's not even like Mercurial treating symlinks like the contents of the symlinked file. No, it ignores symlinks completely; they are actually invisible to Mercurial. git, Mercurial's closest competitor, fully supports symlinks. On the other hand, symlinks are not a very portable feature among filesystems anyway. UPDATE: This is no longer true. Mercurial fully supports symlinks now.
+* No support for partial checkouts. The unit for committing is always the repository itself. This makes the idea "one project = one repository" attractive. But this approach has drawbacks when projects in the tree are related to each other or have common ancestors.
+* As Mercurial is file-based and not content-based, multiple files with the same content also require multiple times the storage of a single copy.
+* In comparison with git, Mercurial's capabilities for merging, cherry-picking and history re-writing etc. are rather weak.
+* Mercurial scales not as well as git does, because it records attributes like the execute bit for all files in the working directory within a single text file which must be rewritten each time an attribute changes.
+* Renaming or moving a file is actually just an add/delete pair. When a file is renamed or deleted and later a new file with the same name as the old one is created, the history of the new file is not clearly separated from the unrelated historic instance of the name.
+* Similarly, if a file is renamed, the history is not directly copied over from the deleted file into the new file. Although there are options for tracking file renames, they represent rather a work-around than a true solution, because the renaming operation is not actually reflected in the repository's data structures which are strictly per-file (using the name at the time of a file's addition to the repository).
+* Even though Mercurial is file-oriented like CVS or Subversion, it does not keep a per-file history that includes per-file comments. Commit messages apply to the whole changeset only, not to individual files. When file-oriented repositories such as CVS or Subversion are converted into Mercurial repositories, the per-file histories and -comments are necessarily lost and will have to be merged into single per-commit comments.
+
+Bazaar (Classic):
+PRO:
+* Distributed.
+* Very capable import tools.
+CONTRA:
+* Import is extremely slow. Converting the Mozilla project took approximately a month of full processing power for a dual core P4 2.8 GHz 4 MB RAM (probably a typo meaning "GB") machine.
+* Normal work is also rather slow.
+
+Bazaar-NG (Current Bazaar Implementation):
+PRO:
+* Distributed.
+* Can emulate different SCCM paradigms, such as local, centralized or distributed.
+* Lots of dumb and smart transports (i. e. with or without server processes).
+* Versions directories and symlinks as first-class objects. Also handles versioned renaming and moving of files or whole directory trees.
+* Best, most intelligent and and most comfortable conflict resolution I have seen so far. In a test, it was able to handle the most vicious conflict scenarios I was capable of constructing. This included mutual directory and file renames and moves between deleted and newly created directories with conflicting names.
+* Combines the data structures of Git and Mercurial to something more convincing than both. It seems to use similar data structures like Mercurial, but puts them into pack files like git does. (But the pack files are self-organizing, no manual re-packing required.) This saves disk space but more important creates a smaller number of files, which can be an issue for file systems like ext3 which are wasteful for small files.
+* It is *said* that commit messages as well as file names are stored in UTF-8. This looks great and promises easy platform interoperability. However, in practice I found bzr not even capable to correctly display the commit messages using a different LC_ALL setting for the very same account.
+CONTRA:
+* Inappropriate manual - written in "Executive Summary"-style and fails to explain the underlying concepts and data structures which are important for administrators. More an advertisement than a manual.
+* Some key concepts are not mentioned anywhere. For instance, what is the meaning of a "branch nick" and what can it be used for? Also, it requires a lot of toying around with bzr in order to find out what "branches" (as a data structure) actually are.
+* Confusing command naming. For instance, "bzr checkout --lightweight" is the counterpart to "bzr update", but "bzr checkout" is not. "bzr init-repo" creates a shared repository, but "bzr init" creates a branch and sometimes also a repository. And so it goes on. Nethertheless, the commands *can* be memorized and the built-in online-help is OK. But it can scare away newbie administrators.
+* The optional web interface is buggy and not very intuitive to use.
+* Format chaos - there are a multitude repository formats available with different featues and capabilities, and there is little explanation which one is the best for a given scenario. On the other hand, this has gotten way better in recent years, when format changes actually became very infrequent.
+* As of version 2.6, bzr is missing a "cp" command. Of course, it is possible to add a copy of a file, but that means the copy loses the history attached to it from before the copy operation. But at least it supports adding, deleting and renaming of all versioned objects.
+* There is no documented way to convert a standalone repository into a shared one, or vice versa. However, there is a simple trick to do it manually.
+* There is no way to force creation of a standalone repository within the directory tree of a shared repository. Again, it can be achieved manually.
+* Nested, independent repositories should be ignored automatically like in Mercurial, but currently they are treated as unknown directories instead, which requires unnecessary entries in the ignore list files.
+* It is a very capable SCCM, but due to the weak manual and the confusing command details it is hard to figure out how to achieve a certain goal without a lot of experimentation. However, it's still bloody simple in comparison to what is required to master SVK.
+* Shared repositories are not directly relocatable. In fact they can be relocated, but this requires manual fixing of absolute path names in several (mostly undocumented) configuration files. It's not especially hard to be done, but still cumbersome.
+* Fast enough for normal work, but damn slow in some situations. For instance, adding the Linux kernel tree and checking it in worked with acceptable speed. But when I tried to remove all the files after that and record the now-again empty tree as a new revision, it took bloody ages. Mercurial has been much faster in the same situation.
+* Rebasing sucks. Although there is a plugin for that, it is not even possible to fix documentation bugs in log-file entries while the revisions are replayed. Other changes cannot be done either. The "rewrite"-plug just rebases *everything*, which makes bzr rebasing virtually pointless for the purpose of cleaning up version history to be submitted.
+* As a consequence of the weak rebasing support, it is nearly impossible to create topic-branches and then merge a cut-down version back to the master branch. In these cases, all the uninteresting gory details from everyday topic-branch development would be merged into the master branch as well. Even worse, if a topic branch merges helper tools from other branches, those helper tools would also be merged back into the trunk. Therefore, it is currently best to never merge back a topic branch but rather create patches of its changes and then replay those patches on the master branch, checking them in as new revisions.
+* The plugin-desaster. The bzr core is missing many important features, and therefore many plugins have been written for bzr. The problem with this approach is that plugins and bzr core tend to go out of sync. This creates a constant headache of finding matching plugin versions for each bzr core update. Also, some important features are just not available without installing some plugins.
+* The code quality seems to be low. I frequently experienced Python crash dumps, typically when using some less frequently used command options. It seems to me nobody cares about testing, and only the more basic commands are thoroughly tested. On the other hand, I did never lose data as a consequence of such crashes. But it is annoying enough if one cannot do something required just because it crashes. I have never experienced such problems with Git. Git might be much more primitive than bzr in many ways, but it *works* and seems to be mostly bug-free. Or at least they are fixed quickly once discovered. The same cannot be said about bzr.
+* Revision signing is a all-or-nothing show. In Git, it suffices to sign a single revision, and all its ancestors are effectively signed as well. This is because in Git a commit ID is a hash which includes the complete history of all its ancestores. This is not the case in bzr. Here, revision IDs are just identifiers, and it is quite possible to modify the data of a revision but leave the revision ID the same. Therefore, in bzr all individual revisions need to be signed. This can lead to significant waste of space, as signatures can be large and some revisions only change a single line of text or so.
+* When merging, it is not possible to see the whole commit comment of the merged revisions. Only after the merge has been completed (has been checked in as a new revision), the history and commit comments of the merged branch can be found in the new history. Such as inappropriate merge comments ("nuclear launch codes" or insults), which must not be published for legal or security reasons. Although uncommitting is always an option, a lot of manual work for merging could then be a wasted effort.
+* More often than not, Bzr seems to transmit remote changes in inefficient packs. This means that pushing or pulling updates can take bloody ages for large repositories, even though only small changes are known to have been made. I suspect bzr is transmitting locally-created packs in those cases, which may be fine for local use, but contain more revisions than actually required by the other side when transmitting. This is evident when converting the bzr branch into a git repository and trying the transfer the same revisions there. Git transmitts considerably less data.
+
+SVK:
+PRO:
+* It's based on Subversion and therefore inherits nearly all of SVN's features.
+* Does not clutter your working directories with control files or control directories. Working directory metadata is stored completely separated from the location of the actual working directories. SVK therefore will not pollute your working directories with *any* files or subdirectories. This can be very pleasant at times, especially when version-controlling directories without write-access, or directories permanently monitored by daemons which do not allow unspecified additional objects within those directories.
+* Adds the capability to SVN's features to remember which branches have already been merged.
+* Allows local mirroring of remote repositories. This will cache reads locally, but writes will be written through to the remote repository.
+* Allows local branches of mirrored remote repositories. This allows for full disconnected operation, because writes and updates will only go to the local branch in the first place. Later, the pull and push commands can be used to resynchronize the local branch and the mirrored repository.
+* Seems to be able to accomplish nearly everything I have dreamt of in a version control system.
+* Cleverly designed log message entry: When the editor pops up, it is possible to remove entries the log entry should *not* refer to. This will then commit only the remaining entries, and the still uncommitted entries can be subject to being committed again, this time using a different log message. This effectively allows to use different commit messages for different groups of files without having to specify the files explicitly on the command line.
+CONTRA:
+* Although exceptionally powerful, it is very hard to figure out how to get certain tasks done the right way. Much trial and error.
+* Extremely bad documentation. Most of the existing documentation is actually a slightly modified copy of the Subversion documentation. Important key concepts are not even mentioned and have to be "found out" by the unfortunate users themselves - the integrated command line help texts are your best friend.
+* Very thin user base. There seem not to be many people around who use SVK. I can understand why: No-one (except perhaps the author) seems to really know how to use SVK to its full extent.
+* The one feature of SVN *not* supported by SVK are external modules. Bad luck if you have to use them.
+* Does not allow different checkouts to be nested. For instance, it is impossible to check out an otherwise independent helper library as a subdirectory of an application project that uses it.
+* Written in Perl using loads of modules and plugins. It's a nightmare to install it correctly, especially on Windows: If you are using Perl for other tasks also and can't thus allow the SVK installer to install a pre-configured Perl installation.
+
+GIT:
+PRO:
+* Lightning fast. By default, git does not store file deltas but whole files. Although those whole file copies are stored in compressed form, the git repository representation typically requires much more space than the cleverly delta-compressing competitors. According to the typical space-time-tradeoff, git is much faster than the other VCCs on most if not all operations.
+* git associates file contents with its repository files, not directly file names. This means that all files which share the same hash will also share the same repository entry. This is great for boilerplate text files sich as the GPL, because only a single copy will actually be stored.
+* Totally distributed.
+* Low-level commands ("plumbing") all written in C for speed.
+* Cherry-picking allows isolating and importing specific changes from within a changeset. Re-basing branches is a similar concept which allows to apply the changes recorded in a specified branch onto a new branch.
+* Scales well even for very large amounts of source code and a large number of changes.
+* Because it tracks neither file inheritance dependencies nor per-file histories, when merging two revisions it does not really matter where the individual files came from and how the are related historically. This means no matter how many merges have already be done and in which order, revisions never get "more complicated" by this process and always stay a basically independent set of files. The order of merges is recorded in the history, but this information can be ignored where not needed.
+* All objects can be packed into a few files with delta-compression and zlib compression applied. After packing, there is no relation between the number of files or directories under version control, or the number of revisions, and the number of files in the repository. This makes git very appropriate for file systems like ext2/3/4, where it is inefficient to have a large number of small files.
+* Supports shallow repository clones. This allows to clone the revision history of the original repository only up to a certain depth, which can help to save space at the local site when cloning large remote repositories.
+* In comparison to Mercurial, has better support for hosting mostly independent subprojects in different branches within the same repository. When specific branches are pushed/pulled between local and remote repositories, only the necessary objects connected to that branch need to be transmitted rather than synchronizing *all* the changes from the source repository.
+* Supports and tracks symlinks.
+* Supports and tracks simple file permissions (but neither ACLs nor extended attributes).
+* Supports multiple ignore-files ('.gitignore') in different directories of the same working directory tree. Most other SCMs only support a single ignore-file per working tree.
+* Git's staging area (the "index") allows to easily add or remove files to be committed, and also records their content at the time those files are added (or re-added) to the staging area. As a side effect, this effectively creates a backup of a file at the moment when it is added/re-added, even before a commit operation is performed.
+* Git allows checking in selected areas of change ("diff hunks") from within a file when committing a new revision, leaving the unselected changes within that file alone. This allows to first edit a file and create multiply change groups, and later creating separate commits for each change group.
+* Git ignore files can contain negated patterns which override previously encountered exclusion patterns.
+* Git's reflogs keep a local history for each repository location, recording all commits and checkouts performed during the last 30 days by default. This can help to re-idenfify and undelete abandoned branch-heads in a repository (unless the garbage collector has been run and actually deleted the abandoned objects).
+CONTRA:
+* No support for normalizing filename and commit message encodings into a common platform-neutral encoding. File names and commit messages are treated as byte strings. An exception is only that the actual encoding for commit messages can be specified in order to avoid warning messages. Newer versions of Git also allow specification of a desired output-encoding for commit messages, which can be set in the user configuration file and will trigger local on-the-fly conversion when displaying commit messages. However, no such support is present for filename encodings.
+* No (or weak) Win32-Support. Even though there is a CygWin version, it cannot help fixing the character set conversion problem when Umlauts or other non-ASCII-characters are used in filenames.
+* Can effectively only be used to share information between platforms which all use the same filename encodings, unless it is possible to restrict all the file names to ASCII (which is represented the same way on most platforms, with the notable exception of EBCDIC-systems).
+* The "porcelain" (= high level functionality) is implemented mostly using UNIX shell scripts, thus even further coupling git with UNIX.
+* Very large number of commands for special situations, needs some time to become acquainted with.
+* No dedicated support for text files, all files are considered binary. No support for keyword expansions either.
+* Commit messages cannot be edited later, because it would destroy all later history. Editing commit messages is possible, however, where it is acceptable to rewrite history.
+* Packing and re-packing must be done on a regular basis, because without that, each and every changed file, tag or commit will also create a new file in the repository. zlib compression will still be applied to all those new repository files, but delta compression won't.
+* Committing small changes in large files is very space-inefficient. If you change a single byte in a multi-megabyte file and commit that change, the whole changed file will be stored (zlib compressed) as a new file in the repository - and not only the differences against the previous version. Only repacking the repository will deltify changes.
+* Requires large amounts of storage under heavy operation if repacking-operations are not performed quite frequently for performance. But repacking of large repositories severely stresses disk I/O, which is why administrators might avoid running it during normal office hours when the servers are under constant heavy load.
+* Repacking might miss deltas. Repacking works by sorting the object by size, history, relative path names or similar means and then detecting deltas within a window. But there is no guarantee that this sorting will actually group related versioned files together in ascending order of changes. Especially significant file size changes can thwart the sorting effort of repacking, because files are primarily sorted by size and not by "similarity of contents".
+* As git only tracks contents and not file names, if a file is renamed and has changed its contents at the same time, no-one can actually tell which old file was the ancestor of the new file. Name changes should therefore be committed separately, because then the ancestor can be identified by the matching contents.
+* Generally speaking, git stores only states, not changesets. Think of a linked list of snapshots of file trees. It may be possible to derive changesets from the differences of two versions of a file tree, or it may be not. This means, git cannot directly reproduce the history for specific objects, just the history of whole object collections.
+* Because of Git's non-tracking of file identities, "annotate" is a very expensive operation in Git.
+* When committing a new version of the working files, not only new or removed files must be declared to git before, but also any changed files which have already been under version control before. There are, however, some options to ease this. But basically, for git a change is no different than a new file, as it does not track file histories. Versions are just snapshots of a set of file contents in time, and the only history tracked is that of the snapshots themselves.
+* When file-oriented repositories such as CVS or Subversion are converted into git repositories, the per-file histories and -comments are necessarily lost and will have to be merged into single per-commit comments, which are the only kind of comments supported. (Mercurial has the same problem though.)
+* Re-packing repositories renders rsync backups ineffective, because pack-files are re-written as a whole, and may lead to more changes within the pack-file than rsync might be able to detect when comparing with the remote version of the pack-file in order to calculate its transfer deltas. But without repacking repositories in regular intervals, the different file versions cannot be delta-encoded efficiently, wasting space. Mercurial excels here by only ever appending to existing repository files.
+* Verbose commmand names. For instance, it is necessary to write out "commit", where most other systems accept short aliases like "ci" for the same operation. This makes git uncomfortable to use without proper support for command completion. But this is a shell-dependent feature and will also require additional setup to be done in order to enable such completion.
+* Scales not so well when only relatively few but large files are under version control. Actually, this is not an issue with normal operation, but only with repacking. This can take bloody ages using standard options for "window" and "depth". But if those options are changed to speed up packing of large files, the delta efficiency for smaller files degrades dramatically.
+* The frequent re-packing operations will also tend to increase filesystem fragmentation.
+* Although git itself is powerful enough to host multiple projects within a single repository, tag and branch names are always global to the whole repository. While it is possible to sub-structure those names at one's will, git does not enforce this, thus opening the chance for tag and branch name collisions unless strict naming conventions are in effect among local and remote collaborators. Therefore, the "one repository for each project" paradigm will also be used for git most of the time, except perhaps for strongly related projects.
+
+Bones:
+Created by Barry Kauler for versioning snapshots of project directory trees for his "Puppy" Linux distribution. Bones does not track individual files, but rather creates "tar" archives from the directory tree, and then creates a delta from the penultimate version of the "tar" snapshot to the latest version. The created delta files is assigned an automatically assigned name, based on the project name and date/time. Which means there are as many files as there are revisions. Once created, a delta file is never modified again.
+PRO:
+* Easy repository design: It's just a directory containing the delta files. Plus perhaps the initial "tar" file for the first version, I presume. (Unless they managed to recreate the first "tar" file by appying a delta to an virtual empty "tar" file.)
+* In order to synchronize two repositories, only the missing files have to be transferred.
+* Synchronzation can easily be done "manually" (i. e. without special support from Bones) using rsync.
+CONTRA:
+* There are as many files as there are revisions in the repository. This wastes space because of file system cluster overhead (for most filesystems at least) if there are many small revisions. Also, some file system might limit the allowed number of files in a directory, which will then also limit the number of possible revisions. Finally, even if a file system allows a large number of directory entries, it might have a considerable negative impact on performance.
+* Checking out a specific revision will be very expensive in such a scenario, as all the deltas up to the desired revision have to be applied, starting with the initial version.
+* It will be hard to handle branches and merging, because revisions are just identified by their timestamps. Different people could create new revisions at the very same time, overwriting each others changes.
+* There is no transactional integrity. No matter how thoroughly one checks whether a delta already exists on the server in order to avoid overwriting an existing one, there is always a small chance that someone else creates such a file just after the first user checks for the existence of this file, and then overwrites the file just created by the second user. This can be solved, however, by only allowing a single user write-access to each repository, and distributing files to other team members be "pull-requests" only.
+
+Dim:
+PRO:
+* Dim is shipped as a simple shell script. (Actually, two shell scripts, but the second one is optional and only used for providing "word" diffs.) Therefore, nothing needs to be compiled - just download the shell script and run it.
+* It is quite stable and secure, using cryptographic checksums and RSA-signed revisions.
+CONTRA:
+* Dim requires access to a remote service for assigning unique version numbers. While this is not a problem for isolated development where such a service can always be set up on the local machine, it inhibits true distributed development where commits can also be created while being offline.
+* The documentation is outdated.
+* dim seems to work unreliably when older versions of bash are used, even though it boasts to work just fine even with simple shells such as dash.
+* It seems to be work in progress that never really took off.
+
+Codeville:
+A distributed version control system written in Python.
+PRO:
+* Uses some new merging algorithms.
+CONTRA:
+* Project has been abandoned. Dead.
+
+Fossil:
+* Fossil currently supports the following transports: Local file system, SSH, http and https. All transports require a fossil executable installed on the server which serves the connection as a "smart server".
+PRO:
+* The whole application consists of a single executable. No additional files need to be installed aside from widely used system libraries which can be assumed to be present already. This makes Fossil extremely simple to install or distribute. Of course it can also be built from source which is not too difficult either as it does not require any exotic development tools.
+* Does not only provide version control, but also Wiki and Bug tracker.
+* A whole repository is stored in a single physical file, making it easy to backup or copy manually.
+* The single file containing each repository is actually SQLite3 database file. This allows to access the contents manually using normal SQL commands if desired. It provides the same ACID features (atomicity, consistency, isolation and durability) to Fossil repositories as can be expected by a typical SQL database system.
+* The repository database does not need to be stored in the same directory as the checkout. It can be stored anywhere in the file system. A single metadata information file is written by Fossil into the top-level directory of the checkout, which contains the location of the associated repository. In other words, namespace pollution of the checkout directory tree rather minimal compared to the vast majority of VCSes.
+* Fossil is normally used as a command line tool for most operations, but provides a built-in web server for browsing the project history and other repository contents by a web browser. This web interface is also used for bug tracker operations and accessing the Wiki.
+* A built-in access control system allows to create users and assign different permissions to them.
+* Styles and colors can be adjusted by providing custom HTML snippets or editing CSS Style sheets via the Web interface.
+* Fossil provides a simplistic built-in scripting language similar to TCL which can be used to add some "intelligence" to the Web Interface customizations.
+* The Wiki markup is simple and there are  only a few rules to learn.
+* The fossil core is written in C and includes a copy of the SQLite3 database source code. Much of the high-level functionality is implemented by SQL commands or as scripts using the built-in scripting language which is a simplified version of Tcl. This combination makes Fossil low-level operations very fast, but does not require everything to be written entirely in C either. This also makes the code very compact - the single executable is only around 1.5 MiB in size (as of 2014) for the AMD64 version.
+* Wiki pages are also versioned automatically when edited via the Web interface.
+* Wiki pages can either be created and maintained interactively using the Web interface, or a subdirectory of the project files can be entitled to serve as the root of a "read-only" hierarchy of Wiki-pages. Wiki pages from both sources can be used combined as part of the same project. Versioning manually-maintained Wiki pages along with the versioned source files is most useful in case of version-dependent documentation. The interactive Wiki can be used for general and accompanying information which is not version-specific.
+* Although setting up a permanent remote repository seems a bit more complicated in Fossil because it requires setting up a web server and CGI scripts, running an ad-hoc server for local sharing is rather trivial and can be done by a single command.
+* Check-in comments can be edited and updated later in the Web interfaces. Updated comments are visually recognizable and the changes themselves are also recorded as new commits which can be reviewed. The updated comments also do not invalidate the versions or create a new history but are rather new overlays which replace the original comments in the primary project history timeline view.
+* Fossil registers the location of active repositories and associated checkout-trees in a per-user configuration file. Commands are available for performing operations such as push/pull on all registered checkout-trees rather than just the current checkout tree belonging to the current directory.
+* The fossil executable contains its own documentation. It can be viewed either on the command line or as built-in Wiki pages using the integrated web server.
+CONTRA:
+* The compactness of the Fossil code comes at a price. A quick code review suggests a rather "opportunistic" programming style where not all possible error conditions are checked for every C function called. This raises the concern that the system may be vulnerable to maliciously crafted Web requests, aiming at buffer overflows and so on. However, there is also no proof that the code actually contains such vulnerabilities waiting to be exploited.
+* Although Fossil actually tracks rename operations, this information is not used to its full potential. In fact, Git is much better in practice at finding out the ancestry of a particular file, even though Git does not store this information at all. In particular, Fossil tracks files by relative name only. It cannot distinguisch between different files of the same name which exist at different times in different versions. They will all be displayed as part of the ancestry of the same file, although they have nothing in common except for the file name.
+* Even though Fossil records file rename operations, it is in fact an even more "stupid content tracker" than Git. Most operations which deal with different versions (checkout, merge, update) only operate on the current set of files in the checkout tree as a single unit and cannot (with exception of renames) be broken down to the level of individual files.
+* The merge command is not particularly powerful. There is no assistance for merging files back together which have been renamed or moved in the different branches. Such files must be merged manually. Only files with matching relative path and name are merged automatically or will be decorated with conflict markers in case of conflicts. Git has its "merge strategies" to assist in such cases, but Fossil provides nothing of comparison and requires manual selection of the files to merge. Both Git and Fossil suck compared to Bazaar-NG's file-id approach, though. At least Fossil provides a utility command for performing 3-way merges, but this command works on arbitrary text files and works totally independent of Fossil's integrated version control features.
+* Although Fossil provides all basic features of a DVCS, its intended model of operation is actually a centrally organized system similar to CVS/Subversion. Its distributed features are only intended for disconnected operation. This does not mean Fossil could not be used in a fully-distibuted way. But the command support for the workflow is geared toward a rather central approach for development.
+* Being a strictly personal statement, I find Fossil's Web Interface view of the project history rather confusing. While all the information is there, it is not always easy to actually find it because of the way the information is organized visually. Mercurial shows how it should be done, and Git is somewhere in the middle between both VCSes. On the other hand, neither Git nor Mercurial provide a bug tracker or a Wiki.
+* The fact that a "smart server" configuration is the only way to host a Fossil repository on a remote site means that a simple static web server is not enough for serving Fossil repository contents. It is necessary to run a fossil executable on the server. This can also be interpreted as a security risc, because any security-relevant bugs in the fossil executable could potentially be exploited by remote attackers. Most other VCSes provide "dumb transports" in addition to "smart server" setups, and in those cases it suffices if the Web server itself is secure, yet the repository contents can still be (read-only) accessed remotely.
+* Fossil supports SSH transport, but still requires a fossil executable to be installed on the remote side which handles the connection as a smart server.
+* Although Fossil's documentation is built in and can be viewed by the integrated web server, no hyperlinks to the help pages is shown in the default web interface representing a newly created project. One has to find the required help URL searching the command line help first. This is unnecessarily complicated.
+* The Wiki-pages which can be edited in the Web GUI overwrite older versions without warning when the changes are synchronized with a remote repository. Although all changes are versioned and can be viewed and diffed in the version history of the wiki page, some sort of merge functionality would be preferable but is missing. This problem does not exist for Wiki-pages which are versioned as part of the actual project files, but makes editing the Wiki using the Web interface dangerous. The problem can be avoided by only allowing to append to existing Wiki pages. But then spelling errors or enhancements of the existing contents cannot be fixed. It seems Wiki page editing in the Web GUI is rather a teaser how cool Fossil is than an actually useful feature.
+* The user and permission system is much more powerful than needed in most projects. Even if only a Git-type workflow of read-only publishing is followed, user accounts and permissions need to be set up and be configured. In fact, the user/permission configuration is clearly an overkill for simple projects which should be quickly created.
+* Passwords for remote authentication have to be specified on the command line which is unsafe on multiuser UNIX systems.
+* Access passwords are stored in the clear (i. e. not hashed/salted) in the remote repository. This allows an attacker who hacks the remote server to obtain the passwords. Considering the bad habit of many users to use the same password for different services, this can then be used to break into those other services as well.
+* Servicing multiple repositories by a single Fossil smart server instance is not possible. There need to run as many Fossil smart server instances as remote repositories are concurrently in use. The alternative is to use CGI, but this is expensive in terms of remote server resources and requires a rather complicated setup with a Web Server, CGI integration and CGI scripts.
+* SSL support requires a Web-Server setup which handles encryption and redirects the data to a Fossil server. Fossil's built-in SSL-support seems to be restricted to authentication and perhaps push/pull (I am not sure about that), but the Fossil Web GUI uses SSL directly for login only (and even that is only optional and requires custom settings).
+
+Veracity:
+Veracity seems very similar to Fossil, but has a better object tracking principle which allows easier merges in presence of renamed or moved files. It feels like a mixture of Fossil and Mercurial.
+PRO:
+* Supports file locks in a distributed environment which are useful for serializing modification access to binary files where conflict resolution would be hard. Locks are not intended to be used for text files where conflictes can be resolved by merging.
+* Versions not only trees of files, but also database records for which it creates changesets just as for normal file trees. Those changesets are primarily those of the project metadata, such as bugs, comments etc.
+* Repository storage is completely abstracted behind an API, and different backends can be developed. A file-based default backend is shipped, but it might very well be possible to store all repository data within some SQL database.
+* JavaScript is used as a scripting language for hooks, and no external interpreter is required for this.
+* All data structured which need serialization in the repository are stored as JSON, which is a well-understood format.
+* Multiple cryptographic hash functions are available which provide more security than the usual SHA-1, which is also available. SHA-2, RIPEMD-160 and SKEIN are currently available and provide multiple digest sizes.
+* Written in C and JavaScript, with an interpreter for the latter included within the executable. Therefore, no large scripting language installations like Python are required for Veracity to run.
+* Uses HTTP for implementing push and pull operations. This allows for usage of Web proxies, for instance.
+* The web interface seems more lucid than Fossil's, although the latter one seems also much more powerful.
+* Repositories are stored separate from working trees. This allows multiple concurrent checkouts for the same repository branch. A hidden metadata directory containing control information still exists in the working tree, though.
+* It is only 1/3rd (about 10 MB) of Git's (30 MB) installation size. On the other hand, Git seems much more powerful also, although Veracity is more intelligent about tracking objects. However, it does not beat Fossil's 1,5 MB even though Fossil provides more features.
+CONTRA:
+* The web GUI heavily relies on JavaScript and HTML5 features. Only powerful web browsers are therefore capable of using it.
+* There is no GUI besides the Web GUI, and the latter one cannot create normal commits although it can create implicit commits for adding comments and editing bug descriptions or changing ticket states. It is therefore similar to Fossi's web GUI minus its Wiki features, but does not beat Git's Tk GUI which can very well substitute command line usage for most common repository operations.
+* Veracity seems not no have any support for history rewriting and considers this as evil.
+* There is no way to fix spelling errors in commit comments or comments added to artifacts using the GUI.
+* Using JSON to serialize repository data structures means that only SQL databases which have support for JSON data type will store repository data space-efficiently without a need to transform the JSON data to a more efficient format at the API level.
+* There seems to be no "dumb" transport which means Veracity needs to be installed on the server side. Bugs in the veracity server implementation might threaten the security of the server host computer.
+* There seems to be no Wiki support like in Fossil. Only bugs, milestones and associated comments seem to be tracked.
+* JavaScript is a very powerful language, but because of this bugs are likely to be present in the interpreter implementation, which might be exploited by creating maliciously crafted hook scripts. A stripped-down Tcl dialect like TH1 as used by Fossil is a far simpler scripting language, and thus less likely to expose dangerous bugs.
+* Documentation is rather scarce. Although the command line tools provides sufficient online documentation for the commands, it would be nice to have documentation which explains the concepts and how things work together. There is an online book available by Veracity's authors which explains some things, but the main focus of the book is to show things by example and comparison, and therefore it lacks in-depth explanation.

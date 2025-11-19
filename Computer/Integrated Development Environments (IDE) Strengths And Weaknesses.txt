@@ -1,0 +1,182 @@
+Installation sizes.
+Package sizes. Top-Level package only - does not include package dependencies.
+* app-editors/juffed-0.10: 113 files, 2.88 MiB
+* dev-util/anjuta-3.12.0: 1194 files, 20.59 MiB
+* dev-util/codeblocks-9999 (SVN Build 6856): 1669 files, 34193.74 KiB
+* dev-util/codelite-4.1.5770-r1: 242 files, 19.06 MiB
+* dev-util/geany-0.19.1: 189 files, 4547.89 KiB
+* dev-util/geany-plugins-0.19: 211 files, 2111.06 KiB
+* dev-util/kdevelop-4.0.2: 232 files, 7212.98 KiB
+* dev-util/qt-creator-1.3.1-r1: 145 files, 20153.50 KiB
+* fp-ide-3.0.4-3.0.4+dfsg-22/devel/debian: 18 MB (without the help files installed, just 4.5 MB).
+
+Most important installation dependencies.
+Additional packages of considerable size required as dependencies for the actual IDE package.
+* Anjuta: GTK+ 3, Guile (via "autogen"-dependency)
+* CodeLite, Code::Blocks: wxWidgets, GTK+ under Linux
+* Geany: GTK+
+* Kdevelop: Qt
+* Qt-Creator: Qt
+* JuffEd: Qt
+* fp-ide: fp-units-rtl, gdb (if debugging is required)
+
+K.O.-Criteria why *not* to use a particular IDE.
+* JuffEd is not a real IDE but rather a programmer's editor. There is not even any way to run an external command like "make". Nevertheless, it has many features normally only found in IDE source code editors, and it is the only of those editors I could found which still ran fast enough to be usable even on a Raspberry Pi Model 1.
+* Code::Blocks: CPU hog. Eats up to 100 % of one core in order to do virtually nothing. This does not affect usability or functionality in any way, but it raises the system's overall power consumption considerably. And someone has to pay for the electricity bill.
+* Anjuta does not provide code folding and has the ugly GNOME3-look (undecipherable tiny symbol buttons, reminds me visually of AmigaDOS 2.0 which has also been a step backwards in its looks). It also seems to be buggy and crashed when trying to build a test project consisting of a single C source file (as of anjuta 3.12).
+* fp-ide: It's for PASCAL...
+
+Native project file format.
+Most IDEs provide a native project file format for saving the current contents and all settings of a project.
+* JuffEd: No. It does not support any build system and so there are no project files. But it supports sessions of currently open files and can save those sessions in a file. It also remembers the last session and re-loads it when the program starts. In addition, there is a editable list of favorite files, which can then be opened directly from a pulldown menu entry.
+* Anjuta: Automake and Autoconf text files. They are pared when the project is opened and are regenerated when the project is saved.
+* Code::Blocks: ?
+* Geany: File extension ".geany". A simple text file describing project settings, such as currently opened files and build commands to be used.
+* Kdevelop: Current versions maintain CMake-based project files and store other IDE-related settings in additional text files.
+* Qt-Creator: Makefiles in the nonstandard-syntax of the qmake tool.
+* CodeLite: Proprietary format in XML- and Makefile-style files. Parsed symbol metadata is stored in SQLite-databases.
+* fp-ide: Proprietary plaintext format.
+
+Multiple build targets per project.
+The amount of information in a project file differs widely between IDEs, but typically at least a list of source files which belong to a single build target will be stored. More advanced IDEs can store this information for different build targets, and some even maintain different build configurations (such as "debug" or "release") for the targets.
+* JuffEd: No.
+* Anjuta: Yes.
+* Code::Blocks: Yes.
+* Geany: No. But it is simple to reconfigure Geany for a different Makefile target by just editing the build tool invocation command line in the project settings.
+* Kdevelop: ?
+* Qt-Creator: ?
+* CodeLite: Yes. Much like in MS Visual Studio: Workspaces contain Projects. Projects create targets such as executable files or libraries. Projects can depend on other projects. The same Projects can be part of different Workspaces.
+* fp-ide: Three fixed configurations: "Normal", "Debug" and "Release".
+
+Multiple build configurations for targets.
+* JuffEd: No.
+* Anjuta: Yes. 5 different default configurations are pre-generated for new projects.
+* Code::Blocks: Yes.
+* Geany: No. But Geany allows to specify a specific build directory for a project, so it is possible to maintain different build configurations in different Makefiles in different Build directories by changing the build directory for a project. This approach also works well for out-of-source builds which are supported by many cmake or autoconf projects. In addition, command line options which modify the build's configuration (such as "CFLAGS=-DNDEBUG") can be added to the build tool invocation command line.
+* Kdevelop: ?
+* Qt-Creator: ?
+* CodeLite: Yes. "Debug" and "Release" configurations are created by default, and an integrated configuration editor makes it easy to create new configuration.
+
+How does the build system work?
+Some IDEs handle the task of building their targets completely internal, relying only on the information present in the project description files (which are most often XML files). Other IDEs create configuration files for external build systems on the fly and invoke them. Even other IDEs are able to parse existing configuration files for external build systems, update their internal configuration from this information, and recreate or update the configuration files for the externel build syste,s when saving the modified project.
+* JuffEd: The complete lack of an integrated build system means constantly switching between a terminal window (where "make" and friends are run manually) and the editor during development. This sounds terribly, but is in fact not the worst way of doing development. Still, it is a bit harsh that JuffEd does not even provide some keybinding for launching a user-defined command such as "make".
+* Geany: Geany leaves the actual project management completely to the user. It does not even care which files belong the the project. The user just defines commands on a per-project basis to be invoked for building the project or compiling single source files, and Geany invokes those commands. Therefore, Geany usually either invokes the compiler directly, invokes "make" with standard Makefiles, or invokes more powerful external build systems sich as automake or cmake.
+* CodeLite: The build system consists of a single workspace which can be active at a specific time, and each workspace contains an arbitrary number of projects. Neither workspaces nor projects can nest, but projects can specify other projects within the same workspace as prerequisites. CodeLite's internal build system is based on normal Makefiles, although they cannot be considered to be redistributable due to the inclusion of absolute path names and macro definitions only relevant to CodeLite. Also, some features of GNU "make" are used within the generated Makefiles, and external UNIX-specific tools are invoked from within the Makefiles as well, making them non-portable as well. Project dependencies are implemented by a a single Makefile for the workspace, which invokes "make" for projects in the defined build order. Each project is represented by its own Makefile. All Makefiles are regenerated automatically based on the contents of the XML-based project description files, which are maintained by the IDE. A CodeLite GUI installation is therefore required for projects to be built. Codelite relies on GCC's feature for emitting dependency information in order to creating source file dependencies in the auto-generated Makefiles. CodeLite may therefore be well suited for RAD on Linux, but making the project's source code redistibutable to users of more common build systems such as CMake or Automake effectively means that the required external project files have to be recreated from scratch. On the other hand, the required information can also be extracted from the XML project files. But this requires considerable effort creating script files for this purpose. The build system is centered around parametrized template files which are populated with project-specific settings by the IDE. This allows to simply add new project types by creating new project templates. When a user runs CodeLite for the first time, a copy of all systemwide installed templates is copied to the user's CodeLite configuration directory. This allows the user the modify all project templates, but it remains to be seen how this works out when the systemwide templates are updated by a later CodeLite version - how existing projects can be upgraded to make use of the updated templates.
+* Anjuta: Anjuta generates GNU Autotools project files and then uses automake, configure and friends to actually build the project. This makes the build environment extremely powerful in theory, although it seems the IDE only provides the most basic Autotools features via the GUI. I assume manually tuning the generated Autotools files is possible to some extent, but then it might be easier to maintain those files by hand in the first place.
+* fp-ide: Everything except the run-time libraries (PASCAL and the debugger) units is contained within the IDE itself. It has its own internal editor, help browser, compiler, linker, debugger front end and symbol browser and does (as far as I could see) not depend on any external tools. It is a color text-mode IDE with mouse support similar to the famous MS-DOS Turbo PASCAL IDE. It runs in a terminal window as well as on a native console.
+
+Support for standard UNIX Makefiles.
+Most IDEs provide a native project file format for saving the current contents and all settings of a project. However, in order to use that, one has to install that particular IDE. If standard UNIX Makefiles are supported for building the project, most existing projects can be used without further IDE-specific configuration. This also allows to build the project without the IDE. Also, most other build systems like Autoconf, Automake or CMake can generate standard UNIX Makefiles, which can then also be used with the IDE. The drawback is that IDEs cannot automatically manage Makefiles, because those are normally hand-written. However, some IDEs can generate standard UNIX Makefiles from the current contents of their project files.
+* JuffEd: No.
+* Anjuta: Yes.
+* Code::Blocks: ?
+* Geany: Can use but not automatically export existing or manually maintained Makefiles. Actually, Geany can use any build system - "make" is just one the most prominent example. Geany allows to configure arbitrary commands for variouse IDE actions such as "Build All", which will be stored in the project file.
+* Kdevelop: ?
+* Qt-Creator: ?
+* CodeLite: Yes, using the "custom makefile" project creation template.
+* fp-ide: No.
+
+Exporting cmake project files.
+All IDEs which support standard UNIX Makefiles automatically support also cmake, but the cmake files must then be created and maintained manually. Direct support means the IDE can export its project build configuration in the form of a cmake project file. Most IDEs are not capable of importing cmake files; just exporting them. However, cmake itself can export project files for various IDEs from the contents of a given cmake control file.
+* JuffEd: No.
+* Anjuta: ?
+* Code::Blocks: No, but cmake can export Code::Blocks project files
+* Geany: No.
+* Kdevelop: Yes.
+* Qt-Creator: Yes.
+* CodeLite: No.
+* fp-ide: No.
+
+Exporting Autotools project files:
+GNU Autotools are a suite of build tools for automating Makefile generation. The most prominent members of the suite are Autoconf, Autmake and Libtool. All IDEs which support standard UNIX Makefiles automatically support also GNU Autotools, but the Autotools project configuration files must then be created and maintained manually. Direct support means the IDE can export its project build configuration in the form of various Autotools project configuration files. Most IDEs are not capable of importing Autotools configuration files; just exporting them.
+* JuffEd: No.
+* Anjuta: Yes.
+* Code::Blocks: ?
+* Geany: No.
+* Kdevelop: ?
+* Qt-Creator: ?
+* CodeLite: No.
+* fp-ide: No.
+
+Does the editor support code folding?
+* Anjuta: No. At least not in Anjuta 2.x through 3.12. Older versions did support code-folding. But I suppose GNOME3 style guidelines demand the user has to be tortured at all costs. Check again with GNOME4.
+* JuffEd: Yes.
+* Code::Blocks: Yes.
+* Geany: Yes.
+* Kdevelop: Yes.
+* Qt-Creator: Yes
+* CodeLite: Yes
+* fp-ide: No.
+
+Are Out-Of-Source builds supported?
+Most build systems allow to create intermediate and final output files of the build process in different directories than the corresponding source files. This is essential if different build configurations are to be supported, because otherwise only a single configuration can be built at the same time. Some build systems allow to create those output files only in subdirectories of the source directories, while other build systems allow those files to be created in completely arbitrary locations, allowing the source directories to remain completely "untouched" by the build process. This allows to source files for the build to be stored on a read-only network share.
+* JuffEd: No.
+* Geany: Yes, as Geany leaves the details of the build process completely to the user. The user is therefore free to use an external build system which supports out-of-source builds if he desired. In its default configuration, however, a new Geany project uses in-source builds.
+* Anjuta: Yes, because Anjuta is based on Automake, and Automake supports out-of-source builds. However, this requires manual setup, and default-created Anjuta projects normally use in-source builds.
+* Kdevelop: Possibly, because Kdevelop is based on CMake and CMake supports out-of-source builds. However, I do not know at this point whether KDevelop actually makes use of that CMake feature.
+* CodeLite: Yes. CodeLite creates subdirectories for the output files of each configuration within the project directories. Although CodeLite by default assumes that the project directories also contain the source files, it is also possible to store the source file anywhere else, and thus also completely separated from the project directories. CodeLite stores source file locations using relative paths if possible, which allows the project files and source files to reside in parallel directory subtrees. The only caveat is that the relative position of the source files and project files must be fixed, because the source files have to be referenced from within the project files. Although this does not directly "pollute" the source directories and keeps the output files in separate subdirectories, the directory entries for the configuration subdirectories themselves pollute the source directories to some degree. However, it is also possible to add source files from a completely unrelated directory to the project directory, thus it might be possible to use parent-relative paths or symlinks for referencing source files from a completely separate directory tree, but this will be cumbersome and cannot easily be managed from within the IDE. On the other hand, it is not much work to locate and delete the build subdirectories in order to "clean up" the source directories. Nevertheless, write access to the source directories will be required for building the projects in the workspace.
+* fp-ide: No. Not even out-of-the-IDEs are supported. However, usage of the IDE is optional. There is a separate (and purely optional) command-line compiler available, too.
+
+Does the editor support a visible "intended rightmost margin" indicator?
+This is typically a vertical line drawn at character column 79 or any other configurable position in order to indicate that this must be considered the "end of visible screen/printer space within the line" when printing a program listing.
+It is often desirable to limit the maximum line used in a source file, because it allows easy preformatted output on printers or Web Pages.
+* JuffEd: No.
+* Anjuta: Yes.
+* Code::Blocks: Yes.
+* Geany: Yes.
+* Kdevelop: ?
+* Qt-Creator: ?
+* CodeLite: Yes
+* fp-ide: No. However, as the whole IDE runs in a character terminal, this is hardly ever a problem.
+
+Does the editor support displaying line numbers for each screen line?
+Although typically useless when a single person edits or reviews a file, this feature can be handy if source code listing is shown to an audience and the speaker wants to refer to specific code lines.
+* JuffEd: Yes.
+* Anjuta: Yes.
+* Code::Blocks: Yes.
+* Geany: Yes.
+* Kdevelop: ?
+* Qt-Creator: ?
+* CodeLite: Yes
+* fp-ide: No. Line and column is shown in the lower left window border, though. And it is rather flashy because it is the only thing that constantly changes in that area of the screen.
+
+Does the IDE provide symbol-browsing support?
+This is most important for locating the source code locations where a referenced symbol is defined. Some IDEs only support browsing the symbols of the current source file, others support browsing of all files in the project or even of all file in all projects of the current workspace. Some IDEs can parse symbols independent from the compiler, while other rely on the compiler to create listings (but that only works for source files that are ready to be compiled). Some IDEs present the browsing information in a sorted tree view, others provide only simple pull-down menus or even search dialogs for locating a symbol. IDEs also differ in the way the browsing information is stored. Some cache it in databases, others have to parse all the source files each time a symbol search is performed.
+* JuffEd: Yes. It displays functions, classes, structs etc. in the currently active source file, but no variables or macros. The display of function parameters can be disabled. Structures and even nested classes are displayed using tree view controls. The symbol list can be sorted by source text position or name.
+* Geany: Displays a nice sorted list of symbols for the currently shown source file. Supports not only C++ but most of the other languages supported by syntax highlighting as well. Classes and structures are displayed as expandable trees. The browsing information is parsed on the fly without noticably delay and is not stored anywhere. Geany is unable to show the symbols of multiple source files at the same time.
+* CodeLite: Has a very powerful symbol browser very similar to that of MS Visual Studio. Symbol information is parsed on the fly and is cached in a local SQLite database. The symbol browser in the side pane groups symbol by basic type and then alphabetically. Classes, structs etc. are expandable as trees. Functions show the signature. Symbols can be browsed on a per-file, per-project or per-workspace basis. In addition, two pull-down list bars allows to quickly locate a symbol within the current source files like in Visual Studio. The context menu can also be used to quickly find the declaration or implementation of a symbol. Also, there is a plugin which exposes the features of the "CScope" utility to the IDE, therefore allowing to quickly find symbol references and explore "calls"/"is called by" relationships.
+* Anjuta: Yes. Unfortulately, like most GNOME3-style user interfaces, it looks irritating and confusing, and has zero user configurability to fix this. The browser generally shows everything in three columns: An icon for the symbol type, the symbol name and the symbol's "C" type. Function parameters are omitted in the display. Struct members are not displayed either; it is only possible to jump to the struct definition in the code. The ist is always sorted alphabetically by symbol name, and of course there is no way of changing this. Only the symbols of the currently active source files can be displayed. In other words, it is rather weak - even rather small source code editors like JuffEd can do this *way* better.
+* fp-ide: Yes.
+
+Version control integration?
+Version control systems can normally be used independently of any IDE, but this requires reverting to the command line or separate GUI tools. IDE VCS integration allows to perform version control operations directly from within the IDE. For instance, the files which are added to a project might automatically be added to version control, and removed files might be deleted in version control. The IDE might also support browsing the history of the project or of specific files.
+* JuffEd: No.
+* Geany: There is a VCS plugin, but it is very simplistic and mostly consists of executing various VCS commands, capturing their console output into "synthesized" text files within the editor. Only a small subset of the total VCS features is supported, but this includes the most frequently used commands, such as adding/removing files, committing new revisions, displaying version history and displaying version differences. The plugin currently supports the following VCS: Bazaar, GIT, Mercurial, Subversion, SVK, CVS.
+* CodeLite: There is a plug-in which supports Subversion, but unfortulately no other VCS. Project membership of source files can be auto-synchronized with their status as "currently existing files" in version control.
+* Anjuta features at least Git and Subversion integration.
+* fp-ide: No.
+
+Special IDE features not mentioned in any of the other sections.
+* CodeLite: Can import (but not export) MS Visual Studio "solution" files.
+
+Debugging support?
+Many IDEs provide a user interface for the GNU debugger, but some expose only a fraction of the debugger's native capabilities via the IDE's GUI front end. Any good integration of GDB should at least provide an additional command line interface to the debugger as well. Of course, in theory an IDE could also integrate a different debugger than GDB.
+* JuffEd: No.
+* Anjuta: GDB support is present but could not be tested, because that wonderful GNOME3 masterpiece of an IDE crashed as soon as I tried to start a build, and so I never had an executable to test.
+* fp-ide: Yes. Fully integrated. Breakpoints, watches, disassemler, CPU registers, FPU, Vector Unit (?). However, it seems, the debugger is just a tightly integrated front end for GDB.
+
+Bookmarks?
+Bookmarks can be set to selected lines in source files, allowing to quickly jump to a bookmark even if text around the bookmark has been inserted or deleted since it has been set.
+* JuffEd: Yes. They are called "markers" and can be jumped to efficiently only by using keyboard shortcuts.
+Anjuta: Yes.
+* fp-ide: Unknown, but unlikely. Not via Menus. But maybe there are keyboard shortcuts.
+
+How are multiple open documents handled?
+Most IDEs use Tabs for this purpose, but others may create a new frame window for each source file. Or they just allow to edit a single file at a time, which can be changed by selecting a project file from a list.
+* Geany, Anjuta: Those use tabs as well as a list of project files which can be clicked into in order to switch a different file quickly.
+* JuffEd: It uses tabs and a list of documents in the current session where entries can be selected to quickly jump to that file.
+* fp-ide: Multiple Windows. They can be zoomed/tiled. There is also a window selection dialog, which should even work for a large number of open files. Not tabs or split windows, however.
+
+Unstructured and un-verified statements about IDEs gathered from various sources:
+* Netbeans is nice even for C/C++ development, but it is extremely slow and its debugger integration is very limited in practical use.
+* JuffEd was recommended as a possible replacement for LeafPad which will not be developed further due to its GTK-2 dependencies. Although much more heavyweight than LeafPad, JuffEd still consumes considerably less resources than kwrite, gedit, kate or geany. And in contrary to the beforementioned editors, it is a bit slow but still usable on the Raspberry Pi Model 1.

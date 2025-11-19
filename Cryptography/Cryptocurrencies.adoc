@@ -1,0 +1,43 @@
+Cryptocurrencies
+================
+v2020.229
+
+
+Bitcoin (BTC)
+-------------
+
+* Based on "proof of work", burning processing power
+
+
+Monero
+------
+
+Monero means "coin" in Esperanto.
+
+Monero is built upon similar ideas as Bitcoin, but uses an obfuscated distributed leger.
+
+Transactions always use one-time-addresses.
+
+Popular for making Bitcoin transactions anonymous by first converting into Monero and later back after a delay.
+
+
+CoinJoin
+--------
+
+Is not a new cryptocurrency but rather a specific style of doing Bitcoin transactions.
+
+Basically, it mixes together different transactions from different people into a shared transaction, making it harder to track the flow of ownership. By cascading multiple such shared transactions, the privacy can be improved.
+
+In other words, CoinJoin is nothing else than Bitcoin with some mixing transactions involved.
+
+https://bitcointalk.org/index.php?topic=279249.0
+
+
+Dash
+----
+
+Dash is a Bitcoin fork.
+
+Supposedly Dash "permits" transactions which are untracable.
+
+Dash has been the most popular cryptocurrency in Venezuela in 2019.

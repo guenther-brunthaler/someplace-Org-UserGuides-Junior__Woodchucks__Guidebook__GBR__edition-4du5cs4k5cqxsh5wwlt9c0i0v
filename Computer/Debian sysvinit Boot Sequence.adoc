@@ -1,0 +1,365 @@
+﻿Debian sysvinit Boot Sequence
+=============================
+Günther Brunthaler
+v2021.301
+
+
+This document contains the observations I made when revers-engineering the start scripts of a Debian system using `sysvinit-core` (rather than `systemd`).
+
+The notes have been added over time, so it is always possible that some of my observations have become outdated since then.
+
+The order of sections represents the order the scripts will be run.
+
+
+`init` invocation
+-----------------
+
+I started analyzing the startup sequence at the time when /sbin/init has been exec'ed.
+
+On a Linux system without initramfs- or initrd-support, this executable will actually be launched by the kernel itself once it has been loaded and started by the bootloader.
+
+On systems which do use an initramfs or initrd, several scripts will have been run before this point.
+
+However, those initramfs scripts would like to create the illusion for /sbin/init that it has been launched directly by the kernel, and so the difference should be basically irrelevant.
+
+Likely, some kernel modules have been loaded already which would not be the case if the kernel actually launched /sbin/init, but that's the most of it.
+
+Another thing is that the initramfs scripts had to mount the filesystem root, as if the kernel would have done so itself via its `root=` command line argument.
+
+Usually, the "/" filesystem will have been mounted read-only, or the startup scripts need at last to consider this possibility. Which means they must not write to "/" before ensuring it has been remounted as `rw` if necessary.
+
+Under those conditions, the actual startup procedure of the installed OS commences by exec'ing `/sbin/init`, either via the kernel itself or via the initramfs scripts.
+
+`init` will have be exec'ed as `PID 1`, or else it cannot do its job properly.
+
+
+`init` startup
+--------------
+
+First, `init` reads `/etc/inittab` and executes the command specified via the line tagged with 'sysinit' as its third entry, if any.
+
+The entries in `inittab` lines are separated by colons (`:`). Empty lines and comment lines starting with `#` will be ignored by `init`.
+
+After executing the optional command from a `sysinit` line, `init` will then scan for a line with 'initdefault' as its third entry. This specifies the initial default runlevel `init` should switch to.
+
+Then `init` switches to this runlevel. This means it will execute all commands (following the 3rd entry) of lines where the 2nd entry contains the runlevel symbol (a decimal digit, `S` or `s`) of the current runlevel. Note that this is a substring search, the 2nd entry does not have to match the current runlevel symbol completely.
+
+How the commands are executed is determined by the token in the 3rd entry of the lines.
+
+Those lines will either start TTYs for different terminal devices, or react to special conditions like power failure or pressing `[Ctrl]+[Alt]+[Del]` for manually initiating the shutdown sequence.
+
+Lines tagged 'respawn' contain command which will be run again once `init` notices they have terminated. This is usually used for TTYs.
+
+Lines tagged 'wait' will only be executed once, and in order. That is, not in parallel.
+
+There might be other lines, too which specify commands to be run only once (but possible in parallel) or not at all.
+
+We will concentrate here only on the 'wait' lines, because they are used to run the scripts for changing the runlevels.
+
+But before any of those command will be run, the one specified in the line tagged 'sysinit' will be executed.
+
+On a Debian sysvinit standard setup, the 'sysinit' line just runs the script `/etc/init.d/rc`, while all the 'wait' lines (there is one for every runlevel) execute `/etc/init.d/rc $newlevel` instead (where `$newlevel` is replaced by the runlevel symbol this script should switch to).
+
+Examining the invocation of `/etc/init.d/rc` without arguments (like 'sysinit' does) reveals that it actually calls `/etc/init.d/rc S`.
+
+Which means the very same script `/etc/init.d/rc` is run for everything `init` does regarding the boot- or shutdown scripts.
+
+The only argument to that scripts determines which shall be done:
+
+* `S` - initialize the system and the runlevel scripting framework
+
+* `0` - shut down the system
+
+* `6` - reboot the system
+
+* everything else - a runlevel symbol representing the runlevel to switch to.
+
+This is all `init` does regarding the understanding of the system startup, shutdown and runlevel changes.
+
+Except one thing: When running any command including the beformentioned scripts, `init` passed certain environment variables to the command which they can examine.
+
+The interesting ones are
+
+* $RUNLEVEL - the symbol of the new runlevel to switch to
+
+* $PREVLEVEL - the symbol of the current runlevel (before performing the intended switch)
+
+Note that the new runlevel will be passed to the scripts also as the only argument. But this behaviour is an implementation chosen by the Debian `/etc/inittab`. Setting the environment variables is done by `/sbin/init` on its own, and will therefore be available no matter how the contents of `inittab` have been designed.
+
+
+The startup / runlevel change scripts
+-------------------------------------
+
+As explained before, a Debian sysvinit setup uses the same script `/etc/init.d/rc` for both system initialization (with invoked with the only argument 'S'), system shutdown (argument `0`), system reboot (argument `6`) or runlevel changes (any other argument which should be a decimal number between `1` and `5`).
+
+It is therefore important to know what this script does exactly.
+
+First, it sets some default values and then sources the settings from `/etc/default/rcS` for overriding its defaults.
+
+One important setting is `$VERBOSE` which will make the startup scripts display additional diagnostic output, except when the kernel command line argument `quiet` has been specified.
+
+However, there is a second setting "$INIT_VERBOSE" which, when set to `yes`, will enable verbosity even when `quiet` is present on the kernel command line.
+
+The primary function of `/etc/init.d/rc` is to run the various `/etc/rc?.d/*`-scripts where `?` is the argument passed to the script to (or `S` if run without arguments).
+
+It does not do much more.
+
+Except one thing: It mounts `proc` with the command
+
+`mount -t proc none /proc`
+
+unless this is already mounted. Note that no options are passed to `mount` - which means `/proc` will be mounted with default permissions, and any `/etc/fstab`-entry for `/proc` will be ignored.
+
+Then the `/etc/init.d` scripts will be run as configured using `insserv` and `update-rc.d`.
+
+However, there is still one speciality to consider: Parallel startup.
+
+By default, `/etc/init.d/rc` invokes `startpar` and/or `make` in order to execute `/etc/init.d`-scripts in parallel which did not specify any specific order in which they should be executed.
+
+Those are such scripts which specify the same 2-digit number after the leading `S` or `K` in the `/etc/rc?.d` directory for the new runlevel.
+
+This parallelization might make the startup faster, but it is also more dangerous, because something could go wrong and start in an unexpected order. If all depencencies in the `/etc/init.d` scripts have been defined correctly, then there will be no problem. But things go wrong all the time, and mistaked do happen.
+
+So it might be a good idea to disable this automatic parallelization of `/etc/init.d`-scripts.
+
+This can be done by either creating the tag file `/etc/init.d/.legacy-bootordering` or using the option `concurrency=none` on the kernel command line.
+
+Then all scripts will be run sequentially and always in the same way. This means startup will be reliable, even in the presence of incorrectly specified depencencies: If it works the first time, it will work again.
+
+This cannot be guaranteed with parallel startup unless the dependencies have been defined error-free.
+
+Note that even when using parallel script execution, the output of the scripts will not be intermixed.
+
+`startpar` delays the output of every script and saves it until the time the script terminates. Then it displays all of its output at once and makes sure this happens only for one of the scripts at the same time.
+
+This behaviour is modified for scripts defined as 'interactive' in their headers comments, but in any case intermixed script output will not normally not be caused by parallel script execution in the Debian startup script framework.
+
+Having understood what `/etc/init.d/rc` is doing, there is nothing else specific to the startup procedure.
+
+Everything else including further system initialization is handled by individual `/etc/init.d` files.
+
+All one has to do in order to fully understand the remaining startup sequence, is examining the following scripts in order:
+
+`/etc/init.d/rcS.d/S??*`
+
+first, and then
+
+`/etc/init.d/rc${RUNLEVEL}.d/S??*`
+
+where ${RUNLEVEL} is the default runlevel specified in the 'initdefault' entry of `/etc/inittab` (although it can also be overriden by specifying a different run level as an individual argument on the kernel command line).
+
+Things are similar to a runlevel change later - in this case one needs to examine the scripts
+
+`/etc/init.d/rc${RUNLEVEL}.d/K??*`
+
+first and
+
+`/etc/init.d/rc${RUNLEVEL}.d/K??*`
+
+next in lexicographic order or their filenames. Also, here ${RUNLEVEL} will be the new runlevel to switch to rather than the initial default runlevel.
+
+Now that we know how `/etc/init.d/rc` basically delegates all its relevant work (except possible mounting `/proc`) to the `/etc/init.d` scripts, all left to be done is analyze what those scripts will do.
+
+The remaining sections of this document examine the various `/etc/init.d` scripts installed by default of on most systems, and tries to explain what they do.
+
+All sections will have the invocation of the script as their title, including the `start` or `stop` argument `/etc/init.d/rc` will be passing to them (depending whether they are /etc/rc${RUNLEVEL}.d/K??*` scripts or /etc/rc${RUNLEVEL}.d/S??*` scripts.
+
+The order of the sections will honor the fact that `rcS.d` scripts will be run before other `rc${RUNLEVEL}.d` scripts.
+
+In order words, you can read the sections in the same order as presented in this document, and assume a real system will basically run the script in the very same order.
+
+The order might change sightly unless parallel execution of `/etc/init.d` has been forbidden. But if it does the effect should be irrelevant because those scripts should not be dependent on one another (otherwise it would be a bug).
+
+The following commands can be excuted in order to display (one possible way in case of parallel script execution) in which order your system will execute the startup scripts:
+
+----
+$ for link in /etc/rcS.d/S[0-9][0-9]*; do \
+printf '%s %s\n' "`readlink -f $link`" start; done
+----
+
+Note that only `rcS.d` are considered here, because runlevel `S` should cover the whole basic system initialization.
+
+The default runlevel will start even more services, but they should not be essential for the basic system initialization.
+
+Also note that unessential optional and non-standard `/etc/init.d` scripts have been left out from the remaining discussion.
+
+Another thing is that `/etc/rcS.d/K??*` scripts will not be run for system initialization. The `README` file in that directory even explains that renaming some of those scripts from `S??*` into `K??*` is a convenient way to disable them.
+
+The examined installation was a Debian 11 release at the time of this writing.
+
+
+Customizing `/etc/init.d` script execution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most such scripts source helper functions from `/lib/lsb/init-functions`.
+
+In those cases, it is possible to modify the execution of those scripts as explained by `/usr/share/doc/lsb-base/README.Debian.gz`.
+
+The most effective method seems to be when the administrator creates a shell snippet `/etc/lsb-base-logging.sh`. If this snippet exists, it will be sourced by `/lib/lsb/init-functions` as the last action of this helper.
+
+Such a snippet could, for instance, enable echoing of the scripts commands as they are executed, and redirect them into some log file.
+
+It is also possible to define aliases or shell functions there which can override/replace utilities invoked from the scripts (without specifying an explicit path).
+
+And finally, the snippet can redefine/replace the helper functions just defined by `/lib/lsb/init-functions` by one's own version.
+
+
+`/etc/init.d/mountkernfs.sh start`
+----------------------------------
+
+This will call the following helper functions from `/lib/init/mount-functions.sh`:
+
+----
+mount_run mount_noupdate
+mount_lock mount_noupdate
+domount mount_noupdate proc "" /proc proc -onodev,noexec,nosuid
+----
+
+Then, if `sysfs` is present in `/proc/filesystems`, it will also do a
+
+----
+domount mount_noupdate sysfs "" /sys sysfs -onodev,noexec,nosuid
+----
+
+Finally, if the directory `/sys/fs/pstore` exists, it will invoke
+
+----
+domount mount_noupdate pstore "" /sys/fs/pstore pstore ""
+----
+
+
+The `domount` helper
+~~~~~~~~~~~~~~~~~~~~
+
+This helper basically invoked the `mount` utility with the specified arguments. However, it does more.
+
+Firstly, it knows the difference between the most important blends of UNIX. Which means it should not only work under Linux, but also BSD and pretty much every well-known UNIX-like system out there.
+
+Secondly, it does more checking and verifies that the kernel actually knows the specified filesystem type.
+
+Thirdly, it allows to specify a fallback (alternate) filesystem type in case the first (primary) type does not apply. For instance, it can try to mount a tmpfs but fall back to mounting a normal filesystem if this is not possible.
+
+
+`/etc/init.d/udev start`
+------------------------
+
+
+`/etc/init.d/mountdevsubfs.sh start`
+------------------------------------
+
+
+`/etc/init.d/keyboard-setup.sh start`
+-------------------------------------
+
+
+`/etc/init.d/bootlogd start`
+----------------------------
+
+
+`/etc/init.d/hostname.sh start`
+-------------------------------
+
+
+`/etc/init.d/hwclock.sh start`
+------------------------------
+
+
+`/etc/init.d/checkroot.sh start`
+--------------------------------
+
+
+`/etc/init.d/cryptdisks-early start`
+------------------------------------
+
+
+`/etc/init.d/checkroot-bootclean.sh start`
+------------------------------------------
+
+
+`/etc/init.d/kmod start`
+------------------------
+
+
+`/etc/init.d/lvm2 start`
+------------------------
+
+
+`/etc/init.d/nfs-common start`
+------------------------------
+
+
+`/etc/init.d/cryptdisks start`
+------------------------------
+
+
+`/etc/init.d/checkfs.sh start`
+------------------------------
+
+
+`/etc/init.d/mountall.sh start`
+-------------------------------
+
+
+`/etc/init.d/mount-configfs start`
+----------------------------------
+
+
+`/etc/init.d/mountall-bootclean.sh start`
+-----------------------------------------
+
+
+`/etc/init.d/brightness start`
+------------------------------
+
+
+`/etc/init.d/procps start`
+--------------------------
+
+
+`/etc/init.d/stop-bootlogd-single start`
+----------------------------------------
+
+
+`/etc/init.d/syslog-ring start`
+-------------------------------
+
+
+`/etc/init.d/urandom start`
+---------------------------
+
+
+`/etc/init.d/networking start`
+------------------------------
+
+
+`/etc/init.d/nbd-client start`
+------------------------------
+
+
+`/etc/init.d/mountnfs.sh start`
+-------------------------------
+
+
+`/etc/init.d/mountnfs-bootclean.sh start`
+-----------------------------------------
+
+
+`/etc/init.d/alsa-utils start`
+------------------------------
+
+
+`/etc/init.d/bootmisc.sh start`
+-------------------------------
+
+
+`/etc/init.d/quota start`
+-------------------------
+
+
+`/etc/init.d/screen-cleanup start`
+----------------------------------
+
+
+`/etc/init.d/x11-common start`
+------------------------------
+

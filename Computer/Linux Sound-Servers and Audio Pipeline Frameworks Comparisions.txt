@@ -1,0 +1,48 @@
+* Enlightenment Sound Daemon (esd)
+* Pulseaudio
+* aRts
+* ALSA "dmix"-plugin
+
++++
+
+Problems with Pulseaudio:
+
+The problems:
+
+* Pulseaudio must be run by the user in order to launch the daemon. If run as a system-wide service, several features of the sound server are not longer available. This is a problem with aRts, because if aRts is configured to be used with ALSA, the ALSA-driver will not work unless Pulseaudio already runs.
+
+* I could not yet find a way for Enlightenment Sound Daemon clients to connect to the running Pulseaudio daemon as a replacement for esd, although that case should actually be supported.
+
+* Even when aRts is running on top of Pulseaudio via the ALSA backend, there are problems with aRts's own internal sound buffer and the delay resulting from this. The shortest delay possible with 4 KiB blocks are around 1/10th of a second, which *is* noticable in an aRts-based action game.
+
+* The Pulseaudio-Daemon terminated on several occasions without leaving any trace in the system logs *why* this was the case. If this happens, all connected clients (including) aRts can no longer create sound output.
+
+* Even after the Pulseaudio Daemon has been restarted, continued audio output is not possible any more unless a client detects this condition actively and re-connects to the sound server on its own. However, most clients do not do that. A notable exception seems to be aRts.
+
+* There are problems with the realtime priority of Pulseaudio. Although I configured a PAM "realtime" group for this purpose, Pulseaudio displayed several error-messages on startup. Perhaps this might be something to be ignored, because despite of those messages Pulseaudio was running with priority -11 after that. But then, maybe still something is wrong.
+
+* Some applications crash when using Pulseaudio as the ALSA backend, which happened to run fine as long as there was only ALSA and aRts involved. For instance, Solarwolf runs until the game is exited, and then crashes to a freezing hell. Only kill -9 was able to nuke it after that.
+
+* There is an "autospawn" option in the Pulseaudio daemon configuration file which is said to launch the daemon "as needed". But even though the daemon shuts down itself correctly after the programmed idle time has passed, the autospawn option never did anything to start the daemon automatically. I suppose the autospawn-option might work only with the high-level command-line tools or with clients that use the native Portaudio API, and not with backend-drivers such as the ALSA-plugin which routes ALSA-output through to Pulseaudio.
+
+* ALSA provides the "dmix"-Plugin for allowing multiple sound sources to share a single hardware channel. This code runs in the kernel, has very low overhead and does not need any sound server at all. The question remains what Pulseaudio is good for at all, considered the many troubles listed above. I suppose, it is Pulseaudio's network support and its better resampling-algorithms might be an advantage. But otherwise there is little purpose in running Pulseaudio at all.
+
+* Most "professional" audio-applications don't require Pulseaudio either, because they use jackd anyway.
+
+* The leaves Pulseaudio right in the middle between ALSA and JACK: It causes more overhead than ALSA's dmix, yet does not offer the low-latency and quality of JACK.
+
+* To sum up, Pulseaudio seems to have unexplained bugs, works only partially as an ALSA backend, has more overhead than ALSA's dmix, provides less features than JACK - its only use seem to be as a GNOME sound server because anything is better than esd. Network-transparent sound might be another usage case, but I don't need that right now.
+
+Which means, I do not want or need Pulseaudio right now!
+
+And after what I've experienced today, there is a good chance I'll get rid of it permanently.
+
+On the other hand, perhap's I have to try out GNOME someday, and then Pulseaudio might be fine. But not with KDE-3. And KDE-4 has Phonon anyway.
+
++++
+
+Recommended Backend-related presets for Audio applications
+
+* Mplayer: "-ao alsa" is best, "-ao pulse" works fine but see above for the general problems with Pulseaudio. "-ao arts" is very unstable and is not recommended.
+
+* Amarok: Same as Mplayer. Never use the aRts backend; ALSA is the best for daily use.

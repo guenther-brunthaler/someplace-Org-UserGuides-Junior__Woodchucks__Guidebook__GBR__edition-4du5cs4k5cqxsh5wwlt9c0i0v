@@ -1,0 +1,770 @@
+  1 - Data Format Conversions
+  2 - =======================
+  3 -
+  4 - Sort using "LC_COLLATE=C sort". Important for merge operations.
+  5 - Format 1: "{SPACE}"{tool}":{SPACE}{description}"
+  5 - Format 2: "{SPACE}.{ftype}:{SPACE}{description}"
+  5 - Format 3: ".{ftype1}{SPACE}->{SPACE}.{ftype2}:{SPACE}{tool}"
+  5 - Format 4: ".{ftype1}{SPACE}<->{SPACE}.{ftype2}:{SPACE}{tool}"
+  5 - Format 5: {All other lines are comments}
+  6 -
+  7 - Lines can be arbitrarily long. Only ASCII characters shall be used. Lines shall be terminated with ASCII "LF" characters (code point 10).
+  8 -
+  9 - Tools are unique names to be used in mappings. They can be arbitrarily strings, but should be selected in the following order of decreasing priority: Known file names of executable utility programs, known package names on some operating system distribution, the name of the tool used by the tools' software project themselves, the publicly known name of the tool, any name that seems to fit the tool's purpose. It is not necessary to define tools, unless further comments about the tool should be stated, such as special advice for its usage. Normally it suffices to define document formats and lookup the required tools via the provided mappings. Names of tools defined in this file and referenced from within description fields should enclose the tool names in double quotes just like in the definition. This makes it easier to find all references and the definition in case of tool names which are also normal words or contain spaces. Letter case in tool names is significant and must be consistent. File formats referenced in the description should use the defined names with a starting dot, but do not need to be quoted as well. All file formats must have a definition. If nothing is known about the file format, at least the source of information needs to be specified from where it has been learned that a specific tool uses this file format.
+  ====================
+ "7z" uses plug-ins and can therefore handle with more archive formats.
+ "autotrace": A bitmap graphics to vector graphics translator.
+ "bchunk"
+ "cat": A NOOP ("no operation") conversion tool (when used as a filter without any arguments). Shown explicitly as a conversion tool to indicate that input and output formats are synonyms.
+ "cjpeg": cjpeg und djpeg sind Hilfsprogramme zum Konvertieren von JPEG-Dateien. Es handelt sich um Referenzimplementierungen von dem Machern des JPEG-Standards. Unter Debian sind sie im Paket "libjpeg-turbo-progs" enthalten.
+ "convertfilestopdf": See "convertformat".
+ "convertfilestops": See "convertformat".
+ "convertformat": Image format converter from the "leptonica-progs" software package, making the various format converters of the leptonica image processing library available to command line usage.
+ "curl": More or less the same as "wget". Is less commonly used, but supports more protocols for download.
+ "djpeg": Siehe "cjpeg" enthalten.
+ "docbook2dvi": A wrapper for "jw".
+ "docbook2html": A wrapper for "jw".
+ "docbook2man": A wrapper for "jw".
+ "docbook2pdf": A wrapper for "jw".
+ "docbook2ps": A wrapper for "jw".
+ "docbook2rtf": A wrapper for "jw".
+ "docbook2tex": A wrapper for "jw".
+ "docbook2texi": A wrapper for "jw".
+ "docbook2txt": A wrapper for "jw".
+ "e2mtiff": Tool from the of the "exactimage" framework.
+ "econvert": Tool from the of the "exactimage" framework. I did not find out how to convert into .jp2 format with it, although it is supposed to support it. The documentation is rotten (explains too little).
+ "graphviz": Contains multiple utitlities to draw different kinds of graphs based on .dot source files. Includes command line programs for creating new and transforming or layouting existing graphs. Also includes graphical editors for interactively authoring .dot files.
+ "groff" - GNU implementation of the "roff" system. Includes the traditional "troff", "nroff", all of the traditional preprocessors, macro packages, and many extensions. Contrary to traditional "troff"/"nroff" implementations, "groff" supports UNICODE and UTF-8 via its "preconv" preprocessor and internal extensions for especially-quoted UNICODE characters.
+ "gs": GhostScript is a PostScript interpreter. In accepts PostScript levels 1 through 3 or PDF as input, and converts it into many pixel-based and a few vector-based formats, such as different revisions of PostScript and PDF file formats. It also acts as the backend for several ps2* utilities.
+ "hocr2pdf": Tool from the of the "exactimage" framework.
+ "img2pdf" can convert certain lossy compressed raster image formats into PDF file pages without re-compression (and thus no further loss of image quality).
+ "info2pod": Unter Debian Teil des "info2man"-Pakets.
+ "info2www.cgi": Pseudo-name of a CGI script provided by Package "info2www" (at least under Debian) which can be invoked via a CGI-capable WWW-server and deliver ".info"-Files as HTML web-pages in a www-browser or www-downloader.
+ "jw": "Jade" wrapper, converts docbook SGML files into various formats. Part of package "docbook-utils" on Debian.
+ "lodraw": LibreOffice "Draw", the vector graphics editing application of the free and open source office suite "LibreOffice". It is not as powerful as Inkscape, but has the advantage that documents can have more than one page. Especially useful is an extension for the application which allows import of existing PDF documents, maintaining most of their formatting.
+ "lynx": Is a console-based web-browser. It features a "-dump" option for converting HTML pages into plain text files.
+ "makeinfo": Converts .texinfo files into .info. docbook.xml or .html files. Typically part of a "texinfo"-package also containing the following tools: "pdftexi2dvi", "pod2texi", "texi2any", "texi2dvi", "texi2pdf".
+ "man": The front-end command to convert .man.troff source files into different formats and/or display them formatted in a viewer. Can use "less", "more" or a web-browser directly as a viewer. Multiple output formats can be chosen with the -T option, such as TeX' DVI, PostScript, text encoded as ISO-8859-1 or UTF-8. Use the following to get plain text help for the command "git" in a UTF-8 locale: man -Tutf8 --no-justification --no-hyphenation git | { b=`printf '\b:'`; sed "s/.${b%:}//g"; }
+ "mdf2iso": A program for converting proprietary "Alcohol 120 %" *.mdf files into a set of more commonly used (*.bin + *.cue) or (*.toc + *.dat) or just *.iso files.
+ "opj_compress": Converts images into JPEG-2000 format. Part of the OpenJPEG library.
+ "opj_decompress": Like "opj_compress", but converts into the opposite direction.
+ "osmconvert": A converter for OpenStreetMap (OSM) files. Part of the "osmctools" package which also contains "osmupdate" for downloading and updating OSM files.
+ "pandoc": An extremely versatile format converter primarily focused on text and word processor formats. Besiders supporting many formats, command-line options can select subformat conversion choices. For instance, whether included formulars are converted into MathML or should try to use UNICODE characters instead. Also, ASCII-art border lines can be generated for text output tables. There are a lot of options. It is recommended to review the currently (pandoc is frequently updated) available options before converting into any format.
+ "pandoc2rfc": Allows to use Markdown-syntax with Pandoc-extensions to create RFC text documents. However, additional required metadata needs still be provided as XML files. See [https://github.com/miekg/pandoc2rfc/].
+ "pdftocairo": Part of the "poppler-utils" suite of tools supporting the "libpoppler" PDF management library.
+ "pdftohtml": See "pdftocairo".
+ "pic": Converts a text description of a picture using the "pic" graphics description language into troff output. The GNU version of pic can also create LaTeX output. The source text to be converted is normally part of a troff/LaTeX input file and pic is used as a macro preprocessor.
+ "potrace": A bitmap graphics to vector graphics translator. Includes also a utility for preprocessing bitmap graphics for the vector tracing process, such as thresholding, scaling and noise-removal. potrace is based on a shared library. This library is used by Inkscape in several of its import filters.
+ "ps2ascii": This tool is part of the "ghostscript" suite. It can extract text from .ps and .ps files, but its output is restricted to ASCII. It works faster than "pstotext", is more likely to be installed. It is normally inferior to "pstotext", but works better in a few cases like some .pdf files created by OpenOffice.
+ "pstotext": Can extract text from .ps and .pdf files. The output always uses the LATIN1 character set. It deals better with punctuation and ligatures than "ps2ascii". It also features a "-layout"-option which retains line breaks and indentation.
+ "rsvg-convert": An SVG-to-bitmap converter shipped as utility of librsvg2.
+ "setext2html.pl": Converts 'setext' markup documents into plain HTML. Get it from [http://www.valdemar.net/~erik/setext/setext2html.txt].
+ "slidemaker": A Perl script published by W3C for creating "Slidy" XHTML output web pages. Slidy is a web-browser-based alternative to Microsoft Powerpoint. "slidemaker" can split .slidy.input.xhtml documents into a series of interlinked .slidy.output.xhtml files which represent the individual slides. However, "slidemaker" takes some information from an additional file "infos.txt" rather than from the source document.
+ "texi2html": Converts .texinfo files directly into .html files. Compared to the output of "makeinfo --html"", texi2html's output is more customizable and (subjectively) produces better output by default.
+ "tidy": htmltidy is a tool to validate and cleanup HTML files. The -asxml option supports convertion of "HTML" into "XHTML", which is also valid XML. Generally, "tidy" reads HTML, XHTML and XML files and writes cleaned up markup. For HTML variants, it detects and corrects many common coding errors.
+ "tiff2pdf": Tool shipped with "libtiff" library.
+ "tiff2ps": Tool shipped with "libtiff" library.
+ "tiffcp": Concatenated TIFF image files into multipage-TIFF files. Package: libtiff-tools/graphics/debian.
+ "tomlq": Part of the "yq" suite. Converts TOML to JSON.
+ "txt2tags": Converts its own simple text-based markup language into various different output formats.
+ "uniconvertor": Translates between different vector graphics formats.
+ "unoconv": A format converter originating from the OpenOffice/LibreOffice office suites but often distributed separately as package "unoconv". Converts between OpenDocument formats and other formats, but can directly convert between some other formats as well. Option --show displays all supported output formats. The output formats belong to one of the following logical categories: text-based, graphics, presentation or spreadsheet.
+ "wget": Can download files via the HTTP, HTTPS and FTP protocols from some server. Can do this recursively if needed. Is also able to make absolute hyperlink targets relative, allowing the links in the downloaded documents to reference other downloaded local documents. Downloading via HTTP proxy is also supported.
+ "winemaker": Utility from the "wine32-tools" package. The package contains several tools required for compiling Microsoft Windows source projects on POSIX hosts for a WINE (Windows API to native API conversion layer) target. Among other things, it contains resource-, message- and IDL-compilers. The "winemaker" utility can convert Microsoft Visual Studio project files into *IX "make" Makefles. It can also scan the Windows source file and warn about issues which need to be fixed manually.
+ "xq-python": Part of the "yq" suite. Converts XML to JSON. The original name is just "xq", but Debian has renamed it into "xq-python" (probably because of a name collision).
+ "yq": Part of the "yq" suite. Converts YAML to JSON. This suite can convert YAML, TOML and XML into JSON and pass it to the "jq" utility (a dependency) for further processing, which is a sed-like stream editor for manipulating JSON files. More recent versions of this utility can also convert JSON back to the three other formats. One problem of "yq" ist that the command-line options of the utilties change all the time like crazy. It is not enough to install the utilities, one also needs to know exactly which version is installed.
+ .7z: The 7-Zip archive format. "7z" and "7za" can both process those archives. "7za" supports the only the core features but is faster. "7z" uses plugins, handles more archive formats and is generally more powerful, but also slightly slower and a larger installation.
+ .X-gnu_graphics_metafile: A "GNU graphics metafile" or just "GNU metafile" is produced by "GNU libplot", such as "graph", "plot", "pic2plot", "tek2plot", and "plotfont". Metafiles in the non-portable binary encoding begin with the magic string "#PLOT 1\n", and metafiles in the portable text-based encoding with "#PLOT 2\n". Not really a valid file extension.
+ .aa.txt: ASCII "art". This means a pure text format where graphical elements such as table borders and (depending on the capabilities of the converter) perhaps even images are approximated into ASCII replacement characters. For instance, a horizontal line could be represented by a run of "-"-characters, a vertical line by "|"-characters and a crossing by "+".
+ .aff: Draw files (vector graphics format)
+ .afp: "Advanced Function Presentation" (originally "... Printing") is a device-independent page description language originally developed by IBM primarily used for printing, similar to DVI and PostScript. It is popular for high volume printing because its data representation has been designed with space-efficiency in mind. As of 2019, no opensource viewer application is known to me which can be used to actually display such files rather than printing them.
+ .ai: Adobe Illustrator files (postscript based vector graphics format)
+ .ansi.txt: TTY text interleaved with ANSI-escape sequences (primarily for color and font effects control), just as used on the famous VT100 and VT102 terminals.
+ .anything: Arbitrary data of no specific format. Used to describe the input data for compression/packer utilities or the output data of decompression utilities.
+ .applet.java: JAVA source code for a JAVA applet.
+ .archiving.jats: JATS XML, Archiving and Interchange Tag.
+ .articleauthoring.jats: JATS XML, Article Authoring.
+ .ascii.txt: Plain text encoded using the US-ASCII character set.
+ .asciidoc.txt: Native "asciidoc" markup input file. A plain text source file used as input for the "asciidoc" text processor, which can generate .html, .pdf, .epub and many other formats from its input.
+ .asciidoctor.asciidoc.txt: native "asciidoctor" markup input file. This is mostly a superset of the original "asciidoc" markup.
+ .asy: Asymptote Format
+ .beamer: LaTeX beamer slide show
+ .bin+cue: This is actually a pair of related files, one *.bin (sometimes also called *.raw) and a *.cue file. The latter is a text file specifiying the offsets and session characteristics of a multisession CD-ROM image file (which is represented by the *.bin or *.raw file).
+ .cairo.c: "C" source code for rendering with the "cairo" graphics library
+ .cairo.xml: Cairo XML or recording surface.
+ .ccx: Corel Compressed Exchange files (vector graphics format)
+ .cdr: CorelDRAW Graphics files (6-X6 versions)
+ .cdt: CorelDRAW templates files (6-X6 versions)
+ .cfdg: Context Free Design Grammar
+ .cgm: Computer Graphics Metafile files (vector graphics format)
+ .chm: Compressed HTML Help. A proprietary Microsoft help format, compressing several HTML files (like a book consisting of several pages) into a single file.
+ .cmapx.html: Client-side HTML-map. HTML/XHTML-code for embedding in web pages, which defines clickable areas within (separately specified) graphics files. The clickable areas the act as hyperlinks.
+ .cmx: Corel Presentation Exchange files (CMX1 format)
+ .commonmark: CommonMark Markdown.
+ .context: ConTeXt.
+ .convertformat.internal: All input/output formats supported by "converformat".
+ .cp1047.txt: Plain text encoded using the Latin-1 (ISO-8859-1) character set for EBCDIC hosts.
+ .creole.txt: "Creole" text markup source file. Creole is apparently some text-based markup language.
+ .csv: Comma separated value. This can only represent records with a fixed ordering of columns, and the first line may optionally represent the column names instead of actual data. Column values containing commas or newline characters must be quoted using double quotes. Literal double quotes within quoted text need to be escaped by doubling them. There are variants of this format using other characters than a comma for separating the column values, or may use other quoting/escaping rules. The most prominent variants use horizontal tabulation characters or semicolons as separators.
+ .djvu: A document format for efficiently storing scanned paper images. If is a direct competitor to PDF in this area. It uses page content segmentation in order to separate text from images. Text is compressed with a variant of the JB2 algorithm, a predecessor of JBIG2. Graphics are compressed using a variante of the IW44 algorithm, a wavelet-based algorithm similar to the JPEG-successor JPEG-2000 (which failed due to patent issues). Both algorithms are lossy and similar looking characters (such as "6" and "8") may be replaced by others if a page was scanned with too low resolution. JB2 compression works by identifying repeated rectangular blocks, such as groups of related characters, and replacing them by references to a single copy. It is possible to associate such groups with UTF-8 text via OCR-processing, which allows searching the document and copy/paste text extraction. The djvu file format is patent encumbered, but has been granted royalty-free use in OpenSource applications.
+ .docbook.sgml: A source file using the SGML markup language, using the "docbook" document type. This is a widely used SGML format for representing books, articles and other documentation. Docbook SGML is a very powerful and versatile format, and many document processing systems have interfaces for importing or exporting docbook SGML.
+ .docbook.xml: This is the XML variant of .docbook.sgml. It can be used for the same purposes, but modern applications generally prefer XML over SGML because more software is available for processing XML files.
+ .docx: Microsoft's Office Open XML format for word processor documents. In contrary to the Open Document XML format which is similar in purpose, this format is much more complex (6000+ pages format documentation) and the only reason why it exists is that Microsoft did not want to adopt the already existing Open Document format, but rather create their own. ".docx" is the default storage format for newer versions of Microsoft Word.
+ .dokuwiki.txt: Input files for "DokuWiki". Apparently some Wiki-System.
+ .dokuwiki: DokuWiki markup.
+ .dot: A graph description language used as input for most utilities of the "graphviz" package.
+ .drm.pdf: A .pdf document with DRM restricions and/or encryption present.
+ .dsp: Microsoft Visual Studio (older versions) project file
+ .dst: Design format (Tajima vector graphics format)
+ .dsw: Microsoft Visual Studio workspace file
+ .dxf: Autocad Drawing Exchange Format (vector graphics format)
+ .dxf: CAD exchange format. Most prominently used by AutoCAD. Most CAD programs can read and write this format, although not necessarily fully supporting all aspects of it.
+ .dzslides: DZSlides HTML5 + JavaScript slide show.
+ .emf: Enhanced MS Windows Metafile
+ .epub: This is one of the two most widely used document formats for Ebooks (the other being .mobi). It consists primarily as a set of XHTML files packed into a ZIP archive with some meta information files added. Only a subset of the features defined in the HTML standard is allowed.
+ .etx: A plaintext file with 'setext' plaintext markup. Whitespace usage in section formatting is strange. See [http://docutils.sourceforge.net/mirror/setext/setext_concepts_Aug92.etx.txt].
+ .exp: Embroidery file format (Melco vector graphics format)
+ .fb2: FictionBook2 e-book.
+ .fig: XFig files (vector graphics format)
+ .file.url: A pseudo-format representing a local file specified as a "file://"-URL.
+ .flowtext.txt: A plain text variant where lines actually represent paragraphs.
+ .g4.tiff: TIFF image file with Group 4 Fax B/W compression
+ .gcode: Source file for the "EMC2 G Code" language used by the LinuxCNC project.
+ .geojson: JSON-based text file format for geospatial data interchange; supports points, lines, polygons, and other similar primitives; used for defining objects such as roads, bodies of water, buildings, and points of interest.
+ .github.markdown.txt: GitHub-flavored Markdown.
+ .gmfa: ASCII GNU metafile 
+ .gmfb: binary GNU metafile 
+ .gnuplot: All rendered image output formats supported by gnuplot.
+ .google_code_wiki.txt: Input files for "Google Code Wiki". Apparently some Wiki-System.
+ .grn: A source file in the "gremlin" vector-graphics description language which can also contain text, arcs and splines. The co-ordinate range is limited to values around 512 (depending on the image orientation). *.grn-Files are normally processed by the "grn"-preprocessor for troff. "grn" is similar to "pic" in many regards, but is intended to be used with pre-calculated co-ordinates, where "pic" provides the means to calculate the co-ordinates at run-time. Therefore, .grn is closer to a data format like SVG and .pic is closer to a program source file producing graphics like PostScript.
+ .gs.internal: Any output format that Ghostscript provides, i. e. "pdfwrite".
+ .gxl: Graph Exchange Language (GXL), an XML-based description language for graphs.
+ .haddock: Haddock markup.
+ .hpgl: The Hewlett-Packard Graphics Language. There are multiple version. HP-GL/2 seems to be common.
+ .html5.html: Revision 5 of the HTML format. Use this only if it is explicitly known that the tool can process this format revision. Otherwise, use the more generic .html file type.
+ .html: Hyper-Text Markup Language. The primary markup language of the WWW. Unfortunately, there are many format revisions, the most important ones HTML4 and HTML5. As there is a special .html5.html file extension defined within this document, .html should only be used if a pre-HTML5-variant is addressed by a conversion tool, or if the supported HTML revision is not known exactly.
+ .http: Pseudo-superformat representing a subformat data stream delivered via HTTP networking protocol.
+ .https.tcp: Pseudo-superformat representing a subformat data stream delivered via HTTPS networking protocol.
+ .icml: InDesign ICML.
+ .idraw.eps: Interviews draw format (EPS)
+ .idraw: idraw-editable Postscript. "idraw" is an interactive drawing editor and part of the ivtools package. It can display and edit the output of any application that uses the Postscript Plotter support contained in GNU libplot. This includes "graph", "plot", "pic2plot", "tek2plot" and "plotfont" - when passing "-T ps" to them.
+ .imap.html: Server-side HTML map. The server-counterpart for .cmapx.html text. When clicking on a server-side image-map, the click coordinates are sent to the server as a URL query string.
+ .info: GNU documentation to be displayed with the "info" text-mode viewer.
+ .internal: The internal representation used by some conversion tool; it does not exist as an actual file format. It is used to describe all supported conversions of the tool without the need to specify every single input/output combination.
+ .ipynb: Jupyter notebook.
+ .iso: An ISO-9660 CD-ROM file system image file. May also include system-specific extensions, such as Joliet, Rockridge or hybrid USB/CDROM bootcode.
+ .j2c: JPEG 2000 code stream, which is only part of a .jp2 file (JPEG 2000 image file) container, excluding the file's metadata and container mechanisms.
+ .j2k: Alias for ".j2c".
+ .jats: JATS XML
+ .java: JAVA source code
+ .jb2: JBIG2 is the most efficient bi-level bitmap compression format known so far. There are lossy and lossless encoders. It is particularly effective when used to compress scanned images of text pages. JBIG2 ist most effective in multipage documents, where it can share state between the pages.
+ .jira: Jira wiki markup.
+ .jp2.pdf: A JPEG2000-compressed graphics image within a PDF file container.
+ .jp2: Bitmap image using JPEG 2000 compression, a wavelet-based compression format. Superior to JPEG for most except very small files, where JPEG might be more space efficient. Was intended to be the successor to the JPEG format and compresses twice as good with less visible artifacts. Unfortunately, patent issues killed most support for this format.
+ .jpc: Alias for ".j2c".
+ .json: A human-readable message serialization format using JavaScript-Syntax for literals of sequential as well as associative arrays. Floating-point values may incur unavoidable small conversion errors due to the differences of binary and decimal fractional value representation.
+ .kil: Kontour data format
+ .latex.tex: A source file for the TeX typesetting system, making use of the LaTeX extension macros avaiblable for that suite. LaTeX ist the de-facto standard format for publishing sophisticated tyographically correct articles in the academic communities. LaTeX is an ugly yet powerful text-based markup language full of backslashes and curly braces. It is intended to create fixed-form printable output which is not well suited for consumption on devices with varying display sizes.
+ .latin1.txt: Plain text encoded using the ISO-8859-1 character set.
+ .local: Pseudo-superformat representing a subformat data stream received via some networking protocol that will be stored as a file into the local filesystem by the conversion tool.
+ .lout.txt: Input files for "Lout" markup language. Apparently some text-based markup language. Similar in style to LaTeX. See [http://savannah.nongnu.org/projects/lout] for a description.
+ .lwo: LightWave 3D object format
+ .magick.internal: All output formats supported by ImageMagick
+ .magicpoint.txt: Input files for "MagicPoint" markup language. It seems to be a text format for describing Powerpoint(tm)-like presentation slides.
+ .man.troff: A source file for the TROFF typesetting system, as used to describe UNIX "man" documentation pages. A known problem with this file format is that it does not support UNICODE text as input, although it an generate UTF-8 output.
+ .markdown.txt: A plain text source file used as input for the "markdown" markup language.
+ .mbox.txt: A plain text variant used to store collections of plain text e-Mails where every mail must start with a "From "-line.
+ .mdf: "Alcohol 120 %" multisession CD image file. The native file format of "Alcohol 120 %", a proprietary Windows CD ripping program. Can store all sessions (mode 1 and 2) of a multisession CD-ROM or all tracks of an audio CD in a single file.
+ .mediawiki.txt: This a source file for markup text to be used in Wikipedia articles.
+ .mediawiki: MediaWiki markup.
+ .mk: A "Makefile" or "Makefile" snippet. Makefiles are used by the "make" utility to drive the build process of a software project.
+ .mma: Mathematica graphics
+ .mmd.markdown.txt: MultiMarkdown.
+ .moinmoin.txt: Input files for "MoinMoin", a Wiki system implemented in Python which uses primarily CamelCase for automatically denoting Hyperlinks within text.
+ .mpost: MetaPost format
+ .ms: ROFF ms.
+ .multipage.tif: An instance of .tif which actually stores more than one page (independent graphics) in a file. Historically used for storing FAX documents.
+ .muse: Muse.
+ .noixml: Nemetschek NOI XML format
+ .nrg: Native imaging format of the CD-ROM mastering program "Nero - Burning ROM"
+ .nroff: A subset of .troff which is suitable for output on text-based output devices such as terminals and line printers.
+ .o5c: OpenStreetMap Binary Changes. Contains the same data as .osc files, except encoded in a very similar (identical except for the header) way as .oc5 files.
+ .o5m: OpenStreetMap binary data format. Contains the same data as .osm files, but encoded in the ProtocolBuffers binary format and thus approximately 5 times smaller (thus the name) than the equivalent .osm data. A typical size reduction would be minus 85 % if not compressed further, minus 90 % if further compressed with gzip or minus 92 % of compressed with 7z. The gzip-compressed variant has a similar size as the .osm.pbf format (which already contains internal compression).
+ .ocr.pdf: A PDF-File containing OCR-recognized text. Usually hidden invisibly (but can be selected with the mouse) after the scanned text image from which the OCR text was extracted.
+ .odg: The native file format of "lodraw", representing multiple-page vector graphics drawings.
+ .odt-flat.xml: This is an uncompressed OpenDocument XML word processor document. It can be read and written at least by LibreOffice. It contains the same information as normal .odt files, but is restricted to document contents which can be expressed as a single file. That is, it cannot contain images, for instance. An advantage of this format is that any normal plain text or XML-editor can be used to edit the files, and it is also simple to create such files from within any programming or scripting language which provides a means for creating text files (read: every language).
+ .odt: OpenDocument Text. This is the native format of the text processor applications from the LibreOffice and OpenOffice.org office suites. It consists of a ZIP-archive, containing compressed XML files and supporting media files, such as images.
+ .opml: OPML.
+ .org.emacs: Emacs Org mode.
+ .osc: OpenStreetMap Changes. Internally named "OsmChange" format. An XML-based delta text format for updating existing OSM data. Can create, modify or delete existing OSM file entries based in their node ID. Like .osm a very space-inefficient format.
+ .osh.osm: OpenStreetMap Full History Data. This seems to be the same format as .osm, except that changeset metadata like authorship and timestamps have not been stripped.
+ .osm.pbf: OpenStreetMap Protocolbuffer Binary Format. A very popular long-term archival and download-format for OSM data. Contains the same data as .osm, but encoded as ProtocolBuffers records instead as XML. In addition, the record stream is chunked into blocks which are compressed with various available algorithms (zlib/gzip, LZMA, LZ4, ZSTD, deprecated bzip2, uncompressed). Chunks are variable size and contain about 8000 serialized ProtoBuf messages in the default configuration. ProtoBuf tags are not used for encoding the application entry types; text strings are used instead. Compression is thus essential in order to remove most of this redundancy. The format supports random read-access with chunk granularity. This format is usually not further compressible.
+ .osm: OpenStreetMap geographical map format. A vector format. XML-based and thus a plain text format. Very versatile, but also verbose and wastes a lot of space. Therefore only useful as an intermediate format, but not for long-term storage. But even for temporary use, compressing as .gz oder .bz2 can save a lot of storage space.
+ .pagemaker: Presumably the native document file format of the proprietary closed-source Adobe PageMaker (TM) poduct.
+ .pandoc.hs: A plain text Haskell source file used as "native" representation format of the "pandoc" markup converter. It is not intended do be edited manually, but rather the intermediate result of a conversion between different markup formats. Although pandoc usually converts directly beween different formats without actually creating .pandoc.hs files, this format is useful in this document in order to describe the different formats pandoc can convert from and to. Especially useful is the "plain" output format, which allows to convert XHTML into UTF-8/ASCII text with ASCII-art for table borders.
+ .pandoc.markdown.txt: Pandoc's Markdown
+ .pbm: Portable bitmap. A trivial format for B/W bitmap images.
+ .pcbi: Engrave data - insulate/PCB format
+ .pcl: The Hewlett-Packard printer language. There are multiple versions. PCL 5 seems to be common.
+ .pcm.cdr: This is a file containing the PCM raw data of a Red Book Audio CD track, i. e. a sequence of 44.1 kHz stereo sample pairs. Every sample is stored as a 2-byte signed 16-bit little endian integer.
+ .pcs: Design format (Pfaff home, vector graphics format)
+ .pdf: Portable Document Format (vector graphics and bitmaps)
+ .perl.pod: A simple text-bases markup language with very little formatting capabilities. It was the language in which Perl (at least up to version 5) shipped its documentation. It is also popular as a general way to document Perl scripts and modules from application programmers in a way that allows the documentation to be extracted and displayed just like the Perl core documentation. For this purpose, a tool "perldoc" is shipped as part of the Perl installation, which can process and display .perl.pod files (which in reality have just the file extension ".pod" or ".pm").
+ .pes: Embroidery file format (Brother, vector graphics format)
+ .pgm: Portable graymap. A trivial format for gray images (only intensity, no color).
+ .phpextra.markdown.txt: PHP Markdown Extra.
+ .pic: A Graphics Language for Typesetting. Creates simple graphics made of boxes, circles, ellipses, lines, arrows, arcs, spline curves and text.
+ .picture.latex.tex2e.latex.tex: LaTeX2e picture format
+ .plt: HPGL for cutting plotter files (vector graphics format)
+ .pmwiki.txt: Input files for "PmWiki". Apparently some Wiki-System.
+ .pnm: Portable aNyMap. A term matching any of the following: .pbm .pgm .ppm.
+ .ppm: Portable pixmap. A trivial format for a color bitmap.
+ .pptx: PresentationML (PowerPoint) format. PowerPoint slide show.
+ .preformatted.txt: A plain text variant with a fixed maximum number of columns per line
+ .ps: PostScript (vector graphics and bitmaps)
+ .publishing.jats: JATS XML, Journal Publishing Tag Set.
+ .pyx: An XML transformation format suitable for line-based processing tools. Markup is broken down into individual lines, and each line starts with a type character specifying the contents of the line (entity, attribute, plain text etc).
+ .regis: ReGIS, short for Remote Graphic Instruction Set, was a vector graphics markup language developed DEC for later models of their famous VT computer terminals. Supports lines, circular arcs, and similar shapes. Terminals supporting ReGIS generally allowed graphics and text to be mixed on-screen, which made construction of graphs and charts relatively easy. Does not really have a file extension assigned.
+ .revealjs: "reveal.js" HTML5 + JavaScript slide show.
+ .rfc.txt: ASCII plain text format as used in "Request For Comments"-documents which define de-facto (RFC) and real (STD) Internet standards.
+ .rib: RenderMan Interface Bytestream
+ .rpl: Real3D Programming Language format
+ .rst.txt: A plain text source file used as input for the "reStructured text" text processor. This markup language is frequently used for formatting extractable inline documentation in program source code.
+ .rtf: Rich Text Format. It is frequently used to exchange formatted text, because most word processors can import and export this format. The data format is also typically more compact than using HTML or one of the more modern XML-based variants, at least in uncompressed form. Although RTF is a text-based format, its markup is hard to comprehend by human readers, any normally only edited using rich-text editors or word processor applications.
+ .s5: S5 HTML and JavaScript slide show.
+ .sgml: SGML is the Standard Generalized Markup Language, a precursor and far more complicated functional superset of XML. Note that .docbook.sgml is a frequently used special application of SGML and should rather be used as the document type when this applies.
+ .sk1: sK1 vector graphics files
+ .sk: Sketch/Skencil files (vector graphics format)
+ .slideous: Slideous HTML and JavaScript slide show
+ .slidy.input.xhtml: A normal XHTML source file where some HTML standard tags are interpreted specially by the "slidemaker" converter in order to create an online presentation with multiple slides from this single source document.
+ .slidy.output.xhtml: Slidy HTML and JavaScript slide show. The output slides generated from a single .slidy.input.xhtml file by "slidemaker". Other tools such as "asciidoc" can also generate .slidy.output.xhtml files. The individual slides that can then be viewed with any web browser. JavaScript is required for more advanced features, but not for basic functionality.
+ .sln: Microsoft Visual Studio solution file
+ .strict.markdown.txt: Original unextended Markdown.
+ .svg: Scalable Vector Graphics files
+ .svm: StarView/OpenOffice.org metafile
+ .t2t.txt: A in input source file in the native markup language of the txt2tags tool.
+ .tcp: Pseudo-superformat representing a subformat data stream delivered via the TCP networking protocol.
+ .tei: TEI Simple
+ .tex: A source file for the TeX typesetting system. TeX is an ugly yet powerful text-based markup language full of backslashes and curly braces. It is intended to create fixed-form printable output which is not well suited for consumption on devices with varying display sizes.
+ .texinfo: GNU Texinfo. This is a source file for documentation primarily used within the GNU project, and generates primarily GNU .info documentation files as output. However, .texinfo files can also be converted into many other formats. "Texinfo" is the official wording to refer to the format.
+ .textile: Textile.
+ .tgif.obj: Tgif .obj format
+ .tif: Tagged Image File Format (TIFF). Historically used for scanner and OCR software.
+ .tk: Tk and/or Tk applet source code
+ .toc+dat: A pair of *.doc and *.dat files, where the *.toc file contains offset and track information and the *.dat file contains the actual data of a multitrack Audio CD image.
+ .toml: TOML markup text file. TOML aims to be a pimped-up "INI"-file extension on steroids. It is quite similar to the OpenSSL configuration file and also uses dotted section names to represent structure. TOML is said to not scale well to large configuration, StrictYAML seems to be better suited for that.
+ .troff: A source file for the TROFF typesetting system, which is similar in purpose to TeX amd "LaTeX". However, TROFF is better suited for formatting general text documents, but its included preprocessors for tables or typesetting of mathematical formulas are not as powerful as TeX's. An advantage of TROFF is that it's documentation is smaller than that of "LaTeX", and that complex structures such as tables or equations have been factored out into separate preprocessors with separate documentation. However, it is also slightly less powerful than LaTeX. TROFF normally creates output for graphical displays, but can also create output for text-based devices by stripping graphical objects like embedded images from display. It is traditionally used in UNIX as the markup language for man pages, but can be used for far more than just that. One big disadvantage of troff is its incapability to deal with multibyte character sets such as UNICODE. Even though there are some hacks to address this issue, the basic problem persists and may be one of the reasons why LaTeX is preferred by most people for sophisticated text formatting.
+ .txt: Plain text. This is an unstructured format, not containing any markup. It is therefore mostly used as an output-only format. Also, there are many variants how to produce this output.
+ .utf8.txt: Plain text encoded using the UTF-8 transformation format of UNICODE.
+ .vcproj: Microsoft Visual Studio (newer versions) project file
+ .wav: Lossless PCM audio sample data, including a header which describes the format characteristics.
+ .wbmp: Wireless BitMap format
+ .web.cgm: WebCGM ist a "profile" (subset) of CGM intended for use on the Web.
+ .wmf: Windows Metafile files (primarily a vector graphics format)
+ .xbm: X11 bitmap - the prececessor of the .xpm format, and obsoleted by it. It is restricted to storing monochrome bitmaps.
+ .xhtml: An "XML" application for representing "HTML" content. It is syntactically similar to .html, but has stronger requirements for use of closing and empty tags. It is not frequently used on the Web directly, but is an important intermediate representation format for conversion between "HTML" and other formats.
+ .xml: A text format capable of representing structured text, containing elements, attributes, processing instructions and optional syntax definitions for document structure. XSLT can be used to transform document structure and -hierarchy. XML-FO can be used to transform XML to formatted plain text.
+ .xpm: X11 pixmap - an ASCII text format for defining icons and other small pixel-based graphics images. Monochrome and color pixel images are both supported, as well as a "transparent color". XPM files are in fact valid C source text, but need to be formatted in a very specific way in order to remain readable by conversion utilities.
+ .xwiki: XWiki markup.
+ .yaml: YAML markup text file. YAML represents structured data in an indention-based syntax, like "Python" except for data rather than code. It is basically a competitor to XML and appears better readable to humans. It is also popular as the syntactic framing of some domain-specific languages (DSL). Unfortunate it is (like XML) very bloated, confusing, has insecure defaults and is way too large. There is a subset "StrictYAML" which intends to correct those mistakes. Unfortunately there seems to be no documentation of StrictYAML itself, it is only defined as a set of omissions from YAML.
+ .yml: Alias for ".yaml". See there.
+ .zimwiki: ZimWiki markup
+ .zip.tiff: TIFF image with .zip-method compression
+ ====================
+.aff -> .uniconverter.internal: uniconverter
+.ai <-> .uniconverter.internal: uniconverter
+.ansi.txt -> .html: aha
+.anything <-> .7z: 7z
+.anything <-> .gz: gzip
+.anything <-> .lz4: lz4
+.asciidoc.txt -> .latex.tex: asciidoc-dblatex
+.asciidoc.txt -> .pdf: asciidoc-fop
+.asciidoc.txt -> .slidy.output.xhtml: asciidoc
+.autotrace.internal -> .ai: autotrace
+.autotrace.internal -> .asy: autotrace
+.autotrace.internal -> .c: autotrace
+.autotrace.internal -> .cairo: autotrace
+.autotrace.internal -> .cfdg: autotrace
+.autotrace.internal -> .cgm: autotrace
+.autotrace.internal -> .dat: autotrace
+.autotrace.internal -> .dr2d: autotrace
+.autotrace.internal -> .dxf: autotrace
+.autotrace.internal -> .emf: autotrace
+.autotrace.internal -> .epd: autotrace
+.autotrace.internal -> .eps: autotrace
+.autotrace.internal -> .er: autotrace
+.autotrace.internal -> .fig: autotrace
+.autotrace.internal -> .gcode: autotrace
+.autotrace.internal -> .gnuplot: autotrace
+.autotrace.internal -> .gschem: autotrace
+.autotrace.internal -> .hpgl: autotrace
+.autotrace.internal -> .idraw: autotrace
+.autotrace.internal -> .java-v1.java: autotrace
+.autotrace.internal -> .java-v2.java: autotrace
+.autotrace.internal -> .java: autotrace
+.autotrace.internal -> .kil: autotrace
+.autotrace.internal -> .lwo: autotrace
+.autotrace.internal -> .m: autotrace
+.autotrace.internal -> .magick.internal: autotrace
+.autotrace.internal -> .mif: autotrace
+.autotrace.internal -> .mma: autotrace
+.autotrace.internal -> .mp: autotrace
+.autotrace.internal -> .mpost: autotrace
+.autotrace.internal -> .noixml: autotrace
+.autotrace.internal -> .obj: autotrace
+.autotrace.internal -> .p2e: autotrace
+.autotrace.internal -> .pcb: autotrace
+.autotrace.internal -> .pcbfill: autotrace
+.autotrace.internal -> .pcbi: autotrace
+.autotrace.internal -> .pcl: autotrace
+.autotrace.internal -> .pdf: autotrace
+.autotrace.internal -> .pic: autotrace
+.autotrace.internal -> .picture.latex.tex2e.latex.tex: autotrace
+.autotrace.internal -> .rib: autotrace
+.autotrace.internal -> .rpl: autotrace
+.autotrace.internal -> .sk: autotrace
+.autotrace.internal -> .svg: autotrace
+.autotrace.internal -> .svm: autotrace
+.autotrace.internal -> .swf: autotrace
+.autotrace.internal -> .tex: autotrace
+.autotrace.internal -> .text: autotrace
+.autotrace.internal -> .tgif: autotrace
+.autotrace.internal -> .tk: autotrace
+.autotrace.internal -> .txt: autotrace
+.autotrace.internal -> .vtk: autotrace
+.autotrace.internal -> .xml: autotrace
+.bin+cue -> .iso: bchunk
+.bin+cue -> .pcm.cdr: bchunk
+.bin+cue -> .wav: bchunk
+.bmp -> .autotrace.internal: autotrace
+.bmp -> .convertformat.internal: convertformat
+.bmp -> .jp2: opj_compress
+.bmp -> .jpg: cjpeg
+.bmp -> .leptonica.internal: tesseract
+.bmp -> .potrace.internal: potrace
+.ccx -> .uniconverter.internal: uniconverter
+.cdr -> .uniconverter.internal: uniconverter
+.cdt -> .uniconverter.internal: uniconverter
+.cgm <-> .uniconverter.internal: uniconverter
+.chm -> .html: archmage
+.cmx -> .uniconverter.internal: uniconverter
+.commonmark <-> .pandoc.hs: pandoc
+.convertformat.internal -> .bmp : convertformat
+.convertformat.internal -> .g4.tiff: convertformat
+.convertformat.internal -> .gif: convertformat
+.convertformat.internal -> .jp2: convertformat
+.convertformat.internal -> .jpg: convertformat
+.convertformat.internal -> .pdf: convertfilestopdf
+.convertformat.internal -> .png: convertformat
+.convertformat.internal -> .pnm: convertformat
+.convertformat.internal -> .ps: convertfilestops
+.convertformat.internal -> .webp: convertformat
+.convertformat.internal -> .zip.tiff: convertformat
+.creole.txt -> .pandoc.hs: pandoc
+.csv -> .pandoc.hs: pandoc
+.dict.tcp -> .local: curl
+.docbook.sgml -> .dvi: docbook2dvi
+.docbook.sgml -> .dvi: jw
+.docbook.sgml -> .html: docbook2html
+.docbook.sgml -> .html: jw
+.docbook.sgml -> .latex.tex: docbook2tex
+.docbook.sgml -> .latex.tex: jw
+.docbook.sgml -> .man.troff: docbook2man
+.docbook.sgml -> .man.troff: jw
+.docbook.sgml -> .pdf: docbook2pdf
+.docbook.sgml -> .pdf: jw
+.docbook.sgml -> .ps: docbook2ps
+.docbook.sgml -> .ps: jw
+.docbook.sgml -> .rtf: docbook2rtf
+.docbook.sgml -> .rtf: jw
+.docbook.sgml -> .texinfo: docbook2texi
+.docbook.sgml -> .texinfo: jw
+.docbook.sgml -> .txt: docbook2txt
+.docbook.sgml -> .txt: jw
+.docbook.sgml <-> .pandoc.hs: pandoc
+.docbook.xml -> .man.troff: docbook2x
+.docbook.xml -> .texinfo: docbook2x
+.docx <-> .pandoc.hs: pandoc
+.dokuwiki.txt <-> .pandoc.hs: pandoc
+.dot -> .bmp: graphviz
+.dot -> .cmapx.html: graphviz
+.dot -> .fig: graphviz
+.dot -> .gd: graphviz
+.dot -> .gif: graphviz
+.dot -> .gxl: dot2gxl
+.dot -> .imap.html: graphviz
+.dot -> .jpg: graphviz
+.dot -> .json: graphviz
+.dot -> .pdf: graphviz
+.dot -> .png: graphviz
+.dot -> .ps: graphviz
+.dot -> .svg: graphviz
+.dot -> .vrml: graphviz
+.dot -> .wbmp: graphviz
+.dsp -> .mk: winemaker
+.dst -> .uniconverter.internal: uniconverter
+.dsw -> .mk: winemaker
+.dxf -> .uniconverter.internal: uniconverter
+.emf -> .emz: gzip
+.emz -> .emf: zcat
+.epub <-> .pandoc.hs: pandoc
+.etx -> html: setext2html.pl
+.exactimage.internal -> .multipage.tif: e2mtiff
+.exactimage.internal -> .ocr.pdf: hocr2pdf
+.exactimage.internal <-> .bmp: econvert
+.exactimage.internal <-> .eps: econvert
+.exactimage.internal <-> .gif: econvert
+.exactimage.internal <-> .jp2: econvert
+.exactimage.internal <-> .jpg: econvert
+.exactimage.internal <-> .openexr: econvert
+.exactimage.internal <-> .pbm: econvert
+.exactimage.internal <-> .pcx: econvert
+.exactimage.internal <-> .png: econvert
+.exactimage.internal <-> .ps: econvert
+.exactimage.internal <-> .raw: econvert
+.exactimage.internal <-> .tga: econvert
+.exactimage.internal <-> .xpm: econvert
+.exactimage.internal <-> dhr-raw: econvert
+.exp -> .uniconverter.internal: uniconverter
+.fb2 <-> .pandoc.hs: pandoc
+.fig -> .uniconverter.internal: uniconverter
+.file.url -> .local: curl
+.ftp.tcp -> .local: curl
+.ftps.tcp -> .local: curl
+.g4.tiff -> .convertformat.internal: convertformat
+.gif -> .convertformat.internal: convertformat
+.gif -> .leptonica.internal: tesseract
+.github.markdown.txt <-> .pandoc.hs: pandoc
+.gopher.tcp -> .local: curl
+.gxl -> .dot: gxl2dot
+.haddock <-> .pandoc.hs: pandoc
+.hocr -> .ocr.pdf: hocr2pdf
+.html -> .txt: lynx
+.html -> .xml: tidy
+.html <-> .pandoc.hs: pandoc
+.html <-> .xhtml: tidy
+.http.tcp -> .local: curl
+.http.tcp -> .local: wget
+.https.tcp -> .local: curl
+.https.tcp -> .local: wget
+.imap.tcp -> .local: curl
+.imaps.tcp -> .local: curl
+.info -> .html.tcp: info2www.cgi
+.info -> .man.troff: info2man
+.info -> .perl.pod: info2pod
+.inkscape.exportable.internal -> .dxf: inkscape
+.inkscape.exportable.internal -> .emf: inkscape
+.inkscape.exportable.internal -> .eps: inkscape
+.inkscape.exportable.internal -> .fxg: inkscape
+.inkscape.exportable.internal -> .gpl: inkscape
+.inkscape.exportable.internal -> .hpgl: inkscape
+.inkscape.exportable.internal -> .html: inkscape
+.inkscape.exportable.internal -> .jpg: inkscape
+.inkscape.exportable.internal -> .odg: inkscape
+.inkscape.exportable.internal -> .pdf: inkscape
+.inkscape.exportable.internal -> .png: inkscape
+.inkscape.exportable.internal -> .pov: inkscape
+.inkscape.exportable.internal -> .ps: inkscape
+.inkscape.exportable.internal -> .sif: inkscape
+.inkscape.exportable.internal -> .svg: inkscape
+.inkscape.exportable.internal -> .svgz: inkscape
+.inkscape.exportable.internal -> .tar: inkscape
+.inkscape.exportable.internal -> .tex: inkscape
+.inkscape.exportable.internal -> .tif: inkscape
+.inkscape.exportable.internal -> .webp: inkscape
+.inkscape.exportable.internal -> .wmf: inkscape
+.inkscape.exportable.internal -> .xaml: inkscape
+.inkscape.exportable.internal -> .zip: inkscape
+.ipynb <-> .pandoc.hs: pandoc
+.jats <-> .pandoc.hs: pandoc
+.jira <-> .pandoc.hs: pandoc
+.jp2 -> .bmp: opj_decompress
+.jp2 -> .convertformat.internal: convertformat
+.jp2 -> .pdf: img2pdf
+.jp2 -> .pgm: opj_decompress
+.jp2 -> .pgx: opj_decompress
+.jp2 -> .png: opj_decompress
+.jp2 -> .pnm: opj_decompress
+.jp2 -> .ppm: opj_decompress
+.jp2 -> .raw: opj_decompress
+.jp2 -> .tga: opj_decompress
+.jp2 -> .tif: opj_decompress
+.jpg -> .bmp: djpeg
+.jpg -> .convertformat.internal: convertformat
+.jpg -> .leptonica.internal: tesseract
+.jpg -> .pdf: img2pdf
+.jpg -> .pgm: djpeg
+.jpg -> .ppm: djpeg
+.jpg -> .rle: djpeg
+.jpg -> .tga: djpeg
+.json <-> .pandoc.hs: pandoc
+.latex.tex <-> .pandoc.hs: pandoc
+.ldap.tcp -> .local: curl
+.ldaps.tcp -> .local: curl
+.leptonica.internal -> .hocr: tesseract
+.leptonica.internal -> .txt: tesseract
+.man.troff -> .dvi: man
+.man.troff -> .html: man
+.man.troff -> .html: rman
+.man.troff -> .latex.tex: rman
+.man.troff -> .nroff: rman
+.man.troff -> .perl.pod: rman
+.man.troff -> .ps: man
+.man.troff -> .rtf: rman
+.man.troff -> .sgml: rman
+.man.troff -> .troff: rman
+.man.troff -> .txt: man
+.man.troff -> .txt: rman
+.man.troff <-> .pandoc.hs: pandoc
+.markdown.txt -> .rfc.txt: pandoc2rfc
+.mdf -> .bin+cue: mdf2iso
+.mdf -> .iso: mdf2iso
+.mdf -> .toc+dat: mdf2iso
+.mediawiki <-> .pandoc.hs: pandoc
+.mmd.markdown.txt <-> .pandoc.hs: pandoc
+.multipage.tif -> .leptonica.internal: tesseract
+.muse <-> .pandoc.hs: pandoc
+.nrg -> .iso: nrg2iso
+.o5c <-> .osmconvert.internal: osmconvert
+.o5m <-> .osmconvert.internal: osmconvert
+.odg <-> .xhtml: lodraw
+.odt <-> .pandoc.hs: pandoc
+.opml <-> .pandoc.hs: pandoc
+.org.emacs <-> .pandoc.hs: pandoc
+.osc <-> .osmconvert.internal: osmconvert
+.osc.gz -> .osmconvert.internal: osmconvert
+.osh.osm <-> .osmconvert.internal: osmconvert
+.osm <-> .osmconvert.internal: osmconvert
+.osm.pbf <-> .osmconvert.internal: osmconvert
+.osmconvert.internal -> .csv: osmconvert
+.pandoc.hs -> .aa.txt: pandoc
+.pandoc.hs -> .archiving.jats: pandoc
+.pandoc.hs -> .articleauthoring.jats: pandoc
+.pandoc.hs -> .asciidoc.txt: pandoc
+.pandoc.hs -> .asciidoctor.asciidoc.txt: pandoc
+.pandoc.hs -> .beamer: pandoc
+.pandoc.hs -> .context: pandoc
+.pandoc.hs -> .docbook4.docbook.sgml: pandoc
+.pandoc.hs -> .docbook5.docbook.sgml: pandoc
+.pandoc.hs -> .dzslides: pandoc
+.pandoc.hs -> .epub2.epub: pandoc
+.pandoc.hs -> .epub3.epub: pandoc
+.pandoc.hs -> .html4.html: pandoc
+.pandoc.hs -> .html5.html: pandoc
+.pandoc.hs -> .icml: pandoc
+.pandoc.hs -> .ms: pandoc
+.pandoc.hs -> .odt-flat.xml: pandoc
+.pandoc.hs -> .pdf: pandoc
+.pandoc.hs -> .pptx: pandoc
+.pandoc.hs -> .publishing.jats: pandoc
+.pandoc.hs -> .revealjs: pandoc
+.pandoc.hs -> .rtf: pandoc
+.pandoc.hs -> .s5: pandoc
+.pandoc.hs -> .slideous: pandoc
+.pandoc.hs -> .slidy.output.xhtml: pandoc
+.pandoc.hs -> .tei: pandoc
+.pandoc.hs -> .texinfo: pandoc
+.pandoc.hs -> .txt: pandoc
+.pandoc.hs -> .xwiki: pandoc
+.pandoc.hs -> .zimwiki: pandoc
+.pandoc.markdown.txt <-> .pandoc.hs: pandoc
+.pbm -> .autotrace.internal: autotrace
+.pcs -> .uniconverter.internal: uniconverter
+.pdf -> .djvu: pdf2djvu
+.pdf -> .eps: pdftocairo
+.pdf -> .html: pdf2htmlex
+.pdf -> .html: pdftohtml
+.pdf -> .jpg: pdftocairo
+.pdf -> .png: pdftocairo
+.pdf -> .ppm: pdftoppm
+.pdf -> .ps: pdftocairo
+.pdf -> .ps: pdftops
+.pdf -> .svg: pdftocairo
+.pdf -> .tiff: pdftocairo
+.pdf -> .txt: pdftotext
+.pdf <-> .drm.pdf: qpdf
+.pdf <-> .odg: lodraw
+.pdf <-> .pstoedit.internal: pstoedit
+.perl.pod -> .texinfo: pod2texi
+.pes -> .uniconverter.internal: uniconverter
+.pgm -> .autotrace.internal: autotrace
+.pgm -> .jp2: opj_compress
+.pgm -> .jpg: cjpeg
+.pgx -> .jp2: opj_compress
+.phpextra.markdown.txt <-> .pandoc.hs: pandoc
+.pic -> .X-gnu_graphics_metafile: pic2plot
+.pic -> .ai: pic2plot
+.pic -> .fig: pic2plot
+.pic -> .gif: pic2plot
+.pic -> .hpgl: pic2plot
+.pic -> .idraw: pic2plot
+.pic -> .latex.tex: pic
+.pic -> .pbm: pic2plot
+.pic -> .pcl: pic2plot
+.pic -> .pgm: pic2plot
+.pic -> .png: pic2plot
+.pic -> .ppm: pic2plot
+.pic -> .regis: pic2plot
+.pic -> .svg: pic2plot
+.pic -> .troff: pic
+.pic -> .web.cgm: pic2plot
+.plt <-> .uniconverter.internal: uniconverter
+.png -> .autotrace.internal: autotrace
+.png -> .convertformat.internal: convertformat
+.png -> .jp2: opj_compress
+.png -> .leptonica.internal: tesseract
+.png -> .pdf: img2pdf
+.pnm -> .autotrace.internal: autotrace
+.pnm -> .convertformat.internal: convertformat
+.pnm -> .jp2: opj_compress
+.pnm -> .leptonica.internal: tesseract
+.pnm -> .potrace.internal: potrace
+.pop3.tcp -> .local: curl
+.pop3s.tcp -> .local: curl
+.potrace.internal -> .dxf: potrace
+.potrace.internal -> .eps: potrace
+.potrace.internal -> .fig: potrace
+.potrace.internal -> .geojson: potrace
+.potrace.internal -> .gimp.internal.path: potrace
+.potrace.internal -> .pdf: potrace
+.potrace.internal -> .pgm: potrace
+.potrace.internal -> .ps: potrace
+.potrace.internal -> .svg: potrace
+.ppm -> .autotrace.internal: autotrace
+.ppm -> .jp2: opj_compress
+.ppm -> .jpg: cjpeg
+.preformatted.txt -> .pdf: unoconv
+.preformatted.txt <-> .html: unoconv
+.ps -> .txt: ps2ascii
+.ps -> .txt: pstotext
+.ps <-> .pdf: gs
+.ps <-> .pstoedit.internal: pstoedit
+.pstoedit.internal -> .applet.java: pstoedit
+.pstoedit.internal -> .asy: pstoedit
+.pstoedit.internal -> .cairo.c: pstoedit
+.pstoedit.internal -> .cfdg: pstoedit
+.pstoedit.internal -> .dxf: pstoedit
+.pstoedit.internal -> .emf: pstoedit
+.pstoedit.internal -> .gcode: pstoedit
+.pstoedit.internal -> .gmfa: pstoedit
+.pstoedit.internal -> .gmfb: pstoedit
+.pstoedit.internal -> .gnuplot: pstoedit
+.pstoedit.internal -> .gs.internal: pstoedit
+.pstoedit.internal -> .gschem: pstoedit
+.pstoedit.internal -> .hpgl: pstoedit
+.pstoedit.internal -> .idraw.eps: pstoedit
+.pstoedit.internal -> .java: pstoedit
+.pstoedit.internal -> .kil: pstoedit
+.pstoedit.internal -> .lwo: pstoedit
+.pstoedit.internal -> .magick.internal: pstoedit
+.pstoedit.internal -> .mma: pstoedit
+.pstoedit.internal -> .mpost: pstoedit
+.pstoedit.internal -> .noixml: pstoedit
+.pstoedit.internal -> .pcb: pstoedit
+.pstoedit.internal -> .pcbi: pstoedit
+.pstoedit.internal -> .pcl: pstoedit
+.pstoedit.internal -> .pic: pstoedit
+.pstoedit.internal -> .picture.latex.tex2e.latex.tex: pstoedit
+.pstoedit.internal -> .pptx: pstoedit
+.pstoedit.internal -> .rib: pstoedit
+.pstoedit.internal -> .rpl: pstoedit
+.pstoedit.internal -> .sk: pstoedit
+.pstoedit.internal -> .svm: pstoedit
+.pstoedit.internal -> .tgif.obj: pstoedit
+.pstoedit.internal -> .tk: pstoedit
+.pstoedit.internal -> .txt: pstoedit
+.pstoedit.internal -> .vtk: pstoedit
+.pstoedit.internal -> .xfig: pstoedit
+.raw -> .jp2: opj_compress
+.rle -> .jpg: cjpeg
+.rle: Utah Raster Toolkit RLE (Run-Length Encoded) pixmap format.
+.rst.txt <-> .pandoc.hs: pandoc
+.rtmp.tcp -> .local: curl
+.rtsp.tcp -> .local: curl
+.scp.tcp -> .local: curl
+.sftp.tcp -> .local: curl
+.sk <-> .uniconverter.internal: uniconverter
+.sk1 <-> .uniconverter.internal: uniconverter
+.slidy.output.xhtml -> .xhtml: slidemaker
+.sln -> .mk: winemaker
+.smb.tcp -> .local: curl
+.smbs.tcp -> .local: curl
+.smtp.tcp -> .local: curl
+.smtps.tcp -> .local: curl
+.strict.markdown.txt <-> .pandoc.hs: pandoc
+.svg -> .cairo.xml: rsvg-convert
+.svg -> .exactimage.internal: econvert
+.svg -> .inkscape.exportable.internal: inkscape
+.svg -> .pdf: rsvg-convert
+.svg -> .png: rsvg-convert
+.svg -> .ps: rsvg-convert
+.svg -> .svg: rsvg-convert
+.svg <-> .uniconverter.internal: uniconverter
+.t2t.txt -> .aa.txt: txt2tags
+.t2t.txt -> .asciidoc.txt: txt2tags
+.t2t.txt -> .creole.txt: txt2tags
+.t2t.txt -> .docbook.sgml: txt2tags
+.t2t.txt -> .dokuwiki.txt: txt2tags
+.t2t.txt -> .google_code_wiki.txt: txt2tags
+.t2t.txt -> .html: txt2tags
+.t2t.txt -> .latex.tex: txt2tags
+.t2t.txt -> .lout.txt: txt2tags
+.t2t.txt -> .magicpoint.txt: txt2tags
+.t2t.txt -> .man.troff: txt2tags
+.t2t.txt -> .mediawiki.txt: txt2tags
+.t2t.txt -> .moinmoin.txt: txt2tags
+.t2t.txt -> .pagemaker: txt2tags
+.t2t.txt -> .pandoc.hs: pandoc
+.t2t.txt -> .pmwiki.txt: txt2tags
+.t2t.txt -> .sgml: txt2tags
+.t2t.txt -> .txt: txt2tags
+.t2t.txt -> .xhtml: txt2tags
+.telnet.tcp -> .local: curl
+.texinfo -> .docbook.xml: makeinfo
+.texinfo -> .dvi: texi2dvi
+.texinfo -> .html: makeinfo
+.texinfo -> .html: texi2html
+.texinfo -> .info: makeinfo
+.texinfo -> .pdf: texi2dvi
+.texinfo -> .xml: makeinfo
+.textile <-> .pandoc.hs: pandoc
+.tftp.tcp -> .local: curl
+.tga -> .autotrace.internal: autotrace
+.tga -> .jp2: opj_compress
+.tga -> .jpg: cjpeg
+.tif -> .jp2: opj_compress
+.tif -> .leptonica.internal: tesseract
+.tif -> .multipage.tif: tiffcp
+.tif -> .pdf: tiff2pdf
+.tif -> .ps: tiff2ps
+.tiff -> .convertformat.internal: convertformat
+.tikiwiki.txt -> .pandoc.hs: pandoc
+.toml -> .json: tomlq
+.troff -> .aa.txt: groff
+.troff -> .ascii.txt: groff
+.troff -> .cp1047.txt: groff
+.troff -> .dvi: groff
+.troff -> .html: groff
+.troff -> .latin1.txt: groff
+.troff -> .pdf: groff
+.troff -> .ps: groff
+.troff -> .utf8.txt: groff
+.twiki.txt -> .pandoc.hs: pandoc
+.uniconverter.internal -> .pdf: uniconverter
+.uniconverter.internal -> .ps: uniconverter
+.vcproj -> .mk: winemaker
+.vimwiki.txt -> .pandoc.hs: pandoc
+.webp -> .convertformat.internal: convertformat
+.webp -> .leptonica.internal: tesseract
+.wmf <-> .uniconverter.internal: uniconverter
+.xml -> .afp: fop
+.xml -> .json: xq-python
+.xml -> .pcl: fop
+.xml -> .pdf: fop
+.xml -> .png: fop
+.xml -> .rtf: fop
+.xml -> .tif: fop
+.xml -> .txt: fop
+.xml <-> .pyx: xmlstarlet
+.yaml -> .json: yq
+.yml <-> .yaml: cat

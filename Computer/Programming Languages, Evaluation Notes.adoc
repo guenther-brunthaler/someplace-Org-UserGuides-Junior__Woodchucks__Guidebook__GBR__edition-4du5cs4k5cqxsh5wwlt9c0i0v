@@ -1,0 +1,2071 @@
+Programming Languages, Evaluation Notes
+=======================================
+v2023.231
+
+
+Tcl 8.6
+-------
+
+Tcl might by conceptually elegant, but one tends to drown in a plethora of nested curly braces. As a consequence, the code is not very readable, let alone when "one liners" are used. But even when split into multiple lines, complex expressions tend to be even less readable than C or Perl.
+
+It is strange that "#" is not only a command, but that any curly braces in a comment need to be balanced correctly, or otherwise the end of the comment will not be recognized properly. Note: A book about Tcl states that. I could not verify this claim. Perhaps this mis-feature has been removed from Tcl 8.6, which I am using right now.
+
+Tcl's "arrays" are a misnomer, because they are actually hashes. And Tcl's lists are what other languages would consider to be arrays.
+
+However, there is a important difference between arrays and lists which restricts specific uses for both: Only arrays can be passed by name in and out of a procedure; lists are always passed or returned by value. This makes a big difference, for instance, if a procedure shall only modify specific array elements. If a list had been passed instead, a new list needs to be returned which contains the modified list items as well as the unmodified ones. This can cause "shimmering" (frequent conversion between string-representation and internal representation of an argument or return value) and may be inefficient.
+
+Tcl's hashes ("arrays") have the severe restriction that embedded ")" characters will be mis-interpreted as the end of the index expression; at least when using the array(index_expression) syntax specified as a string rather than using a variable as the index. This means that hash keys are restricted in what characters they may contain; otherwise complicated escaping schemes need to be applied. This is very annoying and also rather unnecessary. It seems to be historic baggage, yet remains until today. And it is unlikely to ever go away because of backwards-compatibility concerns.
+
+A big advantage of Tcl is that all runtime errors and I/O errors in particular generate exceptions automatically. The programmer does not need explicitly check for success of I/O operations like they are forced to do so in many languages like C and, unfortunately, also in Lua.
+
+There is a catch, though: Even though Tcl detects runtime errors automatically and raises exceptions which display appropriate error messages, this comfort does not extend to the exit code of the executable: Unless a custom error handler is installed which exits with a specific failure exit code, failing scripts return with an exit code of "success". Although it is easy to add a custom error handler, it is still annoying that this is necessary at all. In a more sane implementation, EXIT_FAILURE would be the default exit code in case of an exception when no custom error handler has been installed.
+
+The built-in multiprecision arithmetic is nice, freeing the programmer of most considerations about value ranges and low-level type restrictions.
+
+The Tcl standard library is very complete, and little if anything is missing which might be required by an application programmer. Yet the runtime library (excluding the optional Tk) still has a managable size, approximately the same size as the combined standard C runtime libraries (about 1.5 MB). Compare this to the installation size of, say, the JAVA standard libraries, which are also very complete but *way* larger. Although Tcl will never beat the small size of Lua's runtime, it is still small enough for putting it into an initramfs if necessary, and its standard library is also many times more powerful than Lua's. For instance, it includes full-fledged Perl-like regular expressions, and the beforementioned multiprecision-arithmetic support.
+
+Even the optional Tk library is not too large; about the same size as the basic Tcl runtime library. However, it requires a couple of widely-use third-party libraries as dependencies, such as FreeType, PCRE, X11, libpng etc, resulting in a larger total installation footprint. But assuming those other libraries will very likely already be installed, Tk's installation footprint is rather small, especially when compared to "usual" Toolkits like Qt, GTK+ or WxWidgets.
+
+Tcl has tight historic connections with SQLite. In fact, SQLite started out as a C language extension of Tcl, which became independent later. But SQLite still ships with Tcl bindings, and both programs work very well together. It also seems the author of SQlite is a huge Tcl fan.
+
+Tcl is available for most platforms. The only possible source of problems is the language revision available: Tcl 8.4 seems to be available nearly everywhere, 8.6 seems to be available on most platforms, and 8.5 on all major platforms. While it seems to be unproblematic to write code for 8.5, there are still a few systems out there where 8.6 has not yet been deployed. (And possibly never will, such as in case of the Nokia N900 which is not actively developed any more).
+
+Tcl seems similar in power to Python, but has a much smaller installation footprint. I also assume it consumes less memory, because memory allocations in Tcl are reference-counted and it does not use (or need) garbage collection, which can be a big memory hog (just look at JAVA).
+
+On the other hand, Python seems to be a much more readable language than Tcl, and is certainly more suitable for beginners. Tcl is more conceptually elegant than Python, but that does not help when scripts are drowning in curly braces.
+
+I found it strange but potentially useful that double quotes are used for quoting only if preceded by whitespace (or at the start of the line). They are treated as literal characters when embedded within a "bare" string which does not need quoting.
+
+Similarly, the dollar sign is only used for variable interpolation when followed by something that looks like a variable or array name. Otherwise, it is treated literally and needs not special escaping.
+
+Multi-line strings enclosed with double quotes can span multiple lines, and include the line-end characters as part of the resulting string, just like in the Bourne shell.
+
+It is nice that C-like escape sequences for characters can be used virtually everywhere, and not just inside string constants. But then, in Tcl "everything is a string" - and this should therefore not be too surprising.
+
+Numeric escapes are even more useful than in C, as the maxium number of allowed digits in the constant is limited. For instance, "\xabc" means 0xab followed by "c" in Tcl, but would be implementation-defined behavior in C.
+
+However, it is strange that a backslash-newline sequence is substituted by a space rather than an empty string. I guess the idea is that strings split over several source lines usually include a space character at the beginning or end of each line-segment anyway, and Tcl wants to save the programmer the trouble of having to actually type it.
+
+There is another related oddness, being the "concat" command, which separates the concatenated strings with blank characters. In all other languages and libraries I know of, "concat" concatenates strings without any separators. Concatenation using separators is usually done with the "join" command instead. But Tcl has the "join"-command, too. In Tcl, "concat" is therefore just a specialized version of "join".
+
+To add to the confusion, there is also a command "list" which does the same thing as "concat" in the absence of quoting. However, "list" and "lappend" preserve list structure, while "concat" (or just enclosing space-separated strings within double quotes) flattens one level of list nesting in case of nested lists. The distinction between "list" and "concat" is especially important for the "eval" command which expects a command list as arguments.
+
+Tcl's built-in arithmetic operators (of the "expr" command) are identical to C, and not just the operator symbols, but also by operator precedence.
+
+A practical advantage of Tcl is that it one of the older scripting languages. Let me just quote from a Tcl textbook: "Tcl 8.0p2 was the last release to officially support Windows 3.1". The first version of Tcl was announced in 1990. That is, Tcl is slightly older then Linux. A major release was version 7.5 in 1996, and 8.2 was released 1999. Now, 15 years later at the time of this writing, we have 8.6. This means that new versions are not dished out too frequently, and the language and runtime-library had enough time to become mature and stable. Tcl scripts can therefore be expected to run with only little modifications (or none at all) in future versions of Tcl. In other words, you won't have to update your Tcl scripts frequently because of new language versions. Most likely, scripts written today will run forever or at least for decades before changes are required. (Of course, this does not include Tk, which might need to undergo basic changes to support modern touch screen devices.)
+
+Tcl has quite nice Unicode support, and stole most features deemed useful from Perl5. It can therefore be used for similar tasks, but in a much cleaner way. On the other hand, I severely doubt that Tcl can beat Perl in compactness and power when it comes to short scripts.
+
+One problem I had when learning Tcl was the large number of commands and options for commands available in the standard library.
+
+There is some subcommand for nearly everything one could imagine, but it can be hard to find the command which features that subcommand.
+
+Especially the subcommands of commands will generic names like "info" are hard to remember, because there seems to be no apparent reason why those subcommands can be found there and not somewhere else.
+
+I also found a basic security flaw in Tk's "open": It interprets the string differently depending on how it 'looks': Either as a file name, or as an executable command in a pipe. This means that "open" could lead to unexpected execution of a command, if an attacker can force a Tcl script to open a specific file, and the attacker makes the file name look like a pipe command. Although it is possible to prefix a relative file name with something like "./" in order to avoid this problem, it is still dangerous because it is easy to forget the danger.
+
+Another problem of Tcl are the many competing object-oriented extensions which are still around. Fortunately, as of Tcl 8.6, "TclOO" has been included in the core distribution, creating hope that this extension will become dominant in the future. However, this is not yet the case.
+
+I also find TclOO's method how to access instance variables inefficient, at least for very small methods. TclOO stores instance variables in namespaces - every instance gets its own private namespace for this. Note that this has nothing to do with the namespace where the object class and its methods are stored - the private namespace I am refering to is only created for the per-object variables. In order to access those variables from a method, "my" is used which links an instance variable into the scope of the running method as if it were a local variable. The problem here is not that such a link exists, but rather that it has to be created every time the method is called. In other words, "my" is not just a declaration of some kind, but an executable function which consumes run-time. As a consequence, the more object variables are defined with "my" in a method, the more overhead the method will have. This is vastly different from most other scripting languages, which only pass an internal pointer to all the object's instance variables as a hidden argument (which is a constant overhead, no matter how many instance variables there are).
+
+
+Lua 5.3
+-------
+
+One interesting aspect of Lua is how it handles strings. Strings are immutable and are immediately de-duplicated every time a new string is created.
+
+This allows strings to be compared for equality very efficiently, because it suffices to compare the pointers to the strings.
+
+It also allows strings to be used efficiently as "atoms", "symbols" or "enums", because comparing some internal ordinal values is not significantly (or at all) faster than comparing two pointer values.
+
+It also saves memory, especially for large strings which occur frequently.
+
+Furthermore, a hash value does not need to be stored along with the string pointers like JAVA or Wren does, because pointer comparison suffices after deduplication.
+
+A drawback is that the de-duplication itself is relatively expensive, and it must be done even if no-one ever will compare the string.
+
+Lua uses a rather cheap hash function for string deduplication. Basically it hashes the string length as well as up to 32 bytes extracted from the string at regular intervals over its length. The core of the hash function applied to every byte it also cheap, using only constant shifts, bitwise exclusive-or and addition.
+
+But because the hash-function is very cheap, it is also not very good, and will give frequent hash collisions for long strings of the same size which have similar contents. This may lead to long collision chains, and a new string must be compared to all strings in the collision chain using memcmp() until it can be added as a new entry to the chain.
+
+Luckily, the string length is included within the hash, and so at least the frequent case of growing a string by appending to it is unlikely to create hash collisions with pre-existing shorter versions of the same string.
+
+Unreferenced strings will eventually be freed by garbage collection, but until then any temporary string which is no longer needed represents garbage.
+
+This makes it very inefficient, for instance, to grow a string in a loop by replacing it with a new version which has a new character added.
+
+Instead, Lua proposes a "string stack" algorithm for such a case, which is actually not only useful for Lua but also for other languages where appending to a string one character at a time creates a lot of garbage.
+
+When using this algorithm, string concatenation will become sufficiently efficient again rather than being very expensive garbage-wise, but it needs to be implemented at the application level rather than built into the native string concatentation operator.
+
+Although Lua is a garbage-collected language, it is not a memory hog like JAVA. This is because of the fact that it does not try to delay garbage collection as long as possible, but runs it rather frequently. This is actually tunable. With default settings, the memory overhead due to garbage collection can be expected to be no more than 100 % in most situations, and will actually be lower than that.
+
+Combined with the automatic string deduplication, Lua programs might actually use less memory than non-garbage-collected languages.
+
+Many weaknesses I identified with older releases of Lua are gone with 5.3:
+
+* There is a native integer type available now, eliminating the previous troubles with large file offsets in sparse files or with bit operations. Integers have the same size as floating point numbers and default to 64 bit, although Lua can also be built using 32 bit for both.
+
+* "goto" is now available and allows jumping out of nested loops efficiently.
+
+* The unnecessary "module"-statement has been removed which polluted the global namespace.
+
+Still, other problems remain:
+
+* There is no clean and portable solution for dealing with different versions of the language interpreter when installed in parallel on the same system, because different scripts require different interpreter versions. The Lua interpreter should provide a front-end which determines the correct interpreter executable and runs it, depending on the requirements of a script. Yes, this is also true for Python. See the Python2/3 debacle. But that does not make Lua any better.
+
+* Neither is there an established convention for a script library to declare which versions of Lua it is compatible with. Generally, versioning is a weak point in Lua, and most library authors ignore this point entirely. As a result, when downloading some third-party Lua script, it is hard to tell which version of the interpreter is actually required for running it.
+
+* The "local somevar = somemodule.somevar"-metaphor requires repetition of the name "somevar" and is used quite frequently. This should be eliminated by some "localize"-sort-of statement. Perhaps "local" could be extended for "local somemodule.somevar" to mean the same thing?
+
+* Global variables should be read-only by default. While it is easy to install a metatable function for the global environment which can enforce this, it is a nuisance to have to do it manually over and over again for every script. Or face the danger of using global variables by accident, because the "local" was forgotten. This is not a problem of the language itself and could easily be fixed by modifying the standard Lua interpreter executable accordingly. But it has not been fixed yet.
+
+* The "nil protocol"-metaphor has been a very bad design decision. It clutters Lua scripts with countless calls to assert(), and does not provide any real benefit. But worse, it is easy to forget checking the return value of an I/O function with assert(), and then any I/O errors will be silently ignored. This is the same basic problem as in C. However, Lua *does* provide exceptions, and therefore it is really annoying that they are not used for runtime error reporting most of the time by Lua's standard library.
+
+* The standard "io"-library is severely broken. First, as explained above, most I/O functions do not throw exceptions automatically but rather require the caller to wrap all function calls within assert() to check for exceptions manually. If the I/O functions threw the exceptions themselves, everything would me easier to use and more reliable. But this is not the only problem of the "io"-library. The main problem is that some I/O errors are not reported at all. That is, they are silently ignored. For instance, when "print" fails, it neither raises an exception, nor does it return an error return value that could be checked with assert(). And io.flush() has the same problem. There may be more functions with the same problems.
+
+
+Icon
+----
+
+Even though keywords are used where C uses parentheses, curly braces are still required most of the time for grouping compound expressions.
+
+Weakly typed: values are automatically coerced into expected types.
+
+A preprocessor similar to that for C is provided. It is used primarily for constant definitions, source file inclusion and conditional compilation.
+
+Icon programs are not run as scripts but rather compiled into executable binaries. However, Icon does not challenge C’s execution speed and is much slower. Icon programs also require about twice as much RAM as C programs.
+
+Besides using the preprocessor for including other source files, already-compiled libraries can be included with special-purpose instructions as well.
+
+Unfortunately, Icon uses PASCAL-style operators for comparison and assignment. The same is true for the logical "and" and "or" operators. This makes the language hard to use for programmers accustomed to C-style languages, as they would frequently confuse C and PASCAL operators.
+
+Contrary to actual PASCAL, Icon supports the add-to-, subtract-from- etc. operators of C, but using a PASCAL-style assignment-syntax. It even provides more of those combined operators than C does. There is also a binary operator for swapping the contents of two variables.
+
+Operator precedence is also quite different from C at times. For instance, logical "or" binds stronger than logical "and".
+
+Index positions (such as within strings) are 1-based as in FORTRAN, not 0-based as in C. In addition, index 0 refers to the position after the last element, -1 refers to the position before the last element, -2 to the position before that, and so on.
+
+Icon's most important features are generator expressions with automatic backtracking and string parsing.
+
+Unfortunately, Icon only supports octet strings (including the character with code point zero), not UNICODE or locale-specific character sets. It can therefore only be used properly with character encodings which are serialized as an octet stream, and where leading, middle and trailing octets can be determined by just looking at the code point value. That is, single-byte character sets as well as UTF-8 can be expected to work for most built-in functions, while shift-state- or offset-depending encodings such as BIG-5, UTF-16 or UCS-4 will most likely not be suitable.
+
+Icon provides named sets of characters such as "&letter". The manual only gives code point examples for ASCII, although EBCDIC is also mentioned sometimes. It remains unclear whether the interpretation of named character sets is locale-dependent, supports only ASCII and EBCDIC, or ASCII alone.
+
+My impression is that Icon considers character set and locale to be directly coupled to a platform, which is not true on any modern operating system supporting different locales to be used by different running programs.
+
+Icon provides integers of unrestricted magnitude (i.e. "multi-precision" arithmetic) and floating point numbers. Unfortunately, a few built-in operators are restricted to "small" integers which are used internally in the implementation. However, even those small integers are guaranteed to be at least 32 bits wide.
+
+Icon provides structures with named fields called "records", but unlike such structures in most scripting languages those are internally represented as arrays instead of hashes. Consequently, elements can be accessed either by name or by array index.
+
+Lists, sets, multi-dimensional arrays and associative tables are also provided. Is remains unclear whether multi-dimensional arrays are internally represented as flat structures with implied index arithmetic, or whether they are just nested arrays or lists. It is similarly unclear whether arrays and lists are represented internally different.
+
+So-called "co-expressions" are related to generators and co-routines and can be used, among other things, to create user-defined control-flow statements.
+
+Icon is garbage-collected, but uses dynamically allocated stacks and the system-provided stack as well. The dynamically allocated stacks seem to be the basis on which generators and co-expressions are based, and are allocated with a constant size. Even though it remains unclear whether that size can be specified or being tuned, it seems that it cannot be changed afterwards. Therefore, the maximum nesting- and recursion depth of several of the powerful built-in function seem to be arbitrarily limited. There seems also not to be any special support for tail calls or tail-recursion optimization in the language.
+
+Icon provides built-in support for windows and some graphic primitives, but they are of questionable value as they do not map properly to the features provided by modern GUI toolkits. Neither are they in par with the features provided by Tcl. It seems those language features have no practical value besides being used within tutorials for the language itself, but might lead to bloated runtime support libraries required for shipping compiled executables.
+
+There is no support for catching exceptions in the language, yet there are two ways to handle runtime errors: They can either be handled automatically by terminating the application with an appropriate error message. Or they can be converted to failures which are subject to backtracking and conditional processing. In the latter case, details of the error such as the error message can be obtained via built-in special functions. The choice which way errors are handled seems to be controlled by a global system variable.
+
+
+Nim
+---
+
+Syntactically, Nim is an interesting blend of elements from PASCAL, C, and Python. The declarations are mostly taken from PASCAL, but comparisons use "==" rather than "=", and assignment is "=" rather than ":=". This makes the language acceptable for programmers of C-like languages, an aspect in which many other languages have failed which took their PASCAL heritage too seriously.
+
+Originally, there was only support for signed integers; unsigned integers seemed to be despised by the language designers. However, as of 2020, a full set of signed and unsigned integers of all common bit widths seems to be available now.
+
+"Most often integers are used for counting objects that reside in memory, so int has the same size as a pointer" - That does not seem to be a particularly bright idea performance-wise, considering that "int" is 32 bit in "C" even under amd64.
+
+"Modules that depend on each other are possible, but strongly discouraged, because then one module cannot be reused without the other" - Are they really serious???
+
+Modules are also the granularity of access protection. Identifiers suffixed with a star ("*") are exported, all other symbols are private to the module. This also extends to object methods and instance variables: Within the module they are all visible. But outside the module only those marked with a star are accessible.
+
+Nim has generators, but they seem to be as restricted as those of Python. They are not coroutines. In particular, it seems impossible to use a generator to enumerate recursive data structures (without additional helper data-structures for that purpose), because they are not allowed to call functions. However, there are 2 types of generators: Inlines ones and closure-based ones. The first kind is extremely limited and basically inlines the generator calls.
+
+Nim supports object-oriented programming with single inheritance. If runtime type information is required (such as for downcasts), a type must be derived from "RootObj".
+
+Methods are not part of classes; classes do not seem to exist. Instead, methods seem to be otherwise ordinary and potentially overloaded procedures which use "dynamic dispatch" (call made via a pointer) rather than "static dispatch" (call made directly to code with a known address).
+
+In Nim, obj.func(arg) is the same as func(obj, arg). Methods can therefore be implemented as simple functions where the type of "obj" determines the "class" the method belongs to. There is no confusion of different classes define the same methods, because then the functions will be overloaded because of the different type of "obj".
+
+However, this only works for "static dispatch" (where the compiler can derive the type of the object at compile time).
+
+When using "dynamic dispatch" (via a pointer that can point to an object of a class or to any of its subclasses), a special "method" keyword is provided which must be used instead of "proc" then.
+
+Nim does not produce a virtual method table, but generates dispatch trees. This avoids the expensive indirect branch for method calls and enables inlining.
+
+Exception are objects, too. However, they need to be allocated on the heap. Which raises the question how an "out of memory"-exception could be allocated when there is no memory left.
+
+There is no special syntax for "getters" and "setters": Getters can be normal methods (which will often be inlined by using a pragma), and setters are normal methods, too, with the same name as the getter except that an "="-sign has been appended to it.
+
+This uses a feature named "stroping" of Nim which allows every token sequence or keyword to be interpreted as an identifier as long as it is enclosed between backtick characters.
+
+Array properties are also supported by overloading the array access operator.
+
+Nim supports Generics. They serve the same purpose as template types in C++. Syntatically, they consist of a normal type name with a list of type arguments within square brackets added. So "Tree[T]" means a generic type "Tree" parametrized with a type variable "T".
+
+However, Nim also has "template"s. They are basically automatically inlined functions. However, for some reason they can be used for short-circuit evaluation. Templates can also obtain a code block as their last argument, similar to Ruby.
+
+Earlier versions of Nim did not seem to have destructors at all. At least as of version 1.4.2, destructors are explicitly mentioned in the documentation, called "lifetime tracking hooks" there.
+
+However, try/finally is available, and it seems this is the only way of object destruction in case of exceptions.
+
+A particular strength of Nim is metaprogramming. Using its templates, macros, and the "const" keyword, it can pre-construct objects at compile-time, "inline" code, and even directly modify the abstract syntax tree while the compiler is still generating the code.
+
+Nim has garbage collection, but only for some features. It remains unclear what kind of garbage collector is actually used. However, this paragraph from the documentation raise the suspicion it might be the dreaded BoemGC:
+
+____
+The garbage collector does not consider a cstring to be a root and may collect the underlying memory. However in practice this almost never happens as the GC considers stack roots conservatively.
+____
+
+As of version 1.4.2. there are no less than seven different GCs among a program can choose. BoehmGC is one of them. However, other choices include Traditional Reference Counts, Automatic Reference Counts, Mark & Sweep and even "None" which allows manual memory management, just like in C. In other words, Nim seems really to be versatile when it comes to dynamic memory management, providing many options and alternatives. However, as every of the GCs has quite unique traits and requires different approaches how the application deals with object lifetimes, it seems unlikely that the current GC can be switched to a different one once a larger project has been started, because otherwise the existing application logic would need heavy adjustments.
+
+One oddity of Nim is that identifiers are treated as case-insignificant, except for their first letters. In addition, underscores can be used as part of identifiers but are insignificant and ignored as if they were not there.
+
+Another oddity is multiple assignment of the form "a, b, c = d": This is not just an assignment of "d" to "c" (or "a") as one might think, but rather syntactic sugar for assigning "d" to "a", "b" *and* "c"! And even worse, "d" is evaluated anew for every assignment. This will not make any difference in the example above, but it will make a big difference if the assignment source expression is a function call which has side effects: The function will be called every time, and the side-effects will occur as often. IMHO, this is just sick! An potentially dangerous, so one should be aware of that strange behavior.
+
+Nim also supports the "Uniform Function Call Syntax" (also supported by the D programming language) which allows to write function calls in various different ways, all meaning the same thing. Supposedly this is helpful for chaining function calls.
+
+Nim supports UTF-8 encoded strings and also provides a character type, but does not enforce any particular encoding. The strings and characters are just treated as bytes, but some support functions are available for processing them as UTF-8.
+
+Nim's strings are both null-terminated and byte-counted. Always. This allows to pass strings to 'C' functions without any reallocation because of a missing null byte, making library calls to external C APIs cheap. But internally, only the byte count is used, which means the null byte is wasted unless the string is actually passed to some 'C' API.
+
+Nim's syntax is basically indentation-based, very similar (at a quick glance) to Python. The languages themselves are pretty different, though, mostly because Nim is statically typed and Python is dynamically typed.
+
+Also, variables need to be declared in Nim - Python does that automatically on the first assignment to a variable.
+
+Nim supposedly creates very fast 'C'-code, whatever that means exactly because code generation is delegated to the 'C' compiler anyway. Nim is not a native code compiler, it just translates into 'C' and the 'C' compiler does the actual work. On the other hand, this also means that Nim is very portable, because it can be used on every platform providing a standard-compliant 'C' compiler.
+
+As can be expected, it is also very easy to interface with 'C' code - a `foreign` definition allows to directly invoke all 'C' functions.
+
+There are fixed-size and growable array implementations, both are homogeneous and therefore efficient to access.
+
+Variable arguments, sets and tuples are also available. Most container objects support runtime bounds checking.
+
+Pointer arithmetic is not directly supported, but pointers and references themselves are. Types can be annotated whether they allow null pointers (called 'nil' in Nim) to be provided as pointer values. This makes many things easier compared to 'C' where there is no such way to express this besides mentioning it in code comments and assertions.
+
+Type inference is supported via the `auto` keyword similar to C++11, but it cannot be used in all situations.
+
+Operator overloading is supported. The `let` keyword allows multiple-assignments (e.g. for swapping the contents of two variables); without it assignments work like in most 'C'-like languages.
+
+One specialty of Nim is that it guarantees strict left-to-right evaluation order of most arguments, most languages are not that specific. In addition, `and` and `or` also uses shortcut-evaluation.
+
+There is a hard distinction between Boolean and integers in Nim, they cannot be exchanged without explicit type conversion. Which means `if (x)` needs to be written as `if (x != 0)` properly.
+
+Nim supports a `defer` statement similar to `Go` as a less error-prone alternative to the `finally` keyword which is also available for exception handling.
+
+Nim also supports macros. Those are not preprocessor macros like in C, they rather expand (at compile time) macro invocations which look like normal function calls. They are very powerful, but they cannot alter Nim's syntax like preprocessor macros could. On the other hand, Nim's macros are much safer than those of 'C' and much more capable. They can pre-compute complicated calcutions, using loops and recursion if needed.
+
+Nim provides a lot of 'pragmas' (compiler directives) which can control several aspects of how the Nim compiler generates the output 'C' source code. This includes warning messages. Therefore, many such settings can be defined directly in the Nim source file, lessening the need to use Nim compiler command-line options.
+
+Security-wise, besides optional bounds- and type-specific overflow checks, Nim also features a 'taint'-mode much like that of Perl. This automatically marks external input data as 'tainted' (untrusted) until explicit measures are taken (such as parsing them and verifying their data format) to declare them as no longer tainted. Assignments and passing around the value is also tracked by the compiler. This seems to be an important cornerstone for writing safe networked applications.
+
+Nim can be compiled to JavaScript instead of into a native code executable. The compiler supports both. There are a few restrictions when compiling to JavaScript, but not many.
+
+Nim programs can be compiled with a special option which supports hot code reloading. This allows the executable code a program to be replaced  while it is still running. The switch occurs when the control flow crosses a module boundary.
+
+Documentation-wise, the whole Nim-specification is shipped as one single large HTML page (with a TOC and properly hyperlinked internally).
+
+
+Kotlin
+------
+
+Kotlin is language which compiles to the JVM, like JAVA or Scala. The authors of Kotlin seem to have liked Scala as a language, but disliked its slow compilation speed.
+
+Therefore, Kotlin tries to combine several things borrowed from Scala (this is just an assumption by me) with the compilation speed of JAVA (which is a goal explicitly stated by the Kotlin authors).
+
+One thing I did not like in Kotlin is that the compiler tries to follow the code paths used by conditional statements, and synthesize specific additional functionality as a consequence.
+
+For instance, if a the type of a generic variable of type "Any" is checked to be "String" within an "if"-condition, then the type of that variable is automatically cast to "String" within that conditional branch.
+
+While this seems to be practical at first, it obviously places restrictions on the way the conditional expression may be structured, or the compiler could not be smart enough to identify the condition.
+
+For instance, without restrictions, the code could write the result of the boolean expression into a file, read it back from there later, and only *then* use it as an conditional argument. The compiler could not follow *that*.
+
+Kotlin allows to embed arithmetic expressions within strings, and also can variables be "interpolated" into strings.
+
+This uses the "$"-sign for this purpose much like as in Perl or in Bourne shell scripts, and the "$"-interpolation in those languages has been a mess ever since.
+
+Besides making the parsing of string literals a challenge, it makes it hard to extract localize-able strings from the program source file, because the embedded expressions should never be shown to a translator, although the are part of the string literal (at least at the source-code level).
+
+Another problem of Kotlin, which it has inherited from Java, is the lack of unsigned integer types (except "Byte"). Even though newer versions of Kotlin provide unsigned integer types, this support is still considered "experimental" and cannot be relied upon to be forward-compatible. The lack of unsigned arithmetic makes the implementation of cryptographic algorithms unnecessarily complicated.
+
+There also does not seem to be an easy way to initialize arrays with bytes.
+
+Rust
+----
+
+Other than what one might expect, "use std::io" only seems import a single symbol "io" into the current namespace, rather than the contents of std::io which would be many items.
+
+This is the sane thing to do, however. No-one should import an unknown number of symbols into the current namespace, potentially risking name collisions!
+
+The Rust standard library has chosen an unfortunate pattern for error handling.
+
+The first problem is that a difference between unrecoverable and recoverable errors is being made.
+
+Unrecoverable errors are simple to use: The code which detects the error condition just call the panic!() macro, which unwinds the stack, calls destructors for cleaning up resources, and finally terminates the application with an error message. However, there is no (clean and recommended) way to catch this kind of error, and so panic!() cannot be used with most I/O-related errors where recovery is usually an option.
+
+Recoverable errors are handled completely different by the Rust standard libraries. Every function which might fail returns a result object which must be used somehow in order to avoid a compiler warning.
+
+Although this is better than C because just ignoring I/O errors is certainly also not the best way to go, it would have been better to "throw an exception" in such a case (just like in the case of unrecoverably errors, except being catchable).
+
+It is certainly possible to create a macro which checks the result and exits the application with an error message, but this macro needs then be called for every invocation of any I/O function.
+
+Which means, most "io" functions need to be wrapped within custom functions (or macros) if the application programmer does not want to care about error checking constantly, which is exactly the same way to go as with "C".
+
+Not much progress though, either.
+
+The "recommended" way of Rust to handle this situation is even dumber: Invoke an "expect" method on the returned result, specifying an error message to display if the I/O operation failed.
+
+Every time an I/O function is called!
+
+IMO, this is just a harebrained idea.
+
+When referencing external libraries (not the standard libraries), an "extern" declaration needs to be put into the source file which requires linking against that extern library.
+
+This is independent of "use" which only imports items into the local namespace, but does not have any affect on linking.
+
+At least "extern" also implies a "use" for the same symbol, therefore it is not necessary to mirror every "extern" with a "use" for the same external library.
+
+IMO, this is a better solution than in C, where such information needs to be specified outside the source file in the linker options. It allows library dependencies to be extracted from source code rather than putting them into external files (such as Makefiles).
+
+Multi-threading support seems to be a non-optional part of several wide-spread "de facto standard"-libraries, such as using the "C" library for generating random numbers. In this case, for instance, it seems necessary to use thread-local-storage, perhaps because the C library uses it internally for keeping track of the random seed of the current thread.
+
+However, in a C program not using multi-threading, those details are hidden from the developer who does not need to care.
+
+In Rust, one seems to be forced to use multi-threaded support objects for simple random numbers to work. I don't like that.
+
+Using external libraries using "cargo" may be easy, but it happily downloads large amounts of data without even asking the user whether she agrees.
+
+There also does not seem any way to get a preview how much approximately would be downloaded by a "cargo build"-command. cargo just starts downloading and does not care.
+
+This can become expensive, depending on the data plan you are using with your ISP. Not all data plans are flat rates.
+
+If your Internet connection uses roaming, casually executing "cargo build" could become very, very expensive for you.
+
+And the worst part is that it won't even keep the data already downloaded if something goes wrong, such as reaching your traffic limit: All the data just downloaded will be discarded, and once your quota has been recharged which has been exceeded, it will try downloading the same data again, exceeding the quota again and again and again...
+
+Part of the problem is that "cargo build" seems to run "git pull" behind the curtains, and it requests a full update rather than a shallow clone. Even though the repository used just tracks metadata index files rather than the actual source code files, that repository can be expected to get really huge.
+
+Just think about it: Every Rust programmer in the world who updates the version number of her open source Rust library will create a new commit in the git repository. Excpect millions of commits in that repository soon, at least if Rust should become a huge success.
+
+Do we really want to keep a copy of this large repository on the client machine of every developer using Rust and "cargo"?
+
+Searching the Internet about cases of problems with Rust and cargo also shows that choosing those names were not among the most fortunate choices ever made. You will find *nothing*, because "rust" and "cargo" are words which are used in different contexts much more frequently.
+
+Anyway, I finally managed to download the large git repository (55 MB as downloaded by git, 37 MB after minimizing/repacking, as of 2017-08-01). It is stored in ~/.cargo/registry, where also the sources of external libraries and other downloaded stuff is stored.
+
+I packed the whole contents of ~/.cargo/registry into an archive file and transfered it to my local machine manually.
+
+After extracting it there, putting the files in place, I was finally able to "cargo build" without it downloading large quantities of data in an uncontrolled way. (It still accessed the Internet, but downloaded only a few hundred kB until it was finally satisfied.)
+
+When learning about Rust's OOP features, I was mildly shocked by its "builder pattern" which is used in order to provide arguments to constructors.
+
+The problem is that Rust does not support named function arguments (on the caller's side), variable argument lists, or any form of operator or method overloading.
+
+The "builder pattern" works by creating a class with exactly the same instance variables the (non-existing) constructor of the original type would want to define as its arguments, and then define a setter function for every single parameter.
+
+The setter function does not use any special syntax, it just sets the respective parameter and returns a reference to the object, allowing the setter calls to be chained into a single expression.
+
+The builder object is initialized with useful default values for every parameter, and the last method called in the chain a finalize() method with actually creates an object of the target type and returns it.
+
+This is powerful because more than one type of builder-object can exist for the same target class, emulating different constructors for the same object.
+
+The problem with this approach is therefore not power, but rather the effort required by the developer: Most if not all instance variables of the target type must be replicated in the builder objects, and setter methods need to be defined for every one of them.
+
+That is a lot to type for objects with many constructor parameters, and possibly even worth to generate/update the source text for such a builder object machine-generated.
+
+On the other hand, if a constructor only takes few arguments, the manual effort may be acceptable.
+
+The module system of Rust seems nicely organized.
+
+Packages are called "crates". Modules can either be implemented in the top-level source file of a crate, using curly braces for structuring them.
+
+Or they can just be declared in the top-level source files, specifying only the names of the modules and their location within the module structure of the crate, but not their exact filenames.
+
+The exact filename is instead deduced from the actual directory layout: If a source file exists at the location corresponding to the module's hierarchical location within the crate, this single source file implements the module.
+
+Otherwise, if a directory rather than a source file corresponds to the module's hierarchical location, all files in the directory are assumed to be part of the module, and a predefined special filename is used as the top-level source file.
+
+This means there are multiple choices for the developer how much the source code of a module should be split among different files.
+
+A module can start as a single source file, and later, getting larger, be split into several files - without changing the hierarchical location of the module within the crate.
+
+Module usage is also easy.
+
+An "extern"-declaration names the crate (and possible submodule) to be used by the application, which also implicitly makes a "use"-declaration for importing that module (as a single identifier) into the current namespace.
+
+"extern" primarily provides information for the linker, "use" only for the compiler.
+
+Also, "extern" is only necessary for linking other packages to the local package. "use" on the other hand is even useful within a single package that is still implementing multiple modules.
+
+Not everything is exported from a crate, only items declared with the "pub" keyword. By default, everything is private and will therefore not be exported.
+
+And even if a module is declared "pub", all of its parent modules must be too, or it will still not be exported.
+
+Also, even if "pub" structs are exported, only their type name is by default, but not their members. Those must also be marked with "pub" individually. This is a good thing, because it allows to expose internal instance data in structs which is protected against access by the users of the module. No more need for opaque "handle"-structs like in C for hiding the internal structures.
+
+It is not just possible to import identifiers into the local namespace with "use", it is also possible to add a "pub" keyword to "use" and the identifiers will be exported from the local namespace also, as if they were defined here locally rather than having been imported themselves.
+
+"use" declarations use absolute module hierarchy paths by default, but by using "self" as the first path component they can be made relative to the current module.
+
+Similar, "super" can be used in order to reference a module relative to the current module's parent module.
+
+The "as" keyword allows "use" imports to be locally renamed.
+
+The "*" wildcard allows to import everything contained within a module as multiple identifiers, rather than just the module itself as a single identifier.
+
+There is a Bash-like syntax for importing multiple modules below a common parent module path, rather than repeating the common path prefix multiple times.
+
+Even though in Rust everything is immutable by default, it still has a "const" keyword which works much like "let" in BASIC. However, "const" is more like a macro definition: Rather than creating objects somewhere and representing some sort of reference to them, it inlines the object wherever the identifier is put.
+
+That is, "const" in Rust is mostly the same as "#define" in C or "inline"-functions in C99/C++.
+
+Besides "const", Rust also has "static" which declares a static lifetime for the object, and ensures there will only be a single instance, which will be used for all references.
+
+"static" objects have several disadvantages: They cannot have a destructor, must be declared "unsafe" and also be "Sync". They must also be declared "mut" for changing them unless they are global constants.
+
+Both "const" and "static" can have an initialization value, but that value must be a constant expression.
+
+Rust supports annotations with the "#[some_declaration]" construct. There is also a "#!"-variant, having the same difference like "///" and "///!" comments.
+
+Annotations can control several compiler characteristics for functions, such whether they should be inlined, represent test units, or conditional compilation depending on the configuration of the local installation (such as the operating system platform).
+
+Rust uses the "type" keyword for the same purpose as C uses "typedef": To declare type aliases without actually creating new types.
+
+Casts are possible with "as", even if applied multiple times in a row: a as T1 as T2 as T3.
+
+Other than object type casts, numeric casts are allowed even if they truncate or round values. It is also possible to cast an "enum" (without parameters), "char" or "bool" to an integer value. Numeric casts towards "longer" types will zero-extend or sign-extend.
+
+It is even possible to cast between a pointer and an integer, as long as the pointer is not dereferenced which is considered unsafe.
+
+It is even possible to cast byte arrays into multibyte integer values.
+
+Finally there is a "transmute" compiler-builtin function which does the same as C++' "reinterpret_cast".
+
+There are a few "unsized" types, such as an array without known size, which can only be used in a few situations. For instance, they can be accessed via pointers or references, but not directly.
+
+An unsized array is allowed only as the last member of a struct, making the struct unsized as well.
+
+Some operators can be overloaded via Traits. In this case, certain identifiers such a "Add" are associated with an operator symbol such as "+"; this association cannot be changed.
+
+Using a compiler-provided trait from a pseudo-module, it is also possible to overload the "*"-Operator for dereferecing a struct pointer.
+
+A Rust developer installation is not exactly tiny: As of 2022, the Debian packages of the Rust toolchain (compiler, debugger, cargo package manager, standard library and its source code for debugging) required about 700 MB of disk space. (This did not include any external dependencies downloaded by cargo for building existing real-world Rust applications.)
+
+I discovered some Attribute definitions which can be used to build a Rust executable in such a way that it does not depend on Rust's "stdlib" but only on the normal libc. I hope that would create reasonably-sized Rust executable rather than the large mosters the resulting binaries are now.
+
+However, those attributes do not work with the current "stable" release of Rust, they are too new. I always get the error message
+
+error[E0554]: #[feature] may not be used on the stable release channel
+ 
+I conclude the problem of large executable sizes might be fixed using those attributes, but not in the current version of Rust.
+
+On the other hand, must existing Rust code uses at least some parts of the Rust runtime library. Unless everything is written anew from scratch, there is no easy way to get rid of the dependencies of the Rust standard runtime libraries.
+
+As of 2022, I discovered a "-C prefer-dynamic=yes" option of the Rust compiler which linked the executable against a dynamic version of the Rust runtime libraries. This had a huge effect on executable size, which was only about 17 kB compared to 9.5 MB without that option for a "hello world". After symbol stripping, the size went even down to 14 kB.
+
+The size of the Rust standard library runtime library was 5.3 MB, which is about half the size of a Rust executable which was *not* linked against it.
+
+Unfortunately, Rust's dynamically-link runtime library seems to be a snapshot without any forward- or backward compatibility. Its filename obviously encodes a source checksum or commit ID and will therefore only match executables built by a particular revision of the Rust toolchain.
+
+This is probably the reason why this option is not the default: Even though linking against that library saves considerable space, a potentially huge number of different versions of that library might need to be installed, quickly becoming a maintenance headache.
+
+But even on platforms like Gentoo Linux which compile everything from source using the same version of the toolchain, Rust's approach might still be problematic: All Rust executables need to be rebuilt as soon as upgrading to some newer version of the Rust toolchain.
+
+Summing up, Rust seems to be a nice language for very large applications except for its error-prone error handling conventions. It generates either huge 9+ MB executables, or reasonably-sized 14+ kB executables accompanied by a 5+ MB dynamically-link runtime library which can only be shared among executables generated by the exact same version (no forward or backward compatibility for the same major version) of the Rust toolchain.
+
+
+Dart
+----
+
+Dart is a general-purpose language developed by Google. Its main advantage seems to be that it can be compiled directly into JavaScript, runnable in every modern Web Browser. But it seems it is also possible to compile Dart-Code "ahead of time", i. e. conventionally into native machine code. Otherwise, Dart code runs in the "Dart VM".
+
+In order to evaluate dart, I created a non-privileged user and ran the build instructions as that user, except for the Debian package dependencies (approximately 14 MB downloads) which were installed as superuser before.
+
+I had about 3,5 GB free space before starting the source code download procedure, including the git-installation of Google's "depot-tools".
+
+After a while the source-code download process then died with an "out of disk space" error message.
+
+This happened before I could even start the build process.
+
+In other words, the volume of the required source files alone is larger than 3,5 GB, let alone the required disk space to build the whole thing.
+
+I might repeat the whole process later again when I have more free space left. But one thing is for sure: Dart does not seem to be among the leanest of installations.
+
+Adding the fact that Debian does not ship with Dart as part of its standard repositories, it does not seem a good idea to develop Dart applications for the desktop or the command line at this time.
+
+It might be OK to develop Web Applications of Mobile Applications with it, provided the overhead for required runtime JavaScript library downloads is acceptable.
+
+Update 2018-11: (At least) Dart 2 seems to perform type checks at run-time, leading to a performance hit up to 40 %.
+
+Update 2023, Dart 3:
+
+Dart is a garbage-collected language. This is probably rooted in the fact that it was originally used to emit JavaScipt code, and JavaScript is garbage-collected, too.
+
+Variables are declared with "var".
+
+Dart distinguished between nullable variables ("?"-suffixed types) and non-nullable (normal) variables. Only the nullable ones are automatically initialized (to null), the normal ones need to be initialized explicitly. 
+
+However, the "late" modifier allows a variable to omit initialization, provided it is initialized before it is used for the first time. There seems to be runtime checking involved, which can be avoided if the compiler can deduce that the variable will never be used before it has been initialized.
+
+Other variable modifiers include "final" which allows a variable to be assigned at most once, and "const" which declares compile-time constants (which need to be initialized with constant expressions).
+
+The "const" modifier can also be applied to expressions, enforcing them to be calculated at compile time even if the results are assigned to normal variables.
+
+There are only reference variables in Dart. All variables reference objects. Even when assigning numeric literals to variables, those are represented by objects.
+
+Simple function definitions are pretty much C syntax. The types could be avoided in many cases because Dart uses type inference, but it is nevertheless recommended to include the types in the function signature.
+
+There is a special "=>" syntax for defining functions which only consist of a single statement. This syntax can also be used for passing anonymous functions.
+
+Comments are like in C99, i.e. both "//" and "/* */" are supported.
+
+"///"-comments are special "documentation comments" which will be extracted by documentation generator utilities.
+
+The "import" statement can import objects from core libraries, 3rd-party libraries, or local files. The statement's argument is a string, using different syntaxes for the beforementioned cases.
+
+The basic class declaration syntax is similar to C++. Multiple constructors are supported. Constructors can even (optionally) have names rather than just being selected based on the constructor's function signature.
+
+There is special syntax for getter and setter functions, which can be accessed as attributes (rather than invoking them as functions).
+
+Different than in C++, "this" is not implicit and must be written explicitly whenever the current object shall be accessed.
+
+"enum" works like in many modern languages, by not declaring integers but rather named enum-component type values. Enum values can also have arguments. In this case, the enum value needs to be invoked by specifying the argument values. Such enum values can then be used like constant structures.
+
+Dart has only single inheritance (with "extends", similar to Java), but supports mixins.
+
+Mixins are declared similar to classes, except with "mixin" instead of "class".
+
+New classes can add "with"-declarations before the class body, which seems to implicitly copy the contents of the declared mixins into the class body.
+
+Interfaces and abstract classes are both supported, with Java-like ("implements") and C++ like ("abstract class") syntax, respectively. Interfaces can also be implicit, whatever this means.
+
+Concurrent programming is supported via "async", "await" and "Future<>". Any functions which wants to use "await" or return a Future need to be declared "async". This might easily propagate all the way up the call chain until "main".
+
+Future<sometype> is a value which might not have been calculated yet. Applying the "await" operator to such values enforces them to be evaluated and return their value (of type "sometype" in this example). Only functions declared "async" themselves must return such values.
+
+Exceptions are supported in a way very similar to C++. However, there are no destructors, so "finally" needs to be used for such purposes like in Java. The "rethrow"-statement allows to reject handling an exception from within a "catch" clause.
+
+There are no declarators for the visibility of class members. Instead, similar to Python, identifiers starting with an underscore are interpreted to be private variables. The "protected" or "friend" of C++ does not seem to exist.
+
+Unfortunately, Dart does not seem to be very successful among developers or widely deployed.
+
+It seems to be a nice enough language from what I have seen so far, but no one likes developing for a minority ecosystem.
+
+The language is probably most useful as a preprocessor for JavaScript, protecting against many pitfalls which endanger developers targetting JavaScript directly.
+
+It might also be useful for porting C code to JavaScript with relatively little effort.
+
+
+Go
+--
+
+Evaluation started 2019-01.
+
+Older versions of Go did not support exceptions - the only way to report an error was to return an error code.
+
+For this, a special type exists, which at least ensures (by convention) that the same type will be used for this everywhere.
+
+In Go, functions can have any number of return values. The convention says that the error condition shall be passed as an additional (the last) return value.
+
+This convention still holds for Calls which cross organizational realms, such as an independent library module or the network.
+
+But within a module / program exceptions can now also be used.
+
+For this, Go provides "panic" for throwing an exception, and "recover" for catching it.
+
+However, this is different from C++ and similar languages in that it only works on function boundaries. There are no "try"-Blocks, an exception ("panicking program") can only be caught when it is leaving the function.
+
+In fact, this needs to be combined with the "defer" feature, because deferred functions are called after the containing function exists - and this is exactly when recover() must be called.
+
+"defer" itself is similar to "try/finally" in JAVA. But instead of writing "finally" blocks which will be run in the specified order, "defer" just schedules a function to be called after the current function exits, but before it returns to its caller. "defer" also keeps track of the order, that is it calls the deferred functions in reverse order of scheduling (in a last-in-fist-out / stack-like fashion).
+
+Go does not have classes, but rather allows to define methods for existing types (without modifying those).
+
+But there is an interesting restriction: Methods can only be defined for types which are defined in the same package.
+
+Therefore it is not possible to define methods for built-in types like "int". It is possible, however, to wrap an "int" into a locally defined custom type, and then define methods for this one.
+
+Without this restriction, everyone could add methods for any type anywhere; chaos would have been expected to arise from this.
+
+Methods which operate directly on a type receive a copy of the type's value when called. Therefore, such methods cannot modify the original value.
+
+Methods need to get passed a pointer to a type in order to be able to modify the object (with lasting effect). Due to the fact that C's "." and "->" are the same in Go, the caller's code need not be changed when a pointer/reference needs to be passed instead of a value.
+
+Generally, Go passes arguments by value unless a "*" is present in the argument list to request a pointer instead.
+
+
+Wren
+----
+
+Wren is a nice, "Lua"-like language. It can also be used for embedding.
+
+It is very fast (if your machine has hardware floating-point support), only beaten by JIT-compiled and natively compiler languages.
+
+Wren uses "NaN-tagging" by default. This can be disabled in the build configuration, but then Wren will be slower and use more memory for storing values.
+
+NaN-tagging makes several non-portable assumptions about the C "double" type. It will only work (without changes to the source code) with IEEE-754 double precision floating-point variables. It further assumes that the C "uint64_t" type is available and has the same in-memory endianness and byte size as floating-point values.
+
+NaN-tagging stores normal numbers, booleans, "null" and pointers to heap-allocated objects all as C "double" values, representing all values other than numbers as NaN-values, using unused bits within the NaNs to represent the other beforementioned types of value.
+
+With NaN-tagging disabled, the same kinds of values are stored as C "union"s using an additional "enum" value as a type field, which can easily double the memory requirements for storing values (because of alignment, or because integers are 64 bit wide on the local machine).
+
+In either case, variables containing values other than numbers, booleans or "null" will point to a heap-allocated objects, which require much more storage per object instance.
+
+An interesting question is what will happen if the result of some calculation yields a "normal" NaN.
+
+Wren can interpret the contents of strings as byte-strings (8-bit-clean, includes the NUL character), as lists of numeric UNICODE code-points, or as list of UTF-8 characters. UTF-8 is the default interpretation. For the other interpretations, conversion enumerators must be used.
+
+Unfortunately, there are several problems.
+
+* All strings are hashed after creation using a hash function which requires a 32-bit-multiplication (an actual one; not just bit-shifting) for every single character of the string.
+
+* Different than in Lua, strings are not deduplicated at all. Which means that the expensive hash value must be stored along which each string instance, which increases the memory footprint for all strings (especially for very small strings).
+
+* Keeping non-deduplicated strings and their hash values around also means that even after establishing that the expensive hash value of two strings is equal, the string contents still need to be compared for equality because of the possibility of a hash collision. But at least the string comparison can be saved if the hash values differ.
+
+* The C API supports finalizers for "foreign" objects implemented in C such as a file. But a finalizer has no way (besides global variables) to communicate failures and trigger an error message. This is because finalizers will be called during garbage collection, and normal Wren service functions must not be used during those periods.
+
+* Therefore, the most proper way for a finalizer to handle errors is to abort() the whole application. Is it not even possible to report an error message reliably and portably; attempting to write one to standard error seems still the best way to go. But more importantly, this means that finalizers must not be used for any I/O operations or other complex tasks such as committing transactions which might fail. Such things must have been done by the program itself, long before the finalizer will be invoked. Finalizers should only be used for doing things which can normally not fail, such as deallocating memory or closing (non-file) handles.
+
+* Wren uses "C"'s "double" as its only numeric data type and that cannot even be changed when compiling Wren's source code yourself like in Lua. This is because probably of Wren's NaN-Tagging, even though it would not be necessary if disabling NaN-tagging.
+
+* Wren supports C99 and C++98 for building. Or better. But not C89, which is still very common.
+
+* The shipped reference command-line client is unreliable because it does not check for and thus ignores output errors in many situations. It is therefore mandatory to write one's own scripting host in situations where reliable operation is mandatory.
+
+* This means you cannot just install Wren and start writing scripts for it. Instead you have to study the API for embedding and write your own interpreter executable first. At least if you are serious about using Wren for a scripting language rather than just toying around with it.
+
+* String semantics are a mess. "For performance reasons", many string string methods return byte-offsets as result or require them as arguments, rather than UTF-8 character indices as could be expected. Other methods such as count() return the character count rather than the byte length. In my opinion, it would have been better to make byte semantics the default interpolation, and provide sequence converters for reinterpreting it as UTF-8 strings / list of characters. Usually, no-one needs a count of UTF-8 characters anyway, because it's useless: It is neither necessarily identical to the byte length of the UTF-8 string, nor is it necessarily identical to the number of user-perceived characters (when combining marks are present) in the string.
+
+* There does not seem to be any support for "weak" references. This will make it hard to implement cache tables, where entries will be removed by the garbage collector on memory stress. On the other hand, I never felt a need to use weak tables in Lua which does provide them. I also never understood under which circumstances weak table entries will be garbage collected, or more importantly when not.
+
+* The standard library is not orthogonal. For instance, there is a ReadLine() method for standard input, but not for files opened explicitly.
+
+
+Factor 0.98
+-----------
+
+Factor seems to be an interesting language, like a super-powered FORTH on drugs.
+
+It has separate data and return stacks and programs use reverse Polish notation, just like FORTH.
+
+Also, both languages use an "image"-based concept for storing their code and data, much like LISP.
+
+But where FORTH remains simple and primitive as a language, Factor seems to be a very powerful language instead.
+
+It provides dynamic and lexical variables and has a built-in object system, seems to support an equivalent to namespaces (beyond just the "vocabularies" provided by most FORTHs).
+
+Factor programs seem to make heavy use of functional programming features such as sequence operators, just like the map() and grep() functions of Perl but more versatile.
+
+Also, Factor does not just create simple threaded code like most (all?) FORTHs do, but has an actual optimizing native-code compiler.
+
+The language also provides automatic memory management based on garbage collection.
+
+One particular strength of Factor seems to be its capability to change the language syntax extensively.
+
+It is said to be able to change the language syntax completely, even though I have not yet seen examples of that.
+
+At least, Factor provides a very powerful macro system, not unlike that of LISP.
+
+Historically, there were even times when Factor has been considered a "Scheme"-like languages, before it became more FORTH-like.
+
+Factor provides a large standard library, and heavily relies on a built-in foreign-function-interface to connect to libraries written for other programming languages. (The alternative used by many other languages would be to provide plug-in dynamically-linked libraries acting as glue.)
+
+Also, Factor seems to be in continuous development since at least 17 years (since 2003). The latest commit was even from yesterday! (At the time of this writing.)
+
+So one can assume it is a mature language and has had enough time to get rid of any initial implementation problems.
+
+Unfortunately, there are drawbacks which made me lose interest in further evaluation of the language.
+
+First, the language uses garbage collection. I don't like GC in general, but there are some languages like Lua which seem to get it right and don't become memory hogs because of their GC.
+
+But particularly in a stack-based language, GC seems especially unnecessary. Why can't they just leave their garbage on the stack, and it gets automatically cleaned up when the stack is unwound?
+
+But even if that may be a naive thought which does not apply in practice, I am more concerned with the roots of the language which derives from JAVA.
+
+JAVA is known to waste memory without end because of its garbage collector.
+
+Even though this is rarely a problem when only JAVA programs run on some machine (because then they can share the memory, at least when running as threads within a single instance), it does become a problem if other non-JAVA memory-intensive processes frequently run at the same time.
+
+Second, I dislike the "image"-based approach for a high-level language.
+
+Especially in this case, where native code is stored along with data in the same image file.
+
+The image-based approach is understandable in FORTH which can replace the operating system completely. Then there is no filesystem where the implementation can store its data, source code and compiled code, and therefore if must do this itself.
+
+Maybe this was also true for early LISP-systems; I don't know.
+
+But on modern full-fledged desktop and server computers, a filesystem will certainly be available, so there is no actual need for "image files" any more.
+
+One problem with image files is that they cannot normally be put under version control, because there is no way to calculate deltas efficiently and thus the commits would become very large.
+
+But the more severe problem is that those files mix native executable code and data within the same container. This is a security nightmare: Regular executable binaries get all kinds of protection from the operating system in order to make sure that the code cannot be modified mistakenly (or at all), things like ASLR and stack cookies are available to defeat ROP-attacks, and more.
+
+None of these features are available to the contents of an image file: From the view of the OS, that is just another data file and not executable code.
+
+Third, the image-based approach has severe consequences for the bootstrapping process.
+
+Factor (or at least the current version of it) is implemented in C++ and Factor itself.
+
+Most (compiled, at least) languages have in fact the "bootstrap problem", which means they are implemented using themselves as implementation languages. This always raises the question where the first compiler comes from if someone wants to compile the source code for oneself rather than trusting shipped executables.
+
+But as long as the initial executable is a normal platform binary, there are at least ways to monitor what the executable is doing, particularly which files it is reading or writing.
+
+But this is practically impossible to achieve for an image-based language, because harmless data and binary executable code are all stored within the same image file!
+
+It also has the practical implication, that one does not need to just download the source code for Factor when building the thing locally (BTW, 19 MB for just the single commit for release 0.98 as of 2020-04) but also a pre-built binary image-file which seems to be *huge* (I stopped the download at some point when it became clear that the image would be much larger than the source code).
+
+And this large image file may contain god-knows what code!
+
+There is no way to examine the contents of the image unless one has an already built Factor-system. But no-one gets such a system built without having to trust that large image-file with unknown contents *first*.
+
+In my opinion, this is an unacceptable risk in times like these.
+
+Which means, the only way to deploy Factor is in fact the same method as used for proprietary close source software: Just trust the product maintainer unconditionally and hope that your trust will not be betrayed.
+
+This certainly does not align with the reason why I chose to exclusively use Open Source Software on my systems! (At least beyond the firmware where there is no choice.)
+
+Which means I will never trust such an image file because it is not source code, and I have no way of establishing that the source code actually represents the contents of the image file.
+
+Therefore, I will never use Factor, because I cannot build or install it after prior review.
+
+Thus there is also no reason for me to evaluate this language any further, although it seems to be quite interesting otherwise.
+
+
+BASIC
+-----
+
+Things I wondered about when reading the original BASIC manual "Kemeny, Kurtz - BASIC (4th Ed., 1968-01-01)":
+
+* Exponentiation is left-associative, i. e. "2 ^ 3 ^ 2" yields 64 rather than 512 as could be expected.
+
+* DIM is not an executed statement, just like DATA. Arrays are therefore dimensioned when the program starts, but before the first line has been executed.
+
+* Multiple assignments like "LET A = B = C = 5" are supported.
+
+* The original BASIC ignored spaces even more than the BASICs of the eighties era. It was possible to indent lines by putting spaces directly between the line number and the command keyword in that line.
+
+* "GO TO" was written as two separate keywords. However, because spaces were generally ignored by the BASIC interpreter, "GOTO" had the same effect.
+
+* "THEN" was directly followed by a line number (no "GOTO") - like in the BASICs 10 years later.
+
+* "ON ... GO TO" did already exist.
+
+* All arguments of the "FOR"-Statements (initial, final, step size) were calculated once the "FOR" statement was reached the first time. They were *not* re-evaluated in the loop iterations.
+
+* The "END" statement was mandatory and had to be the highest line number of the program. It was executable and stopped the program. "STOP" did the same as a "GO TO" to the "END" statement, but only END needed to be present in every BASIC program.
+
+* A comma at the end of a PRINT suppressed the newline just like the semicolon. The comma operated by advancing through output field zones 15 columns wide. The TAB() function also existed, but not the SPC() function.
+
+* There was a COT() function for calculating the co-tangent. The square-root function was already named SQR() rather than SQRT() as in most other languages.
+
+* RND did not require empty parentheses for its non-existing argument. There was no way to set the seed for RND, but the RANDOMIZE statement (which could be abbreviated as RANDOM) initialized a non-repeatable sequence (probably by querying the OS for some randomness data).
+
+* DEF FN did already exist. And could take any number of argument. In the case of 0 arguments, the parentheses were not written, just like with RND.
+
+* There was also a multi-line form of DEF FN which allowed normal BASIC code to be included within the function. This form was not restricted to a single expression. The function returned when the statement FNEND was reached. The result was returned like in FORTRAN by assigning it to a (normal) variable with the same name as the function, e. g. "DEF FNX : FNX = 42 : FNEND" except that all statements had to be on different lines. Such functions could call other functions, but definitions were not allowed to be nested.
+
+* There was no ":" to separate statements. Only one statement per line was allowed.
+
+* The following matrix commands existed, all prefixed with "MAT a =": ZER (fill with zeros), CON (fill with ones), IDN (fill with identity matrix), PRINT (print out one or more matrices in rectangular form), INPUT (all elements), READ (all elements), TRN(m) (transpose), INV(m) (invert). Matrix operations (also prefixed with "MAT m =") were assignment, addition, subtraction, multiplication with matrix, multiplication with scalar (had to be parenthesized).
+
+* The MAT instructions ignored the indices 0 of both dimensions, even though the arrays had such elements. The MAT instructions always started processing at index 1. There was no "OPTION BASE 1" statement in the original BASIC yet.
+
+* The statements for filling the matrix had optional (r,c)-arguments, allowing to fill just a sub-matrix.
+
+* There was also a DET(m) function for calculating the determinant of a matrix.
+
+* Matrices could only store numbers; string matrices (with more than one dimension) were explicitly forbidden. However, normal one-dimensional string vectors were allowed.
+
+* Strings in DATA statements did not require quoting if they did not start with a digit and did not contain commas or (significant) spaces.
+
+* There was a CHANGE command which split a string into individual characters and assigned the character codes to a numeric array (starting with index 0, unlike the MAT instructions). It could also do the reverse and create a string from an array with character codes. Neither the ASC nor CHR$ functions were available.
+
+* The BASIC manual already listed the ASCII characters 4 (EOT), 7 (BELL), 10 (LF), 13 (CR) and all from 32 through 94 plus 127, even though the development of BASIC predated ASCII (which was finalized in 1968, while the BASIC manual contains several listings showing a 1967 date).
+
+* The only character code clearly different from ASCII was 95 (left arrow). Because of this, BASIC did not have an underscore character. The BASIC manual stated that there are more character codes available than those described, but obviously they were system-dependent and not portable.
+
+* Despite its powerful MAT functions, the original BASIC had no string functions at all! Even though strings could be read and written, or converted using CHANGE, the well-known commands LEFT$, RIGHT$, MID$, STR$, LEN, VAL etc. were all missing! Not even string concatenation was directly supported (one had to go through CHANGE). The only operation on strings I could see in the manual was a test for string equality.
+
+* GOSUBs could be nested, but as there were no local variables, recursion was rather pointless.
+
+* It is not clearly stated whether DEF FN functions could use recursion. However, a non-recursive example for calculating the factorial using such a function could be considered a hint that FN recursion was not supported.
+
+* The BASIC manual explicitly states the "GE-635" time-sharing system as a machine running the described BASIC implementation.
+
+* The surmised BASIC interpreter was actually a compiler, as was mentioned not before one of the final sections of the manual. It created actual machine code, not any sort of bytecode. However, it seemed to have compiled the program again for each run, as there is no mentioning of a separate compilation or linkage step. Just "RUN", like with interpreters. However, this explains why DIM was not an executable statement - obviously the compiler reserved the space for the arrays, and this was not done at run-time. It is also similar to the "compile just ahead of time"-feature of the Julia programming language.
+
+* The described time sharing system did not have multi-tasking, at least not for a particular user. One either had to use the BASIC system, or switch to a different operating-system program with the SYSTEM command (which was more like an "exec" in UNIX).
+
+* There was a EDIT RESEQUENCE command for renumbering the line numbers. The manual did not mention whether the GOTO/GOSUB/THEN-references to the line numbers were also renumbered. But a web search revealed that it actually did.
+
+* Planned features that did *not* make it into the first edition of BASIC were: Background execution (sort of multitasking), data files (using READ and WRITE), program chaining ("exec"-like behavior inside the program), segmenting programs into individual, separately debuggable units, access to multiple terminals by the same BASIC program.
+
+
+JavaScript
+----------
+
+I installed Node.js as a framework for POSIX-sh-like scripting using a better programming language.
+
+As installation dependencies no less than 159 nodejs-library packages had to be installed. I also installed the Node.js documentation, so likely not all of those dependencies are actually necessary just for the basic Node.js runtime.
+
+The next thing I tested was how large a chroot-environment would have to be in order to allow Node.js to run a simple "hello, world"-script.
+
+It turned out that no less than 62 MB of Libraries (but the interpreter binary is also included in this number) were required for this!
+
+Therefore, a Node.js is similarly bloated as a Python3 installation, possibly even more.
+
+And although nothing important for sh-like scripting seemed to be missing from Node.js, the Python 3 standard runtime library seems to provide a lot more than the one of Node.js despite the enormous installation size of Node.js.
+
+BTW, more than half the size of the libraries required for the chroot environment came from the UNICODE "icu"-libraries which seem to be a mandatory part of the Node.js runtime.
+
+I have no idea whether this is the same for Python, but it is annoying anyway if, for instance, the initramfs were targeted for the scripts.
+
+To keep it short, I deinstalled JavaScript once I saw it has no real advantage over Python for UNIX scripting.
+
+It is somewhat similar to Python in its library-support for essential things, but misses a lot of packages which are shipped as part of the Python standard installation.
+
+It may be that some or all of those packages are also available for Node.js, but there it requires additional package installations, while they already come pre-installed with Python.
+
+Python also seems to have a larger user community, and certainly it has a nicer and cleaner syntax and is less error-prone to use.
+
+Therefore, my verdict ist: While Node.js ist quite similar to Python, it seems to be slightly inferior to it in most regards.
+
+Except for one, maybe - speed.
+
+But then, if speed is really important, Node.js would not be the best choice either.
+
+Anyway, although nothing really speaks against using Node.js, using Python instead seems to be an even better idea.
+
+One could also say that Node.js's problem is to be good, but not better than Python and so there is little purpose in using it.
+
+I reckon Node.js will be much more useful when running on a web server in its back-end, because its runtime library has much support for network-related functionality.
+
+But on the desktop, as a mere scripting host, it's just not interesting enough.
+
+Also I dislike in both JavaScript and Python that variables have only function scope. Nested lexical scopes (like in C or Perl) are not supported.
+
+
+Scala
+-----
+
+The language does not seem to follow the 0-1-infinity principle. For instance, tuples can have between 0 an 22 elements.
+
+Line continuation works exactly the other way than I would like it: Instead of
+
+1 + 2
++ 3 + 4
+
+one must write
+
+1 + 2 +
+3 + 4
+
+At least my preferred variant seems to work when wrapping the multiline expression with parentheses.
+
+
+Scheme
+------
+
+Scheme is a LISP dialect, yet considered superior in elegance and minimalism compared to its ancestor. On the other hand, LISP systems are much more mature and powerful highly-optimized implementations are available. LISP also seems to have a much larger community on its side.
+
+One speciality of Scheme ist that continuations and proper tail recursions are mandatory and must be supported by the language implementation.
+
+Some LISP implementations provide those features, too, but they are non-portable and should therefore best be avoided.
+
+TinyScheme is probably the most interesting implementation because it is so tiny and written in C that bootstrapping and inclusion in source form into some project are easy. See its evaluation report elsewhere in this document.
+
+
+GNU Guile
+~~~~~~~~~
+
+I examined version 2.2 which is based on the most-widely supports Scheme version R5RS. (R7RS is already available at the time of this writing.)
+
+This version compiles the script it shall run into bytecode files first and then runs these via its VM implementation. The bytecode files are stored somewhere below ~/.cache (presumably actually under $XDG_CACHE_HOME which uses this path by default).
+
+It is possible to deactivate this auto-compilation feature by setting an environment variable, but I never bothered to try it.
+
+The execution speed of the bytecode file is minimally faster than that of the standard Lua 5.3 command line script interpreter, but the difference is often just in the tenths of seconds.
+
+The whole Guile installation is relatively small for a language including a medium-sized standard library, about 6 MB including documentation. If the documentation is not needed, 1 MB can be subtracted from that amount.
+
+The binary package is negligible in size; its the library package which contains almost everything required.
+
+But only about 1,4 MB of the library is actually a shared library of executable code - the rest of the library consists of Scheme source files and precompiled bytecode versions of it.
+
+Which means, most of the library is written in Scheme itself.
+
+However, the shared libraries, even though not large by themselves, depend on several other shared libraries which need to be installed also.
+
+The most relevant of those (besides the basic C runtime libraries) are: libffi6 libgmp10 libunistring2. Fortunately, all of those libraries are quite small.
+
+The Guile standard library covers most POSIX APIs and a good number of additional general-purpose functions implemented in Scheme itself. Most (all?) of the standard library functions recommended by R5RS are also there, and even a few from R6RS.
+
+The Guile documentation is well written and can also be used as an introductory course to Scheme programming, although once all the basics have been covered it can get a bit tedious to find specific bits of the documentation because the documentation is more a tutorial than a reference book. It is a good idea the have the actual R5RS installed for explaining the missing in-depth details. (Although not much is missing.)
+
+After a steep learning curve on the first few days, I got pretty comfortable with the language.
+
+It also turned out that the core language is really not large - it's only the standard library procedures which need some time to get familiar with.
+
+Guile added a non-standard kind of block comment to the language, which makes it not only possible to support the standard UNIX shebang line, but also to start the script as a POSIX shell script (as part of the block comment) which then invokes the guile interpreter with the correct options. This is a very nice feature which makes creating guile scripts easy.
+
+Although Scheme is the primary script language supported by guile, it is not the only one: It can also parse, compile and run ECMAScript and Emacs elisp scripts. (Those use the same standard library functions then as the ones for Scheme, however.) More additional languages might be added in the future. (Although I would not recommend holding one's breath until then.)
+
+While guile worked generally nice, I found a severe bug in the x86-32 implementation: The tail recursion did not work in a particular situation, making the program hang. When adding some no-op code after the tail recursion, converting it into a normal recursion, things ran smoothly again. The bug also does not seem to exist on the x86-64 implementation.
+
+The presence of that bug in such a central feature of the language made me uneasy: If I did encountered such a severe bug only at my first day of toying around with the language, what will I find if I use it regularly and for mission-critical tasks?
+
+A day later, I found the next bug: The wrong locale entry is used by the procedure for formatting monetary amounts. This leads to invalid output, prefixing the currency symbol with a minus sign even though the amount is positive. (Accountants would probably go crazy with this bug.)
+
+
+Chicken
+~~~~~~~
+
+This compiles Scheme to C, using a stack-only memory usage model (no heap allocations).
+
+The downside is that once the stack is full (which is probably being detected via a signal handler for that purpuse), an expensive longjmp() will be nessessary in addition to the garbage collection in order to set the stack pointer back to its current starting point.
+
+Chicken supports "most" of R5RS, but not all of it. In particular, there seem to be a secondary proprietary macro system. It is unclear, however, whether this is just an additional macro system besides the standard-defined macro processing mechanisms, or a full or partial replacement for them.
+
+Chicken is supposed to be rather fast. However, I did not benchmark it yet.
+
+Documentation is good.
+
+Chicken provides both a compiler (`csc`) and an interpreter (`csi`). The latter is rather uncomfortable to use and crashes easily, but it's OK for occasional experiments. I would not recommend using it in a production environment, however.
+
+The compiled binaries are relatively small, about 30 kB for a simple "hello world" (after stripping debugging symbols).
+
+But the binaries link to the chicken runtime library, which is rather large: About 6 MB.
+
+The library itself is also written in Scheme, which has been compiled. The fact that it does not seem to contain any unnecessary things but just things required by the standard, raises the suspicion that programs compiled by chicken can be rather large in comparison to other scheme implementations.
+
+On the other hand, chicken seems to be well supported by its community, and there are many add-on packages (called "eggs") which can be installed in a 'CPAN'-like fashion (read: bypassing your system's package manager).
+
+Also, while being rather large, the runtime library does not contain any additional dependencies besides the usual C runtime libraries. Neither are any additional support files required.
+
+However, the modules contained in the standard library should suffice for most typical scripting tasks, so this might not become an issue.
+
+Except for one thing, maybe: Chicken does not BigInt or Rational arithmetic in its core. They are both mapped to floating point which is of course not the same. The argumentation goes that not every program needs those features which is certainly correct.
+
+There is a `number` 'egg' available for installation which will provide the missing features, but this also bypasses the system's package manager. Which means one should review the source code before trusting it.
+
+On thing that is really easy with chicken is adding 'C' code. There is a chicken construct which passes the code right throught to the chicke-generated 'C' source file and then passed to the 'C' compiler for native code generation.
+
+The biggest advantage of chicken compared to most other Scheme implementations which can native binary executables is its portabilty. It does not try to generate native code by itself, but rather delegates this task to the system's 'C' compiler. Therefore, chicken runs on virtually any hardware platform.
+
+
+Chez / Petite
+~~~~~~~~~~~~~
+
+Another Scheme compiler/interpreter which can be assumed to be very mature, because it has been around for decades. It also supports the newest (as of 2021) Scheme standard, R7RS.
+
+Its interpreter `petite` is very comfortable to use on the command line (history, tab completion etc.) and is also rather fast for an interpreter.
+
+The compiler usually generates reasonably optimized native code, but only a hand full of hardware platforms are supported. Currently (2021), x86-32, x86-64 and ARMv6 are supported, besides some legacy platform like SPARC and PowerPC.
+
+The compiler creates code even faster than the interpreter, and at least the SPARC version of the compiler used to be among the fastest implementation there were. Unfortunately, the x86 version of the interpreter was among the slowest ones.
+
+The interpreter executable has a size if about 300 kB and links to a shared library which is about 3 MB in size. That library has no direct dependencies on other libraries besides the usual 'C' runtime libraries.
+
+However, an additional binary platform-specific 1,5 MB "boot" file needs to be present, which contains compiled versions of some additional helper functions written in scheme, and for some reason they are not part of the beforementioned runtime library.
+
+This is sufficient for running the interpreter in a `chroot`-jail, but additional shared libraries (of rather small size) need to be installed in order to used more advanced features of the standard library like regular expressions.
+
+Differently than chicken, chez supports the full numeric tower of Scheme right out of the box; no additional libraries needed.
+
+There is a rich ecosystem of additional library packages and extensions available, however this bypasses the system's package manager and is therefore not without risk.
+
+In addition, Chez is well supported by the popular SLIB library of Scheme source code for various purposes.
+
+As a whole, chez makes a good impression.
+
+One downside is that the project, which was originally proprietary, was at the hand of CISCO for 5 years before it got open-sourced. So there is some trust required in the code, especially into the binary BLOBs which are required to compile chez/petite. It is theoretical possible although rather unlikely considering the total size if the Scheme community that CISCO or its good friends from the NSA may have planted some trojan horse there.
+
+
+TinyScheme
+~~~~~~~~~~
+
+This is a very small implementation of "the reasonable portions" of the R5RS standard, written in 'C' and Scheme itself.
+
+The whole source text archive containing everything needed to build it is about 70 kB, i. e. really very small.
+
+All really important features of Scheme like continuations, promises, exception handling, tail recursion, `map`, `apply`, `for-each`, `eval`, string and vector-support are there. Basic ports (file- and string-based) support is also present.
+
+But many other additional modules like enhanced formatting support or the full numeric tower (just floating point and normal integer support) is missing (of course).
+
+Also, it is just an interpreter and not a compiler.
+
+On the plus side, this also means there is no bootstrap problem, because no native code is ever generated.
+
+The part of TinyScheme which is written in Scheme itself is just read as source text when the interpreter starts up, from then on the interpreter is fully operational.
+
+TinyScheme is intended to be used as an extension language for some other application, but can also be used standalone. In this case, additional functionality can be added via user-provided shared libraries written in 'C' or any other language which can create share libraries.
+
+The popular SLIB is not generally compatible with TinyScheme, although some of its modules "might" work.
+
+TinyScheme has a small interpreter executable of just about 75 kB, it has no additional library dependencies beyond the usual 'C' runtime libraries. Which means it is the smallest Scheme installation widely available by far.
+
+But of course, it will never be as fast as a native code compiler, and its coverage of the Scheme standard library is thin to say the least.
+
+On the other hand, in a scenario where AWK is not powerful enough for some task, TinyScheme might fill the gap beween AWK and the more popular scripting langauges like Python, Ruby, Tcl or Perl - being a much smaller installation than those.
+
+Also, building TinyScheme from source code is really easy - no complicated bootstrapping process, no special tools. Any 'C' compiler and standard-compilant `make` utility will do.
+
+If something requires functionality which needs to be written in C is missing but not too much, it is easy enough to compile it as a shared library and used it with the interpreter.
+
+
+sdlBasic
+--------
+
+'sdlBasic' is a 'BASIC' implementation primarily targeted for the creation of video games. It contains built-in support for the 'SDL' libraries which also exist for that purpose, but also provides many additional game- and graphics-related support functions not found in 'SDL'.
+
+'sdlBasic' provides both an integrated development environment (`sdlBasic`) and a command-line utility (`sdlBrt`) for executing 'sdlBasic' program source files. 'sdlBasic' is therefore a scripting language.
+
+Variable names can be arbitrarily long. There are two scopes: Module scope and function scope. Variables with function scope shadow module scope variables with the same name.
+
+Variable names - and generally all identifiers in 'sdlBasic' - are case insensitive.
+
+Non-existing variables are automatically created whenever their names are used for something the first time.
+
+However, new automatically created variables are always initialized with some special 'undefined' value which raises a runtime error when the value of the variable is actually used.
+
+Therefore, variables must always be assigned to before their value can be used.
+
+Variables created within a function will become local variables of that function with function scope. When created outside of a function, they become module variables.
+
+Variables may also be created explicitly with `dim` or `common` (the latter is only allowed outside of functions). This allows to de-couple the point of creation (and thus the scope of the variable) from that of the first assignment.
+
+The automatic creation of variables can be suppressed with `option explicit`. This declaration only effects code following it within the same source file.
+
+Usage of `dim` or `common` will then be mandatory for creation of variables, eliminating the danger of assigning to the wrong variable because of mistyping its name.
+
+A definition will then not just be required for local variables with function scope, but also for variables with module scope.
+
+In addition, module variables will be hidden from functions, unless they have been defined with `common` rather than with `dim`.
+
+Hidden module-level variables must be declared with `shared` within a function in order to become visible again.
+
+I find 'sdlBasic's' solution for dealing with variable visibilities and initialization values rather clever.
+
+The following listing demonstrates all uses of `dim`, `common` and `shared`:
+
+----
+$ cat test.bas
+#! /bin/sh
+'':; exec sdlBrt --nodefaults --nosound --nosockets "$0" ${1+"$@"}
+
+option explicit
+
+dim v, s
+common g
+
+sub init_them
+        shared v, s
+        v= 4 : s = 7 : g = 9
+end sub
+
+sub use_them
+        dim v= 5 : shared s
+        print "sub: v="; v; ", s="; s; ", g="; g
+end sub
+
+init_them
+use_them
+print "module: v="; v; ", s="; s; ", g="; g
+
+$ ./test.bas
+sub: v=5, s=7, g=9
+module: v=4, s=7, g=9
+----
+
+All definitions and declarations in this example are actually necessary, or a run-time error would be raised.
+
+`dim` and `common` can define and `shared` can declare more than one variable by providing a comma-separated list of variable names.
+
+Within the list, an initial value can be assigned to every variable, which will then be used instead of the default 'undefined' special value.
+
+Variables in 'sdlBasic' do not have type-suffixes like "`$`" or "`%`". All variables, including arrays, are internally variant-types that can store all kinds of values. 'sdlBasic' automatically converts beween numbers, strings and other types as needed. (This is similar to 'AWK'.)
+
+Besides simple scalar variables, variable definitions can also define multi-dimensional arrays.
+
+There are two variants of arrays: Actual arrays where an explicit number of dimensions is defined, and "dynamic" arrays where nothing about dimensions is declared at all.
+
+In the first case, it is possible to either define only the maximum index for each dimension (the minimum index will then be zero, there is no support for "`option base 1`" in 'sdlBasic'), or both the minimum and maximum indexes. In this case, both the number of dimensions and the range of the indexes will be checked at runtime.
+
+In the second case, neither the number of dimensions nor the index ranges or the array are limited. In fact, arbitrary strings can be used as index values.
+
+When used as part of `shared` declarations, arrays of either kind must be declared with empty brackets.
+
+Dynamic arrays are actually hashes, just like in 'AWK'. Any numeric indexes of such hashes are just converted to strings for such arrays, and then those strings are concatenated (separated by commas) in order to form the hash key.
+
+Therefore, the following program will display `123`:
+
+----
+dim b[]
+b["12,3", "72,180"]= 123
+print b[12, 3, 72, 180]
+----
+
+Also note that square brackets are used for arrays, which is also like in 'AWK', but different from most other 'BASIC' implementations.
+
+There is an inconsistency when dealing with uninitialized or non-existing array elements, compared to normal variables: Such elements will always evaluate to some neutral default value rather than the special 'undefined' value as could be expected.
+
+Actual arrays will yield zero for un-initialized elements, where dynamic arrays will yield empty strings for non-existing elements. However, as empty strings will automatically be converted to zero when used in numeric context, there is not much difference in the end result.
+
+There is an "`in`" operator for testing whether an element of a dynamic array actually exists, and also a "`for each`" control structure which allows enumerating all existing indexes.
+
+Other support functions report the number of indexes as well as the lowest and highest allowed index for actual arrays.
+
+Finally, there is a support function for clearing out arrays, making them empty again just as after their initial definition.
+
+Not yet supported are built-in sorting functions or a way to redimension existing arrays.
+
+Function results can be returned by both assigning to an implicitly created variable with the same name as the function or by passing it as the argument of a `return` statement.
+
+Functions and variables (including arrays) share a common namespace, but function names are allowed to be shadowed by local variables.
+
+Variables are always passed by reference in function and subroutine calls, so they can be modified by the callee. If arrays are passed as arguments, they must be indicated as such with empty brackets - both in the formal and actual parameter list.
+
+However, if an argument is something other than a simple variable or name of an array, then a temporary value will be created on the caller's side, and a reference to that will be passed to the function or subroutine. In this case, the caller's variables will remain unmodified.
+
+In addition to variables, 'sdlBasic' also supports constants defined with the `const` keywords, where an initialization value must be provided. They work much like `common` except that they cannot be modified after their definition.
+
+Variable arguments are supported by including "..." in the formal parameter list. Otherwise, the number of arguments must match exactly. Variable arguments, but actually all arguments, can be accessed by their position via the built-in `argument` function. When called without an index argument, this function also reports the number of actual arguments that are available. (At least it should work that way according to the documentation. In practice I noticed `argument` seems to deliver the arguments passed to the program rather than those passed to the function.)
+
+Functions and subroutines must be defined at a position within the source file before the positions from where they will be called. It is however also possible to forward-declare them using the `declare` statement, much like as in 'C'. In addition, `option qbasic` can be used which removes the beforementioned restriction entirely.
+
+'sdlBasic' supports the usual BASIC operators, plus backslash for the integer division ('floor division') as well as the 'C' operators "`+=`" and "`-=`". Bitwise operators (including shift) are also provided.
+
+Hexadecimal numeric literals are supported and there is also a function for converting an integer into a hexadecimal string.
+
+There is a `data()` command, but it only allows up to 256 values and there is no `restore` command. It actually works like a FIFO with a maximum capacity of 256 entries, where `data()` commands feed more entries into the FIFO and `read` commands fetch the values from the FIFO. It is a runtime error to fetch more values than there are currently in the FIFO, or to overfill the FIFO.
+
+The classic `peek` and `poke` commands of 'BASIC' are also supported to some extent, but they always refer to a specific memory buffer (which are called 'banks' and are also used to store multimedia data). Peeking and poking is supported for 1, 2 and 4 byte units.
+
+There are also commands for allocating a new bank with a specific size, for freeing it, for copying memory around within a bank, or copying the contents of one bank into another. One of the memory banks can also be designated as the 'current' bank, which will then be used as the default bank number in several commands.
+
+'sdlBasic' does not care about output errors at all and happily continues without raising a runtime error if writing to standard output fails.
+
+However, this is only true when using `print`. When opening "`/dev/stdout`" as an output file and writing data to it with "`print #`", then output errors will be detected and will raise runtime errors. Unfortunately, `close()` does not check for errors, and so write errors in the last partial output buffer will still not be reported.
+
+Obviously, this language is not intended for scripting of mission-critical tasks.
+
+Generally, the 'BASIC' dialect used is more or less what could be expected of a "structured" ("`if`" / "`end if`", "`sub`" / "`function`") 'BASIC'.
+
+A bit unusual is the fact that `next` does not except optional loop variable as arguments. (But then, who wants toe use that feature anyway, as it contradicts structured nesting of `for`-blocks.)
+
+As usual in 'BASIC's, multiple statements can be put into the same line by separating them with colons.
+
+Less common, 'sdlBasic' allows inserting line breaks after infix-operators. In this case the expression will automatically be assumed to continue with the next line.
+
+'sdlBasic' does not seem to have any kind of exception or error handling mechanism within the application. There are only runtime errors, which will always terminate the application.
+
+There is also no `goto` or any kind non-local jump either. Most looping control structures only provide a means to break out of the innermost loop (just like 'C').
+
+The only way to report a logical error within the application itself is to display a message and then use the `stop` command.
+
+The stop command will make the application terminate with a segmentation fault and a failure return code if it has been invoked via the `sdlBrt` command.
+
+If it has been invoked via the `sdlBasic` command, however, then `stop` acts like a breakpoint and will launch the IDE's debugger where the problem can be examined further.
+
+Multimedia-Objects like images or sound files are not stored in 'BASIC' variables, but rather independent of them in "banks" which are identified by an integer just like an array index. In a default build of 'sdlBasic', 2^15^ image banks and 2^10^ audio banks are available to the program.
+
+Image banks can be used as sprites or bobs. Both types can be moved independently from the background and register collisions. But bob coordinates are relative to the background, which means the bobs will move together with the background if the latter should be scrolled. Sprites on the other hand use screen coordinates and are thus unaffected by scrolling of the background.
+
+Graphics output does not go to the actual screen but rather into one of 8 canvases available to the program. The first canvas is intended to represent the eventual screen output, and normally its contents will be copied to the actual screen when the next screen refresh operation will be executed.
+
+Multimedia-wise, besides the beforementioned 2D graphics and sampled audio, there is also support for MIDI, Soundtracker and CD music, as well as MPEG video playback support.
+
+Communication-wise, connection-based stream-oriented network sockets are supported. It remains unclear whether this is TCP or rather UDP with sdlBasic serializing access. Up to 256 sockets are supported per application instance, and they allow to read and write single bytes, fixed-sized byte blocks, or lines of text.
+
+Input-wise, keyboard, mouse and joystick are supported.
+
+When an 'sdlBasic' program is run, by default an output window will be prepared for it as well as the sound and network subsystems of 'SDL' will be initialized by use of the program. Options `--nodefaults`, `--nosound` and `--nosocket` can be used to suppress this.
+
+The 'sdlBasic' IDE is primarily a 'Scintilla'-based text editor which can also single-step the program and add watch expressions for display. It supports syntax highlighting, indentation-based code block folding and a primitive table-driven command completion mechanism.
+
+The table used by the completion mechanism is a simple static text file of supported abbreviations and their associated expansions. It does not use the current document itself as a source of possible expansions. So it will only be useful for expanding predefined identifiers.
+
+
+Toit
+----
+
+Toit [ https://docs.toit.io/language ] is a Python-like language for the ESP32 microcontroller family.
+
+Its intended scope are resource-restrained applications for the Internet of Things.
+
+It strives to be high-level and object-oriented, declarative and statically analyzable, safe and garbage collected.
+
+Source files use the file extension ".toit".
+
+There is a command-line tool with a syntax obviously inspired by Rust's "cargo" for running the scripts.
+
+Different from most scripting languages but similar to "C", Toit has a special "main" function where execution of a script starts automatically.
+
+Functions are declared without any keyword by writing their names as the first token in a line, followed by a (possibly empty) list of arguments and a colon. The body of the function follows indented in the remaining lines of the definition.
+
+Argument lists, both formal and actual ones, use spaces and not commas as argument separators.
+
+It is also possibly to write the body of the function in the same line as the function declaration; in this case the whole construct represents a single-line definition.
+
+Empty bodies are possible, too. In this case nothing follows the ":", and at least one empty line must separate this definition from the next non-empty line (if any).
+
+Calling a function does not require parentheses, at least if the function invocation represents the start of a statement.
+
+Although optional, types for function arguments can be declared by following the formal parameter with "/" followed by a type name like "int". Also, the return value of a function can be declared after the last formal parameter with "->", such as "-> int".
+
+I have seen both variants "varname/type" as well as "varname /type", but it remains unclear whether "varname / type" is also allowed.
+
+There also seems to be "varname/type?" for declaring a nullable reference type, although I have only seen the variant "string?" so far, which makes it possible this is actually a special type than a generic nullability syntax.
+
+In any case, the constant "null" seems to be available for specifying a null reference. I have also seen a symbol "?" being used as initialization value for a variable of a nullable type. It remains unclear whether this is an alias for "null" or a different special-purpose constant, such as an uninitialized value.
+
+I have also seen formal argument names (of a constructor) being prefixed with "#". It remains unclear what that means. However, I have also seen array initializers being prefixed by it. My suspicion: It might be some sort of "stringify" or "quotify"-operator. It must do something pretty substantial, though, because I have seen it being used on one-element character array initializers in more than one case. So maybe it converts a character array into a string.
+
+Built-in native type names seem to be comprised of lowercase characters only, while class names seem to be written in PascalCase.
+
+It also seems to be a convention that exportable constants defined in some module use SCREAMING_SNAKE_CASE as symbol names.
+
+Numeric literals can be floating point or integer. It remains unclear whether a distinction between them is made internally. I have not seen any conversion operators yet, so it seems the types are converted automatically as required.
+
+The prefix "0x" is supported for hexadecimal integer literals (at least - I have not seen hexadecimal floating point constants being used yet).
+
+Numeric literals may contain underscores ("_") for grouping digits, such as thousands separators.
+
+However, I have seen indications that Toit's numeric type is actually a variant type, much like in AWK. There seems to be variants for at least floating point and integer, possible even booleans. (At least there are two constants "true" and "false" available.)
+
+Although conversions happen automatically as required, unnecessary conversions at run-time can often be avoided by specifying numeric literals directly as floating-point values (such as "0.0") or integer values (such as "0").
+
+String literals are enclosed within double quotes and may contain interpolations introduced by "$".
+
+String interpolations cannot be just variable names but complete expressions. In case of ambiguities the interpolation expression can also be written as "$(" ... ")".
+
+In case of the "$("-syntax, the expression can be preceded by a "%"-printf format, separated from the expression by a space. It remains unclear which formats are actually supported. I have seen at least "%02x" in an example.
+
+Character literals enclosed within single quotes (like in C) are also supported. It is unclear whether multibyte character constants are supported. I have only seen ASCII character literals so far.
+
+Within character (and possible also within string) literals, backslash-escaped characters generate special character values, like in C. I have seen so far: "\r", "\n".
+
+The encoding of the source code is unclear. I suspect it to by just bytes, and that it must be a superset of ASCII. Examples use UTF-8 text in string literals, so at least UTF-8 must be supported.
+
+The example also used UNIX line endings, and it remains to be seen whether MS-DOS/Windows line-endings are accepted as well. (I presume this to be the case).
+
+Function arguments can have default values by using "=".
+
+Real assignments use ":=" rather than "=" which is reserved for declaring default arguments.
+
+There are also "::="-assignments. I presume they define single-assignment variables. (If this were actually the case, this choice of operators seem to be not the most clever idea to me: Safer things should be easier to write, so it would have been better to make ":=" the single-assignment operator ans "::=" the multi-assignment one. But it seems this is not the case.)
+
+To make things even stranger, I have also seen assignments using "=". It remains to be seen whether those are aliases for ":=" or have a special meaning. It is also possible that "=" is an operator while ":=" and "::=" are statements.
+
+I have also seen "=" only in re-assignments, so perhaps only ":=" and "::=" can define new variables, while "=" can only re-assign to already-existing ones.
+
+Class declarations are similar to Wren and use a special "constructor" keyword if any constructor is necessary at all.
+
+The "class" keyword can be preceded by "abstract", obviously for declaring a class which cannot be instantiated directly and can only be used for inheritance.
+
+After the class name, "extends" can be added to specify a base class like in JAVA. It remains unclear whether multiple inheritance is also supported. But at least multiple interface implementations seem to be supported by a class using the "implements" keyword just like JAVA. Except that "abstract class" seems to be used instead of an "interface" keyword for defining interfaces.
+
+Instance variables of are created by adding assignments to the class declaration outside of member definitions.
+
+The names of instance variables are used without ".", just as in C++. There is one exception: If a constructor takes arguments which initialized instance variables, those use a "." prefix to flag them as instance variables rather than actual parameter names.
+
+It is also possible to use default arguments within a constructor, which can in turn be used to initialize instance variables directly (i.e. without specifying an actual code body for the construct).
+
+The keyword "this" is also available within a class definition for referring to the current instance as a whole. This is useful for passing the current object as a regular argument to some function all.
+
+The keyword "super" seems to be available to refer to the base class object in case of inheritance.
+
+Assignments within the class body can be prefixed with "static", which obviously makes the variable a class variable (rather than an instance variable).
+
+Class objects are instantiated without a "new" keyword by just calling the class name as if it were a function, followed by any constructor arguments.
+
+Once instantiated, object methods are invoked via "." from the outside. Again, parentheses are unnecessary.
+
+The syntax does not differentiate between method invocations and instance variable accesses.
+
+This allows, for instance, to replace former instance variables with getter functions transparently later.
+
+By convention, private instance variables which shall not be accessed from outside the class have an underscore ("_") as their last character.
+
+Results are returned by functions and methods via the "return" keyword.
+
+"Lists" (arrays) are constructed with "[", "]" like in Perl/Python. "[]" is the empty list. New values can be added to a list via the "add" method. List initializers are also possible by putting a list of expressions between the brackets. In this case, interestingly, commas are used to separate the expression.
+
+Array elements can be indexed numerically via the usual list_name[index_expr]"-syntax. Indices are zero-based. The current number of elements in the array can be retrieved via the "size"-method of list objects.
+
+Array slices seem also be supported using the "array[from..to]"-syntax. It remains unclear whether "to" is the exclusive or inclusive upper bound. It is also unclear whether ".." is an operator or just a syntactic token for a special array slice syntax.
+
+Toit uses "//"-comments like C++ and C99. But there seem also to be single/multiline documentation block comments "/**" .. "*/". It is unclear whether normal "/*" ... "*/" block-comments also exist, or whether block comments can be nested.
+
+At least in the examples I have seen so far, documentation comments are formatted somewhat peculiarly:
+
+They always start at the first column of the current indentation level, i. e. not in the same line as the "/**" but rather in the next line after it. The comments seem to be comprised of paragraphs, and every paragraph starts with a line starting at the first column, while the remaining lines of the paragraph are indented by exactly 2 spaces.
+
+Multiple paragraphs in the documentation comment are separated by a single blank line.
+
+References to arguments or variables seem to be prefixed with "$" in documentation comments, much like interpolations in string literals.
+
+The text in the documentation comments seems to be restricted to at most (the current indentation level will reduce the remaining line width) 80 columns per physical line (which is fine by me).
+
+Triple backquotes at least in comments can be used as a second form of block comment which is allowed to comment-out source code already containing normal comments. It remains to be seen whether this can also be used outside of comments for raw strings.
+
+Within documentation comments, special sections seem to be marked with special paragraphs tagged with "#", such as "# Examples". I assume the documentation postprocessor will promote such paragraphs into section headers in the generated documentation.
+
+Bullet lists seem to be defined by prefixing paragraphs with "-", and definition lists seem to be formatted as "- `item`: text".
+
+Indentation in Toit generally seems to use 2 spaces, in the source text also and not just within documentation comments.
+
+Iterators use the "do"-Method which is defined for lists and other classed of iterable objects.
+
+The "do" is immediately followed by a ":" and then, like in a function definition, the code to be run for the iteration. The one-line syntax from functions is allowed here, too.
+
+Within the body of an iteration, the special variable "it" is available and contains the current item of the iterated collection.
+
+When functions or methods are invoked, the actual parameters are usually specified by order, matching the formal parameters at the same position.
+
+However, when prefixing an actual parameter with "--argname=", then this argument is directly assigned to formal parameter "argname".
+
+Function argument lists can be split over multiple lines by indenting them as lines following the function invocation. It remains unclear whether some initial arguments are allowed in the first line of the function call expression, or whether it is required that no arguments be specified there (and only on the following lines, indented).
+
+Toit has most C-like operators including "==" and "!=", but ":=" is used instead of "=" which is used exclusively for named arguments and default value declarations.
+
+Here is the list of Toit infix-operators I have seen so far:
+
+"+", "-", "*", "/", "%", ">>", ">>>" "<", "<=", ">", ">=", "==", "!=", "&", "not", "and", "or".
+
+The following assignment-operators or statements have also been seen: "+=", "-=", "<<=", "|=".
+
+The following postfix-operators or statements have also been seen: "++", "--".
+
+The following ternary operator has also been seen: "?" .. ":".
+
+I have also seen "::", but it remains unclear whether this is an individual token or just two ":" tokens written without space.
+
+Like in "Go", there only seems to be a postfix "++"-operator but not its prefix variant. I would find this highly annoying, if it turned out to be actually true.
+
+I think the ">>>" is a bit-wise rotation operator (without carry).
+
+The fact that function invocations do not require parentheses, makes it frequently necessary to enclose the whole function invocation within parentheses if it is part of a larger expression.
+
+Without such parentheses, function invocation as an operator has very low precedence, and so most operators following it would be taken as part of argument expressions for the function invocation.
+
+Expressions which are too long for writing within a single line can be split into multiple lines by ending the previous line of the expression with an operator and continue the remaining expression indented in the following lines.
+
+The "if"-statement of Toit is basically the same as for Python: "if" ... "else if" ... "else:".
+
+There does not seem to be a case/switch statement. Conventional "else if"-cascades are used instead.
+
+Counting loops are implemented with the "repeat" method which works the same way as "do", except for a numerical value as the iteration object. The iteration is run from 0 up to (but not including) the actual value of the iteration object.
+
+There is also a "while"-statement like in Python, except for the "else" clause which is not supported by Toit.
+
+Next, there is a "for"-statement which works exactly as in C, and not as in Python. It also features a "break" statement.
+
+Finally, there is "try:" ... "finally:" for catching exceptions (or possibly just a general callback for unwinding the stack).
+
+Associative arrays are called "hash maps" in Toit and are initialized by "{:}" (for an instance of an empty map).
+
+Then map-elements can be assigned and accessed via conventional "map_name[key_expr]" syntax.
+
+Set objects are initialized by the empty set "{}". Sets only contain keys, not values.
+
+As already suspected, ":" turned out to be general means for specifying code bodies as arguments, so they can be used to pass code arguments to user-defined functions/methods, too.
+
+It seems such a code block can also be passed arguments under certain circumstances; in this case a list of formal parameter enclosed between vertical bars ("|") can be specified after the ":" (and as far as I have seen on the same line as the ":"). Once again, this parameter list is separated by spaces rather than commas.
+
+When such a code block object is passed as an argument to a method, the formal parameter representing the block must be enclosed within square brackets ("[", "]").
+
+The code represented by the code block object can be invoked by the "call"-method of the object. The called code can use "return" in order to pass some result back to the caller of the "call"-method.
+
+However, usage of "return" can always be avoided, because code blocks by default return the value of the last expression executed when they return to the caller.
+
+External modules are imported via the "import" statement. The seem to import only a single namespace object, which allows to access the contained definitions via ".". The imported module object may optionally be renamed by appending an "as" followed by the desired locally-visible module name.
+
+Only one module can be imported by a single "import"-statement. However, if the import is followed on the same line by a "show" keyword, then one or more symbols (separated by space) can follow this keyword which will be import directly into the namespace of the module where the "import" is present. It remains unclear whether the module object is still imported in this case, or only the symbols specified after "show".
+
+It is also possible to specify "*" after "show", obviously for importing all exportable symbols from a module. It remains unclear whether symbols can be protected from being exported that way. It is also unclear whether "*" must be used alone or whether it is actually a wildcard operator which can be combined with a prefix- or suffix-part of symbol names.
+
+The Toit source code ships with a lot of library modules, most of them written in Toit itself.
+
+The library seems to be pretty complete and even includes a fixed-point type for exact decimal calculations.
+
+As can be expected, most modules are useful for embedded and IoT usage.
+
+Multiple protocols and serialization formats are supported (including JSON and ProtoBuf), UTF-8 handling, and even several fonts are implemented (though it remains unclear whether they are vector or pixel-oriented fonts).
+
+SHA-256 and AES are available in addition to several simpler checksum algorithms.
+
+One class deals with AT commands of modems, and there are drivers for a couple of specific modem models.
+
+Other classes deal with TCP, UDP, RPC, UUIDs, HTTP, TLS. Of course it remains unclear how complete the various standards are actually implemented.
+
+There are also a lot of modules obviously specific to the ESP32 platform, such as handling SPI, GPIOs, Bluetooth and WiFi. Those will probably be quite useless on other platforms.
+
+What remains to be seen is how serious error handling is taken by the library. But at least I have seen a module dealing with exceptions, so hopefully the remaining library makes use of it.
+
+By looking through the library source code, I have encountered the following types I assume to be native and built-in:
+
+int
+float
+string
+none
+
+I think the type "none" is the same as "void" in "C", i.e. no value at all is returned from a function declared with that return type.
+
+"int" can at least store signed as well as unsigned 64 bit quantities.
+
+"float" can store at least 64 bit floating point values. Float values seem to have a method "bits" which returns the bit width of the number (probably 32 or 64, possibly 80).
+
+I also think the following types are native built ins, but I am less sure about that:
+
+ByteArray
+
+All of the above types seem to be available everywhere without any associated "import" statement.
+
+There seems to be a special namespace "#primitive.core" containing some built-in low-level functions, which are also available everywhere without an "import". It remains unclear whether this is an implementation detail or supposed to be a (not yet) documented feature.
+
+Arrays (at least ByteArray) seem to provide a constructor which specifies the initial size of the array as its first argument and optionally a body with an initializer callback as its 2nd argument. This callback can use "it" to obtain the index of the current array element to receive the returned value.
+
+The source text of Toit modules does not seem overly readably to me.
+
+The fact that arguments are not separated by commas in combination with the strange way of writing documentation comments makes it hard to differentiate between code and documentation without syntax highlighting.
+
+The way spaces are used or left off around operator symbols or tokens is also not orthogonal: Most of the time, spaces are used around operators, but not for default values or when using named arguments.
+
+But the worst cause of visual confusion is the fact that the text within documentation block comments is not indented and therefore at the same indentation level as the source text they are commenting about.
+
+One big advantage of Toit over many other programming languages is the fact that the low-level parts of its runtime library as well as the virtual machine itself seems to be implemented in C++ - and not in Toit itself.
+
+This eliminates the usual chicken-egg problem of bootstrapping a language unless already a working binary compiler executable for that languages is available.
+
+Unfortunately, the C++ programming style used does not seem particularly cautious. The return codes of many I/O functions are not checked for errors, and there is quite a lot of C++ source code.
+
+Memory management seems to be mostly manual and is not done securely. For instance, a series of allocations are done in a constructor being mirrored by a series of deallocations in the destructor. But no actions have been considered for the case that some of the allocations might fail.
+
+In other words, the C++ parts of the system do not seem very reliable.
+
+The parts written in Toit itself seem to be in a better shape. But the best building can topple if its basement is flawed.
+
+On the other hand, who knows how flawed the VM core code of Python, Perl, Ruby and JAVA is. Maybe it's even worse there.
+
+My first impression is that Toit might be one of the better scripting languages, but the implementation seems larger to me than really small languages like Lua or Wren.
+
+It also seems there is no plan to make it work on a generic POSIX platform; it seems to be tailored specifically for the ESP32 platform.
+
+Even though it might be possible to remove the ESP32-specific parts and perhaps add a small amount of glue code to make it run on any machine, I do not think the effort is worth it after what I have seen so far.
+
+It seems to be an OK language with a reasonably provisioned runtime library, but I could not see any outstanding features not found in Python, Lua or Wren.
+
+Also, the documentation of the language is basically missing. There is a tutorial which explains a lot, but leaves even more unexplained.
+
+The library modules seem to be well documented, but that does help little if the core language is not completely documented.
+
+One thing totally unclear to me is the scope of variable declarations. But I figure it has module/class/function scope like Python, although it likely has also block scope for code blocks passed as callback arguments.
+
+But there does not seem to be a way of declaring local lexical scopes for identifiers, as it is supported with "{" ... "}" in C/C++ and Perl.
+
+So the only real advantage I can see in using Toit would be its library functions if they the reliably throw exceptions rather than return status codes like in C.
+
+However, I do not know that yet. And according to the rather sloppy kind of error handling I have seen in the C++ parts of the source code, I have my doubts how reliable the code might be in that regard.
+
+Another question unanswered is the effect of the garbage collector used by Toit. Given that it shall run on embedded system raises hope it will not waste RAM like JAVA does, but might rather have very moderate impact on RAM usage like the GC of Lua-5.2 did.
+
+
+Ruby 2.7
+--------
+
+This is just a very quick review.
+
+Ruby seems to have been written by a big fan of Perl, who did not like the syntax of Perl entirely, though.
+
+Neary every prominent Perl feature starting with Regular Expressions embedded into the Source code, interpolations and even BEGIN/END, tainted values and optional postfix conditions ("do_something if condition") have been "borrowed" by Ruby.
+
+Even some special global variables, such as "$!" are present, too, even though there seem to be less such variables.
+
+The most obvious difference between Perl and Ruby is that Ruby does not need all those "$"-sigils before variable names (in the case of "$!" mentioned above, the "$" seems to be actually part of the name).
+
+This makes Ruby source code somewhat easier to read and write, although the differences are mostly visual/superficial.
+
+Contrary to Perl, Ruby *does* have a "case"-statement, but it is ugly in my opinion: one has to write "when" all the time within it in order to introduce all the alternatives.
+
+Also, I do not like the "elsif" keyword for if/else cascades which has been borrowed directly from Perl (and was ugly there too).
+
+While ruby borrowed a lot from Perl, unfortunately not all useful features were copied: There do not seem to be local scopes which can be freely introduced like in C with "{ ... }".
+
+Actually, there does not seem to be any form of explicit variable declarations: Except for method arguments, variables spring into existence once they are assigned to the first time. No "my" or "our" like in Perl - at least not as far as I have seen.
+
+The actual scope of the variables seem to be limited to global scope, modules and functions, much like in Python.
+
+A limited form of local variables exists for enumeration constructs which create a scoped local variable for their loop. However, even those forms re-use local variables if they already exist rather than creating loop-local variables in this case.
+
+The only real advantage of Ruby over Perl (that I have seen so far) is that Ruby throws exceptions by default rather than returning status codes indicating whether a function failed.
+
+Unfortunately, like Python-2, Ruby does not automatically flush its output streams at the end of the program while Ruby's I/O error checking is still active. Although the C runtime will eventually close the streams, output errors for still-unwritten buffered output will then be ignored and no exceptions will be thrown.
+
+In this regard, Ruby follows Python3 which does the same and not C (and Perl).
+
+In my opinion, Ruby is a mixture of Perl and Python.
+
+Visually it looks more like Python, except that its syntax is not indentation-based. The scopes for identifiers also seem to be more closer to Python than to Perl. (Although this is not completely clear to me yet, as I have not seen counterparts to Python's "global" declarations yet). It also shares error standard library error handling and big number arithmetic with Python.
+
+But everything else seems to be closer to Perl.
+
+Ruby has a cleaner-looking system for object orientation, because it is backed up by special syntax and keywords for class declarations. On the other hand, Perl's ugly and more primitive solution is actually more powerful because it allows multiple inheritance. Ruby only supports single inheritance, even though "mixins" are available which basically copy shared functionality into multiple class definitions. However, mixins work more like a macro rather than actually affecting inheritance and method dispatch on a conceptual level.
+
+And Ruby is notoriously slow - like a snail. Probably this can be attributed to the fact that Ruby is more consequently object-oriented than the Perl and Python which have native built-in types that are processed faster than real objects, but are also limited in their object-oriented behavior.
+
+On the other handy, Ruby's slowness is relative - it would be a bad choice for number crunching, but it's still fast enough for typical "scripting" jobs including creating GUIs.
+
+Therefore, in my opinion the best reason for using Ruby is if you actually want to use Perl, but hate Perl's visual look, the large amount of its "special variables", and the fact that its built-in functions do not throw exceptions on their own but rather return status codes which need to be checked every time (or, more likely, just being ignored by accident or because of programmer's lazyness).
+
+On the other hand, most of this applied to Python, too, except that it has not borrowed as many Perl features as Ruby has.
+
+And Python has a cleaner syntax than Ruby, is faster, and has a larger user base.
+
+One particular advantage of using Ruby over Perl could have been that Ruby also borrowed Perl's optional explicit variable scopes. But it did not.
+
+Therefore, I can see little reason why anyone should use Ruby: It is a hybrid between Python and Perl, yet does not also deliver the actual strengths of both languages. It is caught somewhere within the middle, and slower in terms of execution speed than both.
+
+Rather than "Ruby on Rails", "Ruby on Crutches" or "Ruby on snails" might seem a more appropriate name for that well-known Web-application framework.
+
+However, speed is not everything, and Ruby is certainly still fast enough for most tasks.
+
+
+Zig
+---
+
+Zig is a language which considers itself to be a 'C' competitor.
+
+It it is similar to Go except that it does not have garbage collection - on the contrary, memory management is not only manual, but even general enough that it can work on a bare metal embedded system.
+
+It also borrows some features from Rust, however not its memory safety.
+
+Zig is even simpler than C in that it does not offer macros or header files. It is also much simpler than C++ by not providing exceptions, polymorphic types or classes.
+
+Instead, Zig allows functions to be called at compile time. This can replace most usages of the C preprocessor, and can do a lot more.
+
+Types can be passed to those functions or be returned by them. There is even a built-in type named "type" for passing types to compile-time functions.
+
+Compile time functions can act like C macros, C++ inline functions or C++ templates depending on how they are used. This allows to implement inheritance, generics or template types without special built-in compiler support.
+
+Functions can take parameters of type "anytype" which in fact turns them into templates which will be instantiated as specialized implementations when they are called. There are also compile-time operators which extract the type of an expression and allow to use it to declare new variables or the return type of the function. This might be useful for replacing overloaded functions in many situations, even though zig does not allow function overloading directly.
+
+Functions can declare a particular calling convention on the ABI level. A pseudo calling-convention ".Inline" is available which enforces inlining of the function's body and essentially converts the function into a macro.
+
+One of Zig's design principles is "no hidden control flow". This means no procedure calls or non-local jumps can occur without explicitly invoking them in the source code. For instance, there are no overloaded operators, no property getters and so on. Obviously such an approach also disallows error handling based on un-checked exceptions, which would be a kind of non-local jumps.
+
+On the other hand, it could be argued that the "defer" and "errdefer" statements (discussed later) directly contradict this principle.
+
+Zig features some unusual keywords such as "test", "unreachable", "noreturn", "allowzero", "volatile", "void", "opaque" and "undefined" which are not common in too many other languages but can be useful to give optimization hints to the compiler as well as assert conditions which the compiler can check at compile time.
+
+Pointers are not normally nullable in Zig, but they can be declared as such by prefixing them with "?" as an "optional" type.
+
+Such optional values must be "unboxed" before they can be used. The "orelse" keyword does this directly, but an automated syntax for unboxing is provided by some built-in statements like "while". In this case, "while (optional) |unboxed| {body}" will run the loop as long as "optional" is not a null pointer and the statements in "body" can access the unboxed value of "optional" as variable "unboxed".
+
+The same mechanism can be used to implement pointer-based iterators, even though Zig also provides a "for"-syntax for enumerating arrays or slices directly.
+
+The slice/array iteration syntax of "for" has the interesting capability to optionally enumerate pointers to the elements instead of their values. This allows to update the iterated values rather than just using them.
+
+All looping constructs also provide an optional "else" which can return a value from the whole loop if it is used like an expression.
+
+Loops support the usual "break" and "continue" statements, which can optionally refer to loop labels.
+
+"break" can further return a value from the loop construct, while the "else" value will only be used if the loop terminates normally. Obviously this requires that all iteration values can be computed at compile time.
+
+Loops can be unrolled by declaring them with the "inline" specifier.
+
+Error handling works somewhat similar to optionals: By default, functions must not fail.
+
+But if their declared return type is prefixed with "!", then those functions actually return error objects which must be checked by the caller and cannot be ignored.
+
+Most of the time, the "try" keyword is used for this. It checks the return value of a function and returns the error object to the caller if an error occurred. This is more or less identical to Rust.
+
+Errors in Zig are represented as instances of special error set types which are, in effect, implemented as enum constants.
+
+Functions which may fail must return boxed return values which can either be a valid return type or an error type value.
+
+Errors are generally handled very similar to optional values. Error types can be combined with a union operator into new error types.
+
+While all this effort may be cute and everything, it is also totally useless in my opinion. Nobody really needs error classes. "Recovering" from an error normally means retrying the same operation a couple of times and then giving up with an error message. No sophisticated inheritance stuff needed for that.
+
+Also it seems a bit idiotic to me, that Zig does not support exceptions or classes but still tries to emulate the features of exception classes. It provides the administrative overhead without the original purpose behind it.
+
+Another problem with Zig's "error return"-paradigm is the avalanche effect caused by adding error condition detection to a function which has been a no-fail function before: It this function is called from within other no-fail functions, all those calling functions need to be converted into "error return"-functions, too. Continue this game for a while, and soon most functions will be "error return"-functions. So why bother differentiating between the two types in the first place? Why not make every function an "error return"-function without additional declarators?
+
+Zig features the capability to create very small, statically linked executabled. For instance, a "hello work" can be as short as 9 kB on Linux and even just 4 kB on Windows.
+
+Zig ships with a cross compilation toolchain based on LLVM and libmusl. The toolchain can create executables for most common CPU architectures and operating systems. The Zig compiler can also be used as a conventional C compiler.
+
+Zig is not completely self-hosting yet and can be bootstrapped by a three step process:
+
+* Use cmake and a C++ compiler to create a first-stage Zig compiler
+
+* Compile the Zig source-code with this generated compiler in order to create the final-stage compiler.
+
+When I tried to actually run this bootstrap process on a i386 host, it failed with "out of memory" after running for a long time and producing 6 GB of output files.
+
+It seems that the first stage compiler zig0 has been successfully built, but then failed to build the second stage compiler zig1.
+
+Obviously, the address space was too small, because there was still enough free RAM.
+
+Which means at least a 64 bit system seems to be required for bootstrapping Zig. Perhaps 32 bit would have been enough for recompiling itself once the bootstrap had worked, but this remains to be seen. I have my doubts.
+
+Perhaps a custom built 32-bit kernel with a 3:1 userspace-kernel split might also work; the kernel used by me was a stock Debian kernel with a 2:2 split.
+
+Zig also ships with its own build system. The control files of this system are, of course, written in Zig itself.
+
+Resource deallocation can be automatized by using the "defer" and "errdefer" keywords.
+
+The first one schedules a command to be run in any case one the currently executing function returns. This is like a "finally" in Java. It can be used for resource cleanup.
+
+The second keyword does the same, except that the command will not be run if everything works without an error. This can be used to get rid of partially constructed objects in case of an error.
+
+In my opinion, "defer" and "errdefer" both contradict the "no hidden control flow"-principle, but they seem nevertheless to be very useful.
+
+Constant values are defined with "const".
+
+Variables are defined with "var". They must be initialized. However, they can also be initialized with the constant "undefined", which tells the compiler to actually leave then uninitialized. This is a clever solution to the initialization problem in my opinion. Also, in debug mode, undefined actually becomes a predefined value, in order to help identify uninitialized memory reads.
+
+There is one catastrophic (at least in my opinion) restriction however: Variables are never allowed to shadow identifiers from an outer scope. I find this to be a very, very bad design decision. It negates the practical implications of "copy/paste"-programming and requires renaming colliding names.
+
+Renaming identifiers in existing code is always error-prone. Unless performed manually which can be a lot of work, it requires special tools which can at least parse the programming language in order to be done safely. For instance, it must be capable to differentiate between code, string literals and comments. And in the latter two cases, it depends on the context whether names occurring there should also be renamed or not.
+
+The programmer will be attempted to rename the copied names by adding numeric suffixes like "i2" instead of "i". If the resulting code is then copied somewhere else it will become "i3" etc. Overall, this will lead to similar mechanisms like the "RENUM" command of some BASIC dialects, only that identifiers instead of line numbers need to be renumbered.
+
+Or, even worse for code readability, as an alternative to tedious renumbering the identifiers in copy/paste code, the programmer might prefer to use UUID-based names from the beginning which have no chance of accidental name collision.
+
+The restriction also does not add any additional security: If a block of code is copied and the programmer forgets to add declarations for the new variables inside the block, the block will happily use existing names from the outer block which is not intended. And if the programmer does add declarations, it will be safe no matter whether the names are shadowed or not.
+
+Octal, hexadecimal and decimal integer literals are supported. Octal literals are prefixed by "0o" rather than by just "0" as in C. Underscores may be inserted into the literals to group digits. Hexadecimal literals may use either letter case.
+
+Integers may be signed or unsigned and can have any bit size up to 65535 bits. However, variables nevertheless do have a specific size which must be declared.
+
+Integer math operations can overflow which will be detected at runtime. Different than C, not even the result of adding to an unsigned variable is well-defined in case of overflow, and will therefore also lead to a runtime error.
+
+However, Zig features specific operators like "+%" which support wrap-around modulo arithmetic out of the box. And different than in C, those operators also work on signed integers (using 2's complement arithmetic's rules). They did nor forget about a wrapping version of the negation operator either.
+
+So C-like arithmetic is still possible, but unintended overflows will (or just might?) be caught.
+
+Zig allows structs to be packed. Such structs will omit any padding and use the exact integer bit widths specified. Combined with the fact that integers of specific widths up are supported by the language, packed structs can actually be used like "C" bit fields without the requirement of a special syntax for this. Unions can be packed, too. There are even operators which return the bit and byte offsets of a struct member.
+
+The alignment of (normal) struct fields can be specified individually where the default alignment is not good enough.
+
+Floating point types of 16, 32, 64 and 128 bit are available in addition to the C "long double" type. Hexadecimal floating point literals like in C99 are also supported. They may also use underscores for grouping digits.
+
+NaN-constants are supported, but only via constants provided by the standard library and not as literals.
+
+Operator overloading is not supported by Zig.
+
+Zig has no nested comments, but rather only C++ style "//"-comments. But those come in three favours: Normal comments, documentation comments, and top-level documentation comments. For the latter two, Zig defines very strictly where they must be written and which declarations or code sections they are referring to.
+
+A very peculiar design decision of Zig is that multiline string literals look identically to comments, except that backslashes are used instead of forward slashes. It is thus very easy for an unsuspecting human reader to visually confuse comments and multiline string literals.
+
+An interesting idea of Zig is that structure member access and pointer dereferencing has been unified: The latter is written as `ptr.*`, as if the value `ptr` is pointing to were a struct containing a single unnamed component and a wildcard was used to match its member name.
+
+Zig supports both arrays and slices. They behave similarly, except that arrays have a fixed size known at compile time while slices haven't. Most of the time, arrays and slices can be used interchangeable within expressions.
+
+Zig generalizes null-terminated arrays/sliced as a feature called "sentinel-terminated" types. This allows such slices not only to be terminated by a null value, but any possible value. The termination value will then become a part of the pointer's data type.
+
+Zig features several very powerful built-in functions not provided by a lot of other languages. For instance, there are functions for counting the number of leading "0"-Bits in an integer value, atomic memory-access functions, fused multiply-add, arithmetic functions which report overflows, byte swapping, instruction fencing, direct frame-pointer access, memory copying/filling, SIMD-instruction with map/reduce.
+
+In addition, inline-assembly code is supported similar to what C/C++ provides as an extension to the language in most actual implementations.
+
+The fact that name shadowing is forbidden basically ruins the language for me. But aside from this totally unnecessary and arbitrary restriction Zig is one of the most interesting languages I have seen so far.
+
+
+CLISP
+-----
+
+This review is about the details of this particular implementation, not a review of the LISP programming language in general.
+
+CLISP is a very popular LISP dialect and ANSI COMMON LISP implementation including CLOS.
+
+The primary reasons for CLISP's popularity seem to be its completeness, portability, easy installation and small installation footprint compared to other widespread COMMON LISP implementations.
+
+It is usually slower than other LISP implementations, but not by too much and still faster than most popular scripting languages.
+
+The CLISP documentation makes strong claims:
+
+"CLISP compares well with other ANSI CL implementations [...] The worst performance CLISP exhibits in the area of floating point arithmetics. While showing nothing spectacularly bad and easily outperforming Java, Perl, TCL and any Scheme interpreter, CLISP is slower than another open-source CL implementation, CMU CL (http://www.cons.org/cmucl), which outperforms C and FORTRAN. If your code is heavily numeric, you might prefer CMUCL, otherwise CLISP is a wise choice."
+
+In contrast to this, Wikipedia states:
+
+"Although interpreting bytecode is usually slower than running compiled native binaries, this is not always a major issue (especially in applications like Web development where I/O is the bottleneck). CLISP is also easier to set up than other popular FOSS Common Lisps such as SBCL. "
+
+Admittedly, I mostly saw comparisons between CLISP, CMU CL and SBCL. And the latter is a fork of CMU CL.
+
+But even then, CMU CL outperforming FORTRAN seems still very unlikely.
+
+In addition, the above claim reads as if the performance disadvantages were restricted purely to floating point operation, aside of which CLISP outperforms all other LISPs.
+
+I also suspect they compare their compiled performance with the interpreted performance of Scheme implementations, which would be highly dubious argumentation. Several Scheme implementations support compiling to native code as well.
+
+Another question is how any bytecode interpreter like CLISP could manage to achieve such miraculous speed advantages, especially compared to C and even FORTRAN.
+
+When sifting through the Makefile, I saw a configure-option for specifying an external JIT compiler.
+
+Maybe all the claimed speed advantages only apply under the condition than an external JIT compiler is used to speed up the otherwise slow-as-a-snail performance of CLISP.
+
+The only other possible explanation of such miraculous performance benefits would be hand-crafted assembler code provided by CLISPs runtime libraries, possible exploiting some CPU-specific vector instructions for speeding up particular notoriously performance-critical mathematical operations such as matrix multiplication or solving sets of linear equations.
+
+However, this would not be a general speed advantage of the implementation but only apply to cases where those specific math functions dominate the overall application performance.
+
+Another thing is the fact that CLISP makes use of libgmp which is very fast, but non-GPL licensed programming languages cannot make use of it by default because of license restrictions. Perhaps the only reason for CLISPs alleged performance advantages is based on GMP's performance. However, this would only apply to applications which make heavy use of multiprecision arithmetic. The usual hardware-backed integer and floating-point arithmetic as used by C and FORTRAN would not benefit from GMP.
+
+What I am certainly ready to believe is that compiled CLISP outperforms other scripting languages like Perl, Python, Tcl or Ruby, which never have claimed to be faster than JAVA or C, let alone FORTAN.
+
+Anyway, I am more than curious how CLISP will behave in actual benchmarks by comparison!
+
+But before evaluationg CLISP itself, I first looked which extension modules (most of which just represent bindings to external libraries) ship with CLISP. As of CLISP-2.49, those seem to be:
+
+berkeley-db clx dbus dirkey fastcgi gdbm gtk2 i18n libsvm matlab netica oracle pari pcre postgresql rawsock readline regexp syscalls wildcard zlib
+
+I have excluded in the above list some extensions obviously only provided as toy implementations for demonstration purposes.
+
+In addition to the above list, the configure script searches for FFI implementations, meaning optional FFI support is available, too.
+
+Regarding "gtk2"-support, one might consider the fact that at the time of this writing (2022), GTK-4 has been the current GTK version. And also that GTK-4 ist not backwards-compatible to GTK-3, let alone GTK-2.
+
+On the other handy, the evaluated version 2.49 seems to be from around 2010 (2010-07-07 to be precise in the case of my copy), when GTK-3 has just been released and GTK-4 certainly has not been around yet. So maybe a newer version of CLISP will provide more up-to-date GTK support.
+
+...but I had to learn that there are no newer versions of CLISP: The project is listed as inactive, and no further devlopment happens at the moment.
+
+CLISP is still usable at its core as a programming language, but most of its external bindings are outdated and should not be relied upon.
+
+However, it should be possibly to substitute many bindings with CLISP's FFI, although requiring a lot of additional effort (so better forget  support of complex frameworks) by the developer.
+
+When I tried to compile clisp for the first couple of times, it always failed sooner or later in the build process.
+
+I determined that using a parallel build was a problem, and that configure needed to be invoked as
+
+$ sh configure --prefix=$HOME/.local CPPFLAGS='-D NDEBUG' CFLAGS='-O3 -falign-functions=4 -pipe' LDFLAGS='-s -Wl,-O1 -Wl,--as-needed -Wl,--hash-style=gnu'
+
+I also had to install die Debian packages
+
+libffcall-dev
+libsigsegv-dev
+libreadline-dev
+gettext
+
+for a full-featured version.
+
+
+LISP
+----
+
+LISP is an acronym for "LIST Processing", a programming language where lists are the most important data structure and recursion is used frequently as an important and non-optional feature.
+
+LISP is the second-oldest higher programming language in existence, only FORTRAN is older (and not by much).
+
+From its beginning, LISP has been the dominant language for artificial intelligence programming and symbolic computations.
+
+This review is about the ANSI COMMON LISP dialect of the language, because it seems to be the only standardized LISP variant which is also supported by most major implementations. Other well-known LISP dialects are Scheme and Emacs LISP (elisp).
+
+In the remainder of this review, I will refer to ANSI COMMON LISP as CL.
+
+
+Comparison with Scheme
+~~~~~~~~~~~~~~~~~~~~~~
+
+Compared to Scheme, CL is larger, less powerful, typically faster and more practical.
+
+Things Scheme provides but CL lacks: Guaranteed proper tail recursion, continuations.
+
+Things CL provides but Scheme lacks: Fast iterative loop constructs, out-of-the box exceptions, structs and an object oriented programming system, named arguments, a much larger and standard library.
+
+Both languages are syntactically similar and use recursion for many things.
+
+A key difference is that Scheme relies heavily on proper tail recursion. It does not provide real iteration mechanisms, because they are actually tail recursion disguised as iteration forms.
+
+CL on the other hand does not guarantee proper tail recursion, even though most implementation actually provide it. CL programs therefore cannot rely on proper tail recursion to be available and should be written in a way that uses recursion only in a traditional way. In particular, CL programs should never use infinite recursion. They should use the iterative loop constructs instead.
+
+As a consequence, CL is less elegant than Scheme, but more down-to-earth and better matches the intuitive mindset of most developers. CL does not enforce a functional or imperative approach for a particular problem; the programmer can choose the approach best matching the underlying nature of the algorithm.
+
+Scheme is strictly more powerful then CL because it guarantees support for continuations. Continuations are the building blocks for implementing exceptions, non-local exit/return, co-routines, green threads and and co-operative multi-threading. CL provides exceptions out of the box but has no equivalent of the other ones.
+
+On the other hand, exceptions are the only practically relevant feature from this list. And CL supports those.
+
+While co-routines and green threads are usually hyped a lot because of their power, it turns out that they are used little in practice. The problem with those features is that their efficiency heavily relies on the way they are implemented, which is not standardized in any way.
+
+For instance, the well-known "Guile" implementation of Scheme provides continuations, but actually using them can result in the underlying C stack being copied to a different memory location which can, depending on the context, be very expensive.
+
+Other Scheme implementations like Chicken assume a large "C" stack and actually use it as a heap, relying on regular stack overflows detected by the operating system in order to trigger garbage collection.
+
+Programmers generally do not like features which are cheap on one implementation of a language but expensive on another one; they want their programs to perform on all implementations with similar relative efficiency.
+
+Those problems do not exist in CL. Hard-to-implement things like continuations have been left out or are just implementation-specific extensions.
+
+Things that dominate speed like loop iterations are provided directly.
+
+Recursion can be used where it makes sense, but are not intended as a replacement for loops.
+
+This makes CL not just a more practical, but also a more traditional programming language. There is no need to twist one's mind around a recursive solution to a problem which is iterative in nature, and vice-versa.
+
+Because CL lacks continuations, it can also be implemented efficiently using traditional stack-based function activations backed CPU by hardware registers for this purpose.
+
+As a consequence, most CL implementations provide a compiler which can speed up execution of compiled functions considerably.
+
+Another important feature of CL is CLOS, the COMMON LISP Object System. While Scheme provides all required building blocks for implementing exceptions or an object system, CL already provides both out of the box and ready to use.
+
+While Scheme is a more powerful language per se, CL provides slightly more powerful metaprogramming capabilties. Scheme and CL both provide macros for this purpose, but the macros of Scheme have been restricted intentionally in order to be "hygienic". CL does not care and leaves it to the programmer how to use or mis-use macros, there are no restrictions as in Scheme.
+
+All the mentioned differences between the two LISP dialects seem to have led to the following results:
+
+* There seem to be are a lot more CL then Scheme programmers out there.
+
+* Most people agree that Scheme is more minimalistic, pure and elegant.
+
+* But CL is better suited for implementing real-world solutions.
+
+* CL is therefore used in more actual programs
+
+* Scheme ist mostly used in education or as an embedded scripting language for extending the features of some host application. GNU guile or tinyscheme are frequently used for the latter purpose.
+
+After this comparison between Scheme and CL, let's concentrate on CL itself.
+
+
+ANSI COMMON LISP
+~~~~~~~~~~~~~~~~
+
+Some standard procedures provided by classical LISP implementations like setq, car and cdr are still available and have not been deprecated because of their frequent use in existing code, but they are being considered archaic and CL provides recommended replacement aliases for them.
+
+For instance, "first" and "rest" can be used instead of car and cdr. Also, "second", "third", ..., "ninth", "tenth" are available as alternatives to "cadr", "caddr" etc.
+
+While "setf" does not exactly the same as "setq" in all contexts, it is close enough and is generally recommended as a replacement in new code.
+
+To my severe displeasure, it turned out hat CL provides no portable way of accessing command line arguments, or returning a portable success/failure code to the caller of the LISP program.
+
+
+Chapel
+------
+
+Chapel https://chapel-lang.org/ is a language specifically designed for parallel programming.
+
+It looks vary similar to PASCAL at a first glance except that it uses curly braces for blocks like C.
+
+However, it combines this PASCAL-like syntax with operators borrowed from C. In particular, assignment and equality are "=" and "==" as in C and not ":=" and "=" as in PASCAL.
+
+This is a very important distinction, because most other PASCAL-like languages also uses PASCAL's operators. This usually makes it hard for programmers proficient with C, C++, Perl, Python or JavaScript to use such languages because of the confusion between "=" and "==".
+
+However, this problem does not exist with Chapel. It allows programmers with experience in C, Python etc. to enjoy the prettier overall syntax of a PASCAL-like language, without confusion arising from the very different operators of PASCAL.
+ 
+One original feature is the "config" qualifier applied to variable declarations: In this case, the initialization value of that variable can be overridden by command line options when running the program. This will be done automatically by the language runtime. The programmer does not need to take any actions for this to happen.
+
+Variables always are always intialized, default values (typically 0) are used unless the programmer provides an explicit value. This is similar to BASIC.
+
+Integers in Chapel default to 64 Bit, but the number of required bits for a variable can also be specified explicitly.
+
+Rather than predefining named integers types for particular sizes, there is a compile-time function which evaluates to an integer type of sufficient size. For instance, "uint(5)" evaluates to an unsigned integer type capable of storing at least 5 bits.
+
+I like this solution to the integer width specification problem much more than C99's uintN_t types. On the other hand, it remains unclear whether the uint(8) of Chapel means the same as C99's uint8_t, uint_least8_t or uint_fast8_t.
+
+Chapel allows overloading of functions, procedures and operators.
+
+Like Python, Chapel does not provide C's "++var", but "var += 1" is supported and can be used instead.
+
+Instead of C preprocessor's "#if", in Chapel one uses compile-constants with normal "if" for conditional compilations.
+
+Compile-time constants are declared like normal constants, except that the special declarator "param" has to be added to the declaration.
+
+Generic functions are also supported by just omitting the type declarations of some of their arguments.
+
+Like in PASCAL, function call arguments are passed by value by default.
+
+Instead of using PASCAL's "var" keyword to enforce call by referernce, Chapel used the "ref" keyword instead.
+
+Another difference between Chapel and PASCAL is that Chapel does not differentiate between procedures and functions - "proc" is used for both. Instead, the special "void" type is declared as the return type if there is no return value, just like in C.
+
+There is also an "inout" keyword that has the same effect as "ref" but works differently: "inout" actually copies the value of the referenced variable to a local variable during executaion of the function, and copies the resulting value of the local variable back to the referenced variable.
+
+This is another clever feature in my opinion, because access to local variables is usually much faster than dereferencing pointers.
+
+C programmers are used to create shadow variables for the same purpose, but Chapel can do this automatically. There is also an "out" keyword for only providing the second half of "inout".
+
+Unlike in PASCAL, Chapel's "if"/"else" can not only be used as a control flow statement, but alternatively return a value like C's ternary "?"/":" operator.
+
+Named arguments and variable number of arguments are also supported by Chapel.
+
+Chapel provides different kinds of references for dynamically allocated objects.
+
+"own" is the default where the ownership of an object is passed by assignment of call/return of a function. As soon as the variable containing the current ownership goes out of scope, the object will automatically be freed.
+
+"shared" uses reference counting for controlling an object's lifetime. As soon as the last reference to the object is dropped, it will be automatically deallocated.
+
+"unmanaged" lets the application use "delete" to deallocate an object manually. This is basically the same level of control as in C with as malloc/free.
+
+"borrowed" seems to restrict an object's lifetime to the scope of its pointer variable. The object gets deleted as soon as the scope is left. It behaves therefore like any normal local variable, even though it has actually been allocated on the heap. There is no way to pass the ownership of the object around for extending its lifetime, like it is with "own". Hmmm. I am not sure whether I got this right. "borrow" seems to have connections with "shared". Perhaps it is assignment without changing the reference count?
+
+Chapel does not allow references to be null (called of course "nil" by Chapel just like in PASCAL) by default.
+
+But variables can be declared nullable by adding a "?" after the type name in their definitions.
+
+Nullable references must be converted to normal references via the "!" operator within expressions. This operator checks whether the reference is null and automatically triggers a runtime exception if this is the case. Otherwise it evaluates to the non-null reference.
+
+Chapel features exceptions and try/catch for handling them. Also, the standard library actually does throw exceptions, particularly for I/O errors.
+
+Hopefully this is really true.
+
+In practice very few languages provide exceptions and actually use them extensively. A prominent counterexample would be JAVA which has exceptions but does not use them to signal output errors in println().
+
+Chapel provides generator-like iterators which are at least capable of recursion; they can for instance be used to enumerate the nodes of a binary tree using a "yield" statement.
+
+Iterators also seem to support parallization of their execution using the "coforall" statement.
+
+This can be interpreted as a hint that Chapel's iterators are actually at least coroutines rather than generators.
+
+Of course, this would not be real parallelism but rather concurrency, because coroutines never work in parallel but rather suspend and resume their execution.
+
+However, it seems Chapel actually supports both: Besides "coforall" there is also "forall". I assume the latter is the one providing true parallelism.
+
+There is also an "atomic" modifier for variables for lock-free (but still more expensive than plain variables) access under multithreading conditions.
+
+Chapel features the concept of "locales" for representing local node memory on a NUMA systems. The program seems to be able to allocate resources in particular locales, thus exercising control over the actual location within a distributed system where an object is allocated.
+
+There is also the concept of a "domain". Those seem to allow partitioning of large matrices into rectangular index ranges for distributing the indexed data over various locales. Probably important for supercomputers, but rather useless for conventional PC hardware. (Like locales.)
+
+Sparse domains and arrays are also supported out-of-the-box - certainly useful for several algorithms which deal with large matrices where most values are zero.
+
+Associative data structures (i.e. hashes/dictionaries) are also supported by the language, as are enums and sets.
+
+Map/reduce seems to be built into the language to some extent, but I am unsure how versatile it is. At least the most common reductions like finding the largest element, summing or counting elements are supported though.
+
+The concept of data distribution and replication among nodes seems also to be covered by the language or at least by its standard library. Several algorithms how to partiton and distribute large datasets among locales seem to be available.
+
+Another hint that Chapel is targeted at supercomputers is the fact that it has extensive built-in support for common linear algebra operations.
+
+Behind the scenes, the well-known BLAS and LAPACK libraries are used for implementing those features.
+
+Of course, complex numbers and support for FFTW are also covered by the standard library.
+
+There is also preliminary support for GPU programming available. Currently, only NVIDA GPUs are supported via CUDA.
+
+Overall, Chapel seems to have "Supercomputer" written all over it.
+
+Whether it is also usable as a normal everyday programming language remains to be seen.
+
+The current implementation of the language is built on top of LLVM.
+
+Primary platforms supported by Chapel are OS X, Cray, Cygwin and AWS. POSIX and Linux are not explicitly mentioned, but according to Wikipedia they are also supported.
+
+
+Smalltalk
+---------
+
+Everything is an object - including numbers, strings, code blocks and even the runtime stack.
+
+Arrays are 1-dimensional and the first array index is always 1.
+
+One very nice feature is that Smalltalk function calls (even though it is called "sending a message to an object") require the caller to use named arguments unless the function has just a single argument. This also means that the arguments can be passed in any order. This means that in Smalltalk it is always clear which argument has which purpose, there is no guessing about the order of arguments.
+
+
+GNU Smalltalk
+-------------
+
+A running idle interactive "gst" instance requires about 7 MB RAM.
+
+The size of the primary GNU Smalltalk shared runtime library is about 800 kB. Other standard runtime libraries loaded are libc (2 MB), libm (1 MB), libgmp (600 kB) and libffi (35 kB).
+
+
+Crystal
+-------
+
+A Ruby-like language, but faster. Statically duck-typed. Homepage [ https://crystal-lang.org/ ].
+
+Problem: It uses the BoehmGC.
+
+Thank you.
+
+No interest.
+
+Another problem of Crystal is bootstrapping: You need a running Crystal implementation in order to compile Crystal from source code. However, Crystal is not the only language suffering from this chicken-egg problem.
+
+However, BoehmGC usage in Crystal is unfortunate, because it seems otherwise to be a very nice language.
+
+For instance, it has inclusive and exclusive numeric ranges.
+
+It supports string interpolation, but it is not enforced. Also, parsing format strings is done at compile time and not at run time.
+
+It has a static type system, but types are inferred most of the time and need not be declared explicitly.
+
+Like many languages, it has unnamed tuples. But it also has named tuples, where the components can be accessed using identifiers rather than by position.
+
+It has exact-width integer types from 8 to 128 bits (in power-of-two size increments), both signed and unsigned.
+
+32/64 bit IEEE binary floating point numbers are also supported.
+
+Crystal uses exceptions as the primary vehicle for error handling. This is a very fortunate choice, considering what languages like Rust or Lua are using instead.
+
+There is also a "?" suffix operator that can convert any exception into a "nil" value. That is similar to capture the exception and throw away the exception object, but still proceeding differently depending on whether an exception has actually occurred.
+
+The only downside of Crystal's exception handling scheme is that there are no synchronous destructors like in C++.
+
+Instead, destructors can be defined but will only be invoked by garbage collection, which makes them worthless in most situations.
+
+There is a Crystal counterpart of JAVA's "finally"-feature, allowing code to be processed no matter how code leaves the scope.
+
+However, there is no distinction whether the code is left because of an exception or due to normal control flow. "Zig" with its "errdefer"-feature does a better job here.
+
+While "finally"-semantics are a bit annoying, it is still possible to add a few custom constructs like resource-cleanup lists manually in order to create a sound RAII-system from such primitives. In other words, it could be better, but it is sufficient.
+
+Crystal has generics, inline functions and supports overloading, but also provides macros.
+
+Those are cleaner than the ones of C, because the macro feature is part of the actual language and not the job of some preprocessor.
+
+Calling external shared libraries is possible by some built-in kind of FFI. However, such code should be avoided where portability matters, because it is necessary to specifiy plaform-dependent calling conventions.
+
+Local variables are created by just assigning to them. It is possible to explicitly leave a variable uninitialized by assigning a special "uninitialized"-constructed value.
+
+Crystal is a compiled language.
+
+Cross-compilation is supported.
+
+The primary target is x86_64 on Linux and MacOS. Developments happens there and it is the best tested.
+
+On Tier 2, 64-bit ARM, 32 bit x86 on Linux, and OpenBSD and FreeBSD is also supported. Also different C libraries are supported.
+
+On Tier 3, Microsoft Windows, NetBSD and DragonflyBSD is supported. All those only for x86_64. In addition, Web Assemble code can ge generated (32 Bit only).
+
+This means, the target platform choices are quite limited and restricted to 64 bit systems for most platforms, except that x86_32 and 32-bit ARM are also supported.
+
+Summing up, only ARM and x86 are supported. An not even all OS/C-Library Combinations on those platforms. There is no RISC-V, MIPS or POWERPC support. At least not as of now (2023).
+
+Crystal has a built-in foreign function interface (FFI). This means it can use libraries written in C and other languages. Unfortunately, usage of this FFI is highly non-portable. One has to specify platform-specific calling conventions, instead of abstracting that.
+
+Therefore, Crystal progams are not as portable as C programs. All the major platforms are supported. But if you need to develop for a target platform other than the ones mentioned above, you are out of luck. (That is, unless you feel the urge to port Crystal to a new platform yourself.)
+
+My preliminary verdict of Crystal is: A very nice language, but the implementation has its limits. BoehmGC is a very inefficient choice for a GC. Only the major platforms are supported. Many embedded platforms such as AVR (Arduino & Co) are left out.
+
+Another thing I noticed in Crystal is that it does not seem to have user-defined scopes, just function scope like in Python. However, one of the language developers informed me that there is actually a workaround to get user-defined scopes.
+
+So the language seems to be OK, as long as you can manage to ignore BoehmGC.
+
+However, one problem is availability: There is no Debian package, and building the language from scratch turned out to be to complicated for me. In fact, I did not even manage to build LLVM, which is needed in very specific versions, and is a build prerequisite of Crystal from source.
+
+Of course, I could have used the pre-built binary version of Crystal. But I do not feel comfortable using binaries someone else has built who I have no way of telling how trustworthy that someone ist.
+
+I presume the problem with building LLVM ist the fact that I am using a 32 bit system and the address space might be too small.
+
+I will therefore try Crystal again once I have installed a 64 bit OS at some point in the future.
+
+
+Swift
+-----
+
+Swift is a general-purpose high-level language not restricted to a single paradigm.
+
+As one web page puts it most enlightening: "For those of you who didn’t know, Swift, often referred to as “Objective-C, without the C,” is an open-source programming language developed and maintained by Apple."
+
+Swift is an LLVM-based compiler, and can therefore generate machine code or whatever else LLVM might support.
+
+Swift does not use garbage collection but rather automatic reference counting. Modifiers "unowned" and "weak" can be applied to references in order to avoid memory leaks in cyclic data structures.
+
+Swift does not provide true exception handling.
+
+Errors are handled by returning error objects. This is hidden somewhat between syntactic sugar with "try" and "cactch", but is really just some some fancy way in order to check the result code of a function.
+
+As a consequence, error handling in Swift ist a similar mess as in Go, Rust and all the other languages which do not support true error exceptions.

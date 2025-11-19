@@ -1,0 +1,98 @@
+000suitename_opt, pkgname1, pkgname2, ..., exename1, ..., libname1, ..., any_related_name1, ..., last_such_name.
+2016-02-24
+Description. In the case of this first pseudo-entry, which describes the format of this file rather than an actual entry, first line shall be a list of comma-space-separated names referring to that entry. If names include literal commas or backslashes, those must be escaped by prefixing them with a backslash. The line must end with a full stop like it were a regular sentence.
++
+The names can refer to the "official" name of the package, or multiple such names, to the names of packages as they are used by different Linux distributions or even by different OSes, to the names of installed executable binaries, or to the names of installed shared or static libraries (using a generalized suffix, such as ".so" instead of ".so-1.0" or similar).
++
+Each name may be optionally followed immediately by a context specification enclosed within square brackets. Such a context specification can be anything, but will typically be the name of a Linux distribution (omitting the "Linux") and year-month where this particular name has been known to be in use. For instance, "sha1sum[Arch 2016-03]" or just "sha1sum[Arch]" for cases where it is not expected that the name will ever be changed within that distribution.
++
+The second line contains the date when this entry was created or updated. ISO-8601 format is preferred, but any format which can be parsed reliably will do.
++
+The remaining lines of the entry are made up of a multi-paragraph description. Every paragraph is written as a single overlong line (the same is true for the first line containing the names) with no embedded newlines. The editor used for editing this file is expected to support "soft" line wrapping. (Vim and Emacs can do this, for instance, when run with the right options.)
++
+Paragraphs within the description are separated from each other using a line containing just a single "+"-character.
++
+A single empty line separates different entries rather then description paragraphs.
++
+The character set shall be UTF-8, preferably with UNICODE normalization form "composed". ASCII LF is expected as newline characters. Use of other control characters such as ASCII horizontal tabs are disencouraged.
++
+It is allowed that entries describe not just a single package, but rather a suite of multiple related packages that belong together somehow. Typically, those different packages are made from the same source package, or are "buddy" packages from the same authors which are required or expected to be installed together.
+
+Mcrypt, mcrypt, community/mhash[Arch], extra/libmcrypt[Arch], extra/php-mcrypt[Arch].
+2016-02-24
+This suite is comprised of three components: The "libmcrypt" library containing encryption algorithms, the "mhash" library containing hash- and password-to-key algorithms, and finally the command line utilty "mcrypt" which allows the functions of both libraries to be used directly by the user without needing to write a program which links to the libraries.
++
+Here is the output of various information functions used to display a list of the available algorithms as run on Arch Linux, 2016-02:
++
+$ mcrypt --list
+cast-128 (16): cbc cfb ctr ecb ncfb nofb ofb 
+gost (32): cbc cfb ctr ecb ncfb nofb ofb 
+rijndael-128 (32): cbc cfb ctr ecb ncfb nofb ofb 
+twofish (32): cbc cfb ctr ecb ncfb nofb ofb 
+arcfour (256): stream 
+cast-256 (32): cbc cfb ctr ecb ncfb nofb ofb 
+loki97 (32): cbc cfb ctr ecb ncfb nofb ofb 
+rijndael-192 (32): cbc cfb ctr ecb ncfb nofb ofb 
+saferplus (32): cbc cfb ctr ecb ncfb nofb ofb 
+wake (32): stream 
+blowfish-compat (56): cbc cfb ctr ecb ncfb nofb ofb 
+des (8): cbc cfb ctr ecb ncfb nofb ofb 
+rijndael-256 (32): cbc cfb ctr ecb ncfb nofb ofb 
+serpent (32): cbc cfb ctr ecb ncfb nofb ofb 
+xtea (16): cbc cfb ctr ecb ncfb nofb ofb 
+blowfish (56): cbc cfb ctr ecb ncfb nofb ofb 
+enigma (13): stream 
+rc2 (128): cbc cfb ctr ecb ncfb nofb ofb 
+tripledes (24): cbc cfb ctr ecb ncfb nofb ofb 
++
+$ mcrypt --list-keymodes
+asis
+scrypt
+mcrypt-md5
+mcrypt-sha1
+hex
+pkdes
+s2k-simple-md5
+s2k-simple-sha1
+s2k-simple-ripemd
+s2k-salted-md5
+s2k-salted-sha1
+s2k-salted-ripemd
+s2k-isalted-md5
+s2k-isalted-sha1
+s2k-isalted-ripemd
++
+$ mcrypt --list-hash
+Supported Hash Algorithms:
+crc32
+md5
+sha1
+haval256
+ripemd160
+tiger
+gost
+crc32b
+haval224
+haval192
+haval160
+haval128
+tiger128
+tiger160
+md4
+sha256
+adler32
+sha224
+sha512
+sha384
+whirlpool
+ripemd128
+ripemd256
+ripemd320
+snefru128
+snefru256
+md2
++
+As a general comment, the command line utility is not available at least in Arch Linux. However, it is easy to build once the libraries have been installed because it used GNU autotools.
++
+The libraries seem to be more widely used than the command line utility, for instance by a PHP module.
+

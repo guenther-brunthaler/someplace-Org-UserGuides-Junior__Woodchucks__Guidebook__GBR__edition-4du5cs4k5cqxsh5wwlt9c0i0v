@@ -1,0 +1,77 @@
+First of all, this is a "fallback" document for all programming libraries which do not fit into one of the other documents in this directory.
+
+GLib:
+GLib is one of the base libraries of the GTK+ framework, and limitations in GLib therefore also have effects on GTK+.
+
+GLib Pro:
+* There is a standard for error handling using the "GError" type and a set of conventions. Errors are reported by GError objects which have to be passed always as the last argument by convention.
+* Pointers to GError objects are passed down from the caller to the callee, allowing the callee to report an error there.
+* The GError pointer passed down by the caller can also be NULL, which requires the callee to "fail silently" in case of an error.
+* Many cases the callee also communicates success via its return code. This allows the caller to check for errors faster than by examining the GError object, and it works whether or not "silent fail"-mode has been requested.
+* If the callee formats an error message although the caller passed down a NULL pointer for the GError reference, the error message will automatically be deallocated by the error propagation functions.
+
+Glib Contra:
+* GQuarks are a unique mapping from strings to 32-Bit-Integers. But the documentation says nothing about what happens if someone tries to create more than 2 billion CQuarks, which obviously cannot succeed. Even worse, the GQuark functions do not return an error, and all possible return codes can be valid quarks (including the value 0). And the cherry pie on top of the desaster is the fact that CQuarks can be allocated, but no function exists to free them! This means the quark storage will grow and grow as new strings are converted into GQuarks, but it will not shrink even though no-one might require those quarks any more. It follows that GQuarks should only be used for rather small quantities of strings, say as identifiers. But unfortunatley, keyed data sets which are a general purpose string mapping data structure, also uses CQuarks as keys. This renders all GData-based data structures useless for 64-bit applications which are not willing to accept 32-bit limitations.
+* The GError error handling functions do not allow "piling up" of errors. It would be better to allow "piling up" of errors but disallow follow-up errors to overwrite existing GError objects.
+* Some functions report errors by setting up GError objects only, other functions return their success by return value only, others use both techniques. It would be better to handle error in a uniform way.
+* GErrors are composed of a "domain"-part which is a GQuark and provides a "namespace" and an integer error number which is interpreted relative to that namespace. This creates unnecessary relationships between error messages using the same quark and creates problems when functions are moved between modules and libraries (which will typically use different quarks).
+* The GError conventions require "internal" errors to abort the applications, and only "recoverable errors" to be reported as GErrors. I do not see a stringent reason for this restriction. In reality, internal errors will always remain, and it is no advantage for a server process to stop execution just because a rarely-used subfunction triggered an internal error. Those errors should be reported and execution should continue if possible and desired by the application developer. On the other hand, GLib's focus obviously lies more on the GUI application side than on server issues. A crashing GUI application might be tolerable, an important service should not stop because of some minor internal error.
+
+Flutter:
+A framework based on the Dart Programming Language for developing Mobile Apps for the Android, IOS and Fuchsia Operating Systems.
+
+Flutter Pro:
+* Write your app once an deploy it to the three most important mobile plaforms (as of 2018).
+* Fast edit/compile cycles.
+* While annoyingly fat, the alternatives are not much better either.
+
+Flutter Contra:
+* Builds upon Android Studio, which by itself is already a very resource-consuming (fatter than even Eclipse) development environment.
+* It seems to have a lot of run-time overhead: A basic "hello world"-app is said to be about 25 MB large.
+* Dart is not prevalent outside the Flutter ecosystem.
+
+Cordova:
+A framework from the Apache foundation for devloping portable mobile Apps which use a HTML-based, browser-like framwork for implementing its user interface. The apps have access to most hardware resources (camera, accelerometers, GPS, etc.) of the device, similar to native apps. The apps basically consist of HTML5, CSS 3 and JavaScript.
+
+Cordova Pro:
+* Portability. The framework supports a lot of mobile platforms (include all important ones), so the apps will run on all of them. However, not all platforms offer all available features, so apps need to check for certain features whether they are actually available.
+
+Cordova Contra:
+* Very resource consuming and inefficient compared to a native app. This is because of the HTML-based UI. The developer of an app has less to care about, but the user is paying the price with higher local resource consumption.
+* Cordova development tools are based on the Node.js framwork, so this needs to be installed as well. For creating Android targets, a JDK and Gradle need to be installed as well as the Android SDK. This is a lot to install.
+* Although the most important sensors of a SmartPhone seem to be supported by the framework, I could not (quickly) find a way to invoke the services of installed native other apps, such as for QR-code scanning.
+
+XForms:
+* Based on C
+* XForms is a very old X11 toolkit. It is build directly upon the X11 core libraries and has no dependencies on the athena-widgets or x-toolkit libraries.
+* The look is ugly but not all the way ugly like Athena Widgets. It reminds me of the AMIGA Workbench version 2.0, i. e. gray, some ridiculous pseudo-3D effects, and just simple lines or rectangles otherwise.
+* FLTK was forked from XForms, but there seems to have been going on some development on both toolkits after the fork.
+* There is also some OpenGL support.
+
+XForms Pro:
+* It ships with a visual form designer which directly generated C source code. Bindings for some other languages are available as well.
+* About two dozen stock vector-graphics symbols (mostly arrows or playback-control button symbols) are available to the application via string names.
+* Very lean installation for a GUI toolkit: About 3 MB including libraries, form designer, documentation, libraries and header files.
+* Although not tested, it can be assumed it yields small executables
+
+XForms Contra:
+* No UNICODE-support
+* No MDI support, only SDI
+* XForms does not seem to have geometry managers. The form designer generatates absolute co-ordinates, and those are used then.
+* No anti-aliasing of any kind
+* Old-style X11 fonts, no FreeType support
+
+FLTK:
+* Based on C++
+* A fork of XForms which with additional features.
+* Special focus on 3D graphics programming using OpenGL.
+* Most UNICODE-support functions are UTF-8 based.
+
+FLTK Pro:
+* Designed to be statically-linked to the application. A "hello, world" yields an executable about 100 kB in size.
+* Interactive visual form designer
+
+FLTK Contra:
+* UNICODE-support has recently been added and is not yet (as of 2020) complete. BMP-support is pretty complete, but support for the remaining planes varies.
+* Locale-aware collation sequences are not supported yet. Binary collation sequence is used instead.
+* Absolute co-ordinates, no geometry managers

@@ -1,6 +1,6 @@
 SSH
 ===
-v2025.177
+v2025.319
 
 My favourite `~/.ssh/config` default settings:
 
@@ -108,9 +108,10 @@ cat $PWFILE
 # Protect currently unprotected private keys out/*.prv with ChaCha20-poly1305 using passwords from files out/*.psw:
 chmod u+w out/*.prv
 
-# Load the now-protected files into the current SSH agent:
 for f in out/*.prv; do SSH_ASKPASS_REQUIRE=force SSH_ASKPASS=./sendpass PWFILE=${f%.prv}.psw ssh-keygen -Z 'chacha20-poly1305@openssh.com' -p -f $f; done
+
 chmod u-w out/*.prv
 
+# Load the now-protected files into the current SSH agent:
 for f in out/*.prv; do SSH_ASKPASS_REQUIRE=force SSH_ASKPASS=./sendpass PWFILE=${f%.*}.psw ssh-add $f; done
 ----

@@ -1,0 +1,97 @@
+aaa_known_name1, known_name2, known_name3:
+protocol://url-specific
+Short Description.
+
+2015-07-29
+This is an example of the format to be used in this file. Any number of known_names can be specified, but at least one is required.
+
+Software names should *not* be capitalized only because they appear at the beginning of the names line: This is not a headline, but rather a list of names. On the other hand, a name *should* be capitalized if that's the normal way to refer to that software.
+
+If a software has both a name and an actual executable of a different name which is well-known, both should be specified. As should be any well-known variants of both.
+
+Examples of such name lists: "GnuPG, GNU Privacy Guard, gpg, gpg2, GnuPG 2" and "Bazaar-NG, Bazaar, bzr".
+
+2015-07-30
+Another entry for the same software.
+
+systemd:
+http://www.freedesktop.org/wiki/Software/systemd
+A "superserver" daemon für Linux systems.
+
+2015-07-30
+After working for a few days with systemd, I suddenly noticed the following log message in the kernel log ringbuffer (dmesg): "File /var/log/journal/017ef952a81e4d0ebfad76fa73b47849/system.journal corrupted or uncleanly shut down, renaming and replacing".
+
+This message was nowhere to be found in systemd's own logs, not even when using option -k which ought to be showing the dmesg output.
+
+It seems journald tends to omit log messages from its own logs which are embarrassing in nature for itself.
+
+However, the log message was right: No log entries older than that from the above message were present in the journal. All historic data seems to be lost in the corrupted and renamed old log. There seems to be no known repair utility for this case at this time.
+
+This could certainly not have happened with any of the classic syslog daemons which write text files: At most some section of the text file could have been damaged, but the rest would have remained unaffected.
+
+A quick search on the Internet revealed that this issue is known at least since 2012, and has obviously not been fixed since.
+
+http://www.fossil-scm.org/
+Fossil.
+A distributed version control system similar to Git.
+
+2015-07-29
+I used fossil today the first time for practical work on a minimal Arch Linux installation, because the download sizes (including dependencies) of both Bazaar-NG als well as Git were *much* larger.
+
+Fossil on the other hand was a very lean download - about 1 MB. And about 2 MB installed.
+
+There are a lot of things I could figure out using the built-in offline documentation, but others are still a mystery to me.
+
+I had no GUI and not even a text mode browser and no Internet access during that time, so reading online documentation using a browser was not an option either.
+
+The import/export of Git repositories from/to Fossil works quite well.
+
+However, I wonder sometimes how this could be, because both systems work quite differently in detail.
+
+For instance, how can one set the full user name and the user's e-mail address only using the command line interface?
+
+Also, are those data even stored in the created versions? At least when viewing the timeline of the official repository where the fossil source code itself is hosted, there are only login names to see, and never the full user name, let along that user's e-mail address.
+
+There seems also not to be any way to find out more about the committer than its local user name.
+
+I could not even find a place in the Web-Interface of Fossil where details such as full name or e-mail address of the users could be specified. I only found a (repository-local) web page where permissions could be assigned to users. But the users themselves were still identified by their short (and globally highly ambiguous) login names.
+
+This is certainly no way to exchange revisions or patches with arbitrary users who send those in for review and possible integration!
+
+Another thing is that Fossil has *way* too many settings. While this is hardly an issue as long as Fossil is used only privately, it does become a problem when setting it up as a public web page, where one has to be certain that all settings are secure.
+
+Then there is the fact that stashes (a kind of patch queue) will be deleted when a repository is closed. This seems to be a bit idiotic.
+
+But the worst thing, in my opionion, in Fossil is the timeline view. While it is based on good ideas like sub-structuring it into days and only display the time for all entries during the the same day, and although it uses colors and nifty graphics to look nice, it still sucks.
+
+But to be fair, the Web interfaces of most SCMs suck; Fossil ist just no exception.
+
+Anyway, Git's web interface is way better, and Mercurial ("hg") has the best Web interface I have seen so far.
+
+It is mostly details about how things are arranged and linked which makes the difference, because of course all Web interfaces for SCMs have similar goals.
+
+Nevertheless, no matter how small the differences may be, Mercurial ist the nicest to work with, Git is OK and Fossil totally sucks.
+
+It is primarily a matter of lucidness: You can look at the Fossil timeline, but it is hard to find anything there, even if it is right before one's eyes. The full-text search capability certainly helps, but in Mercurial you usually find things easily without such means.
+
+Maybe Fossil's problem ist that it is too ambitious: It wants to be everything. An SCM, a Wiki, a bug tracker, a note taking application, a Web server, a complex permission management system.
+
+While it makes sense to combine most of those things, I think the developers have taken on too much.
+
+Therefore, Fossil's best feature seems to be the fact that it's lean and you get very many features per kilobyte of code.
+
+But it's not really any practical match for Git - unfortunately.
+
+I still hope it gets better in time, but I have lost most of my confidence after years of waiting and watching.
+
+Instead of fixing the beforementioned usage problems, it only got bigger and more features.
+
+But maybe I am being unfair. Maybe Fossil does not suck. Maybe Fossil is just not for me.
+
+At least its developers seem to be happy with it. So it cannot be all that bad really. Most likely, it is mostly a matter of taste and how one considers a DVCS has to be used.
+
+Fossil can certainly not be used in the Git way, which I am a big fan of. Not of Git itself, but its basic workflow. That's well done in my opionion.
+
+Fossil on the other hand tries to bring back some legacy from the centralistic SCM times, which, in my opinion, have been left behind by Git, Bazaar and Mercurial for good reason.
+
+But Fossil favors "autosync" for mainaining a centralistic hub, a small set of developers who have to create user accounts in the repository, need to be assigned permissions, and so on. They even consider to re-introduce file locks! Horrors.

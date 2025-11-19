@@ -1,0 +1,47 @@
+Frameworks and computing/object models
+* CORBA - Common Object Request Broker Architecture
+* DCOM - Distributed Component Object Model
+* Ice -  The Internet Communications Engine
+* SOAP
+* .NET
+* MPI - Message Passing Interface
+* PVM - Parallel Virtual Machine
+* UNO - The Object Model used by OpenOffice.org
+
+In A Nutshell
+* MPI - provides a portable message-passing framework for massively parallel computing. Successful industry standard, available as OpenSource as well as commercial implementations. Static in nature once an application has been started. Rather weak resource management support. All nodes of an application instance must use the same hardware plaform. Powerful API - 200 to 500 functions (depending on the version of the standard used). MPI is a stardard defined by a committee.
+* PVM - provides a portable message-passing framework for distributed computing. Slightly less efficient on a single CPU with multiple processors, but allows different nodes of the same application instance to run on different hardware platforms. Simpler API - only around 40 functions. Not a standard, but a de-facto standard. Very dynamic - resources such as hosts can be added or removed dynamically from an application instance using a control shell tool.
+* Why OpenOffice.org chose to design UNO. Here is why we are not using an existing component model: First, we cannot use Java Beans because it is not abstract, it is only usable in Java itself. Second, CORBA wouldn't be the right choice because there exists no specification for binary compatibility in one process and the communication between two components must be handled through the IIOP protocol. Third, COM/DCOM does not support exception handling, which is necessary to integrate smoothly into languages with native exception handling, such as C++, Java, etc.
+
+License
+Free to be used? Royalties?
+* Ice - GPL; for commercial closed-source applications a separate license is available - but not for free.
+
+Source Code Portability
+Can an application using the framework just be recompiled without changes to the source code and run?
+* MPI - yes.
+* PVM - yes.
+
+Host Interoperability
+Is it possible to create portable applications for different hardware platforms using the framework, and exchange information between the applications even between nodes on different hardware platforms?
+* MPI - not in current implementations, although the standard does not forbid it either. However, the feature is unlikely to be ever implemented for an MPI implementation, as it will make the implementation slower due to marshalling overhead and the standard does not require it.
+* PVM - yes.
+
+Programming Language Interoperability
+Can a program written in one language communicate with a program written in a different language, if both are using the same framework?
+* MPI - not required by the standard and therefore not supported in most (all?) implementations.
+* PVM - yes.
+
+Per-Object Storage Overhead
+How much storage overhead does the object model implementation create for each instance of an object?
+* DCOM - One vtable pointer per exposed independent interface. Interfaces related by single inheritance might re-use the same vtable pointer, because their vtables can be arranged in an "overlapping" fashion - each vtable is the prefix of another one. The minimum storage overhead is therefore one pointer.
+
+The Ideas of UNO:
+1. A binary specification of the memory layout of the IDL types. This specification is machine dependent, so it can be implemented directly, in many languages.
+2. Each object lives in an environment. Objects share this environment with other objects, which are compatible. This means the same compiler version, the same java virtual machine or something else. The only access to an object from another environment is to generate a proxy in your own environment. This can be accomplished by a bridge.
+3. To reduce the number of bridges, we define one environment called the Binary UNO Environment. It is recommended to provide a bridge to this environment. If you want to access an object, normally, you have two bridges. The first, from your environment to the Binary UNO Environment, and the second, from the Binary UNO Environment to the destination environment. For every new environment it is only necessary to implement one bridge.
+You can implement bridges between any two environments, but do this only for performance reasons.
+4. Provide a UNO runtime library which organizes access to the bridges and the environments. With the UNO runtime library, it is simple to access an object from another environment, presuming that the bridges are installed.
+5. The important concept is, that all calls to an object in the Binary UNO Environment are dispatched through one function. This is the Dynamic Dispatch Function. All calls contain a full description of the method, which means: method name, argument types, return type, exceptions, and additional information.
+It is very simple to create a bridge to an interpreter, remote, or an environment which has a well specified API to call object methods, for example, Java.
+

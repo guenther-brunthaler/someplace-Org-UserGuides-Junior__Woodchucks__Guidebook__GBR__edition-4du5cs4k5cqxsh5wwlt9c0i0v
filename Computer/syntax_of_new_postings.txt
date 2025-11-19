@@ -1,0 +1,37 @@
+As a preprocessing step in conversion into paragraph-based flow text, leading and
+trailing whitespace of all lines will be stripped.
+
+All paragraphs are delimited by single emtpy lines. All lines of a paragraph
+will be converted into a single line by joining the individual lines with a
+single space. However, there is an exception for the first paragraph of each
+article: Its lines (representing parts of an URL) will be joined without any seprator.
+
+The document consists of a sequence or articles.
+
+The first paragraph must always contain the URL.
+
+The second one contains either a date followed by a comma or just a date.
+
+In the first case, it represents a normal article.
+
+In the second case, it represents an article about security-relevant themes
+which is intended to end up in a different file after conversion.
+
+After those two initial lines, the Article text follows as a series of
+paragraphes, usually but not necessarily starting with a headline as the first
+paragraph.
+
+Paragraphs entirely consisting of a single character are transformed into
+"...".
+
+Paragraphs entriely consisting of "..." (after applying the above
+transformation) will join the paragraphes before and after them into a single
+paragraph and use " [...] " as a separator. If this construct is the first or
+last paragraph in the article, the leading or trailing space of this separator
+is omitted in order to avoid the transformed article starting or ending with a space.
+
+The end of an article ist identified by "+++" as a separate paragraph. It is
+always required, i. e. the file should and with such a line.
+
+The last paragraph of a file does not need to be terminated by an empty line;
+EOF serves the same purpose.

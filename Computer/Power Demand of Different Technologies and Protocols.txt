@@ -1,0 +1,69 @@
+Power efficiency
+================
+
+Information taken from [ http://www.digikey.com/en/articles/techzone/2011/aug/comparing-low-power-wireless-technologies ].
+
+ANT
+---
+
+An ANT device is configured to transmit 32 bytes/second and consumes 61 μA.
+
+* A byte consists of 8 bits, therefore 32 x 8 = 256 bits/second
+* Power = VI = 3 V x 61 μA = 0.183 mW
+* Power per bit = 0.183 mW / 256 bits = 0.71 μW/bit
+
+Bluetooth low energy
+--------------------
+
+Connectable advertising packets (adverts) are broadcast every 500 ms. Each packet has 20 bytes of useful payload and consumes 49 μA at 3 V. For this particular setup, adverts are spread across all three channels, with the positive side effect of increasing robustness over a single-channel technology.
+
+* Power consumption = 49 μA x 3 V = 0.147 mW
+* Bytes per second = 20 x (1 second/500 ms) x 3 channels = 120 bytes/second
+* Bits per second = 120 bytes/second x 8 = 960 bits/second
+* Power per bit = 0.147 mW/960 = 0.153 μW/bit
+
+It should be noted that this configuration uses connectable packets. Therefore, the advertising device is also scanning after each advert. This consumes significant power, but is still lower than its nearest competitor. By increasing the payload to 31 bytes per packet and configuring for broadcast only, power per bit efficiency would be improved further. This would occur due to the increase in protocol efficiency from 20 payload bytes to 31 for the same overhead.
+
+IrDA
+----
+
+A television remote control sends a 14-bit payload. This is implemented with an ultra-low-power processor (consuming 0.1 μA during sleep, allowing for its negligible power consumption to be ignored for this calculation). The transaction takes 1.5 ms at 170 μA, then 114 ms at 55 μA.
+
+* Power = 0.163 mW
+* Bits = 14
+* Power per bit = 0.163 mW/14 bits = 11.7 μW/bit
+
+Nike+
+-----
+
+A foot pod lasts 1000 hours and transmits its payload every second. The payload is 34 bytes. A typical CR2032 has 225 mAh.
+
+* Current drawn = 225 mAh/1000 hours = 0.225 mA
+* Power = 3 x 0.225 mA = 0.675 mW
+* Bits per second = 34 x 8 = 272 bits/second
+* Power per bit = 0.675 mW / 272 = 2.48 μW/bit
+
+Wi-Fi
+-----
+
+Wi-Fi consumes approximately 116 mA at 1.8 V when transmitting a 40 Mbps User Datagram Protocol (UDP) payload. Unfortunately, current consumption does not reduce when throughput is reduced in a Wi-Fi chipset.
+
+* Power = 116 mA x 1.8 V = 0.210 W
+* Power per bit = 0.210/40,000,000 = 0.00525 μW/bit
+
+Zigbee
+------
+
+A Zigbee device consumes 0.035706 W when transferring 24 bytes of data.
+
+* Bits per second = 24 x 8 = 192 bits
+* Power per bit = 0.035706/192 = 185.9 μW/bit
+
+Conclusions
+===========
+
+From the above calculations it is clear that Wi-Fi is the most power efficient technology and would be ideally suited to large file downloads. Unfortunately, its peak current consumption is far beyond the capabilities of a coin cell and would need to be provided with a large battery. Work is being conducted in Wi-Fi groups to lower power consumption, enabling use with HID devices. Currently, proprietary drivers are needed, with the technology only applicable to the personal computer market where receiver power budgets are higher.
+
+LE is second, requiring approximately a quarter of the power of its closest competitor, ANT.
+
+It is surprising to see how much energy is wasted by infrared remote controls currently in wide global use.

@@ -1,0 +1,8 @@
+Python
+======
+
+$ T=<packagename>-<version>
+$ python setup.py build
+$ mkdir "$T"
+$ python setup.py install --root "`pwd`/$T"
+$ package-manager-for-the-poor -i "$T"

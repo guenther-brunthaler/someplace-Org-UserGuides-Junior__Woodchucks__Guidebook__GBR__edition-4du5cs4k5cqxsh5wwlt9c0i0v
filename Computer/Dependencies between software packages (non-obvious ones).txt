@@ -1,0 +1,2 @@
+AAAA: single_package_depending_on_AAA - Explanation.
+ppp: tcpdump - Optionally required for the documentation of the packet filter expressions used in "on-demand" mode for suppressing irrelevant packets, allowing the link to go idle eventually.

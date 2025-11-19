@@ -1,0 +1,44 @@
+Virtualization Systems Strengths And Weaknesses
+
+* URLs:
+OpenVZ: http://en.wikipedia.org/wiki/Openvz
+Linux-vserver: http://en.wikipedia.org/wiki/Linux-vserver
+LXC (Linux Containers): http://en.wikipedia.org/wiki/LXC
+
+* Network Arbitration:
+OpenVZ: Real virtualized network adapters.
+Linux-vserver: Only isolation, no virtualization of network adapters. Therefore, the firewall setup and all NICs are shared between the containers; only the access to those resources can be restricted on a per-container basis.
+
+* Disk Quota:
+OpenVZ: Based on disk-block- or inode-counts to restrict quotas to specific containers. Within a container, normal OS-quotas can be used to further restrict quotas for groups or users. Disadvantage: The disk-block-quotas will not map well to file systems which can allocate multiple files with a disk block, such as ReiserFS.
+
+* CPU Quota:
+OpenVZ: The number of time slices given to the different containers can be defined. This is the outer level. Within the containers, normal Linux scheduling is run. Strict limits, such as 10 % of total CPU time, are also possible.
+
+* I/O Scheduler:
+OpenVZ: Uses a two-level approach like for disk and CPU quotas. On the second level, within the containers, CFQ is used.
+Linux-vserver: No special per-container support.
+
+* Disk Storage:
+Linux-vserver: Although possible, there is no need for each container to run on a different block device/filesystem. All containers can share the same file system, just like Chroot-Jails. As a special feature, Linux-vserver allows to hardlink files between container and mark the hard links with a special attribute; resulting in Copy-On-Write logic.
+
+* Live Migration:
+OpenVZ: Possible. A container can be "frozen" while it is running, copied to a different machine, "thawed" there and will continue running.
+Linux-vserver: Not possible.
+
+* Clustering:
+OpenVZ: Yes.
+Linux-vserver: No.
+
+Resource Isolation:
+OpenVZ: Rather high. Networking is virtualized; process IDs are mapped and only the processes in the local container are visible.
+Linux-vserver: Rather low. For instance, many files in /proc and /sys are shared beween containers. Network as well. RTC is not virtualized at all.
+
+* Kernel:
+OpenVZ: ?
+Linux-vserver: A specially patched kernel is necessary and is shared by host and all virtual guests.
+LXC: Implemented using control groups which are part of the mainstream kernels since version 2.6.29. Therfore, no patching is required.
+
+* Isolation Security:
+LXC: Doubtful. There are a lot of ways how to escape a guest container.
+

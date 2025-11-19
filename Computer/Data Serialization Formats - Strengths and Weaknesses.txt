@@ -1,0 +1,234 @@
+Data Representation Formats - Strengths and Weaknesses
+======================================================
+
+JSON:
++ Human readable.
++ Natively parsable by JavaScript.
++ Unrestricted size.
+- Rather complicated parsing rules regarding syntax, insignificant whitespace and quoting.
+- Inefficient numeric representation due to all numbers being represented as ASCII text.
+- Possible loss of precision in floating point numbers due to conversion from/to decimal text representation.
+- Generally rather inefficient in size. The various separators and brackets required by the syntax generate overhead compared to simpler length-prefixed encodings in most cases. The inclusion of superfluous whitespace in order to make the encoding "more readable" makes the overhead even worse.
+- The climax of overhead is reached when the encoding (containing superfluous whitespace) is then compressed again in order to save space. Even though this might actually eliminate the space overhead, it certainly increases processing overhead. However, the same is true for most text/XML-based encodings.
+- The relatively high complexity of the decoder (compared to other serialization formats) makes it more vulnerable for exploitation of implementation errors. The rather flexible syntax also makes it hard to cover every possible encoding variant using a fixed set of test cases.
+- It is hard to filter out potentially dangerous JavaScript-Expressions (before feeding them to the JavaScript interpreter) from alleged JSON-encodings using regular expressions. This encourages JavaScript injection-attacks.
+- Even though JSON will be rather quickly processed by the JavaScript interpreters because it is built-in functionality, parsing JSON is more complicated and requires more work than parsing most other serialization formats. Therefore, parsing JSON is only fast when done by the JavaScript interpreter itself, not when trying to parse it "yourself". But passing any externally received data directly to the JavaScript interpreter is always a certain security risk.
+
+BSON:
+* Most prominent use of BSON is the "MongoDB" database, where it is used to encode records.
+* Maximum total document size is restricted to 4 billion bytes. While this makes BSON rather inappropriate as a standalone application serialization format, it is certainly sufficient for encoding messages and single database records.
+- No "decimal" data type for representing monetary amounts without inappropriate rounding errors.
++ Uses UTF-8 encoding
+- No support for UTF-16 as preferred by languages with most codepoints out of the UNICODE basic multilingual plane. UTF-16 encodings for such characters are typically shorter in UTF-16 than in UTF-8.
++ Fully self-describing.
+- Each data field also contains the full field name as a string. There is no way of mapping field names to collection-local space-efficient identifiers, and will introduce a significant storage overhead for large arrays where the same field names might be repeated for each array element over and over again.
++ Several useful native data types, such as UTF timestamps, positive and negative Infinity, Null value, ObjectID, binary data strings, JavaScript code, explicit values for true/false, regular expressions, UUIDs and MD5 checksums.
+- String lengths are always encoded as 32-bit quantities, which will be quite a waste on the average where 8 or 16 bit will typically suffice. It would have been better to have 4 different string subtypes with length encodings of 8, 16, 24 and 32 bit.
+- The "type" field of each data item has a fixed size of 8 bit. Although there are still many unused values which could be assigned by future revisions of the standard, it naturally places an upper bound on extensibility via adding new data types.
+* Strings are always null-terminated. While this is nice for accessing those strings directly from a database page buffer from C, there is no advantage for languages which operate with length-based strings. For the latter languages, it just wastes a byte for each string. (This only applies to the "string" datatype which also stores the string's length; it is not a problem with the "cstring" datatype which actually needs the null-terminator.)
+- Although a binary encoding, BSON encoded documents are often somewhat larger then equivalent JSON documents. However, the focus of BSON is ease and speed of decoding.
+- The definition is somewhat vague regarding the semantics for several of its defined native data types. Not even the endianness of multioctet binary representation is explicitly stated, even though it can be inferred from the  examples shown. This is not true for other native data types like "code_w_s", however, which allow a wide range of possible interpretations.
+
+BENCODE:
++ Simple and fast to parse.
++ Extremely simple definition - easy to learn by heart, and data structures of small size can easily be manually decoded.
++ The basic definition is so simple that it can be specified *here* within this paragraph: encoding := integer | string | dictionary | list. integer := "i" intstr "e". string := length ":" contents. list := "l" values "e". dictionary := "d" pairs "e". pair := key value. key := string. value := encoding. Dictionary entry pairs must be stored in ascending binary lexicographic key order. Missing details follow: values := value values | "". pairs := pair pairs | "". pdig := "1" through "9". length := "0" | pdig | pdig length. sdig := ("-" | "") pdig. intstr := "0" | sdig | sdig intstr.
++ There is exactly one possible encoding for each given data structure, no matter how complex. BENCODE is therefore a "distinguished" encoding. This makes BENCODE a suitable container format for digital signature applications. BENCODE is not nearly as powerful as ASN1's DER, but its also *much* simpler to implement.
++ Despite of its simplicity, only moderate storage overhead compared to an equivalent but much more complex optimized fully binary encoding.
++ BENCODE itself uses only printable ASCII-characters for its encoding. This allows BENCODE documents to consist of purely human-readable characters. However, BENCODE is not *intended* to be human-readable, as it allows to include arbitrary binary data strings and does not support indentation, comments, multiple lines etc. as part of its representation meta-information. Nevertheless, as long as the document data is restricted to printable ASCII, the resulting BENCODE encoding will also be printable ASCII.
+- Although BENCODE is quite space-efficient for some of its native data types, this is not true for integer values. Those will be stored as ASCII digit strings which requires much more storage than a binary encoding. Also, due to the fact that the smallest possible integer representation requires three octets (BENCODE has a fixed basic overhad of two octets per integer), BENCODE is also not even efficient for small integers.
+- String encodings have a minimum overhead of 2 octets, most strings except very short ones will have 3 or 4 octets overhead. Most binary encodings require one octet less overhead on the average.
++ BENCODE offers 4 native data types: (signed) Integer, String, List (of arbitrary elements) and Dictionary (keys must be strings, values are arbitrary). This is easy to remember, yet it covers the most important application demands.
+- Everything else than the 4 directly supported data types must be stored as strings. Strings in BENCODE are therefore byte strings of arbitrary contents, and not necessarily text strings (even though they obviously will be used for that purpose also). This means, binary floating point numbers, binary encoded integers, MD5 checksums, UUIDs, timestamps, etc. will all be stored as binary BENCODE strings.
+- Only the simple built-in data types are self-describing, and even then no field names are known. For data types represented by binary strings not even the actual type is known. BENCODE therefore cannot be considered a self-describing encoding, only its basic structure can be obtained from the encoding itself. But in order to interpret the values, additional external documentation or schema information is required.
+- The character set to be used for text strings is not defined at all. It is left up to the application to define which character set encoding to use for text strings. On the plus side, this allows each application to choose the character set which is best suited for a specific representation purpose.
++ The encoding does not require any "escaping" of string values. BENCODE strings are a sequence of arbitrary octets (i.e. 8 bit bytes); there are no "forbidden" byte values. This obviously infers that BENCODE is "8 bit clean".
++ There is no length limit at all on BENCODEd data structures or any parts of it. Of course, implementations might still place restrictions on the maximum size of documents they can handle.
+
+BISON ("BMF"):
+* The following information is based on "BISON Specification - Binary Interchange Standard and Object Notation (2006-04-14, Version 1.0 Draft)".
+* The BISON message format is abbreviated as "BMF".
+* The format is biased towards little-endian byte order.
+* The encoding is not distinguished. There is more than one way to encode the same integer value, for instance.
+* In BMF, the term "Object" refers to what other encodings typically name "hashes", "maps", "records" or "dictionaries", i. e. associative key/value data structures. The keys must always be strings.
+* There is a three-octet "magic number" which needs to precede all complete BMF messages.
++ Very simple encoding. The first octet determines what follows in the remaining octets. Aside from a few implicitly-encoded values such as NULL, no payload data is ever encoded within the first ocet itself.
++ It should be easy to write an encoder and decoder for BMF.
++ The special values NULL, "undefined", true and false require only a single octet for their encoding.
++ Supports integers from 8 to 64 bit with one octet overhead. Encoding representation size granularity is 1 octet, with a fixed overhead of 1 octet and no further overhead for the payload data.
+- There is no support at all for integers longer than 64 bit.
+- There is no one-octet encoding for very small integers as provided by many other encodings. The overhead of one octet for integer encoding is fixed.
++ Strings are null-terminated and have defined a well-defined encoding (UTF-8).
++ The length of strings is only determined by the null terminator. This means strings have unrestricted size and a total overhead of just a single byte - as long as there are no NUL bytes within the string.
+- Strings require escaping literal NUL bytes by prefixing them with backslashes. This makes the parser more complicated. Backslashes themselves must also be escaped by other backslashes for the same reason. This could double the size of the string in the worst case.
+- The length of strings are not stored. This means the amount of storage required for loading the string can only be determined by scanning them. This requires either two passes over the string (one for determining its size, the other for actually decoding the string), or a single pass using a dynamically-growing buffer.
++ Single and double precision IEEE-754 floats are supported.
+- It is unclear whether the integers are signed, unsigned, what byte order to use, or how negative integers shall be represented. It seems most likely that signed 2's complement little-endian integers are encoded.
++ Arrays, Maps and binary data streams require only 3 octets overhead.
+- Arrays are restricted to a total of 65,535 elements.
+- Maps are restricted to a total of 65,535 key/value pairs.
+- Binary data streams are restricted to a total size of 65,535 payload octets.
+- The documentation obviously is incorrect in stating the maximum sizes of the beforementioned data structures as 65,536 elements. The provided examples show that there is no bias applied to the member count, which restricts it to a maximum value of 65,535 rather than 65,536.
+* Arrays are always serialized starting with index zero and no gaps are supported. The standard does not define how to encode 1-based arrays or arrays with gaps. However, it seems suggesting to encode NULL values for the missing array members.
++ There is a MIME-type specified for BISON and it can be used directly as the payload data in HTTP POST-requests.
++ For communication channels which have problems by transporting literal NUL bytes, BISON alternatively allows to encode an object using a simplified YEnc encoding. The difference can always be detected by the "magic bytes" at the beginning of the BMF encoding, which are different if YEnc encoding has been applied. YEnc will also ensure that neither 0x0D nor 0x0A are generated literally. A downside of using YEnc is a 1 - 2 % increase in message size on the average.
+
+MessagePack:
++ Supports 8-, 16-, 32- and 64-bit integers. Signed and unsigned variants. Fixed overhead of one octet compared to native binary storage of the same bit sizes.
+* The data format generally uses big-endian byte-order where applicable.
++ Small integers from -32 to +127 and are encoded using a single octet for encoding.
++ The special values true, false and nil are also encoded using a single octet.
+- There is only the choice between 1, 2, 3, 5 and 9-octet encodings for integers. There is no way to encode integers in say, 4 or 6 bytes.
+- The integer encoding is not distinguished. The same value can be encoded in many different ways.
++ Very simple encoding. All encoding variants are easily identified by the first octet.
++ Supports single- and double precision IEEE-754 floating point numbers.
+* Besides integers, the remaining supported types are boolean, nil, arrays, key-value maps and raw byte strings.
+- There is no defined encoding for strings, because strings are considered byte strings with no implied encoding.
++ Strings can use any suitable encoding, because no specific encoding is defined. However, the application protocol must provide ways to define the encoding.
++ There are no "forbidden" byte values in strings, and such (raw) strings can therefore contain any binary data structure without a requirement for escaping.
++ Byte strings, maps and arrays come in three variants regarding the number of members / pairs: Counts up up to 15 can be encoded within a single octet, 16 bit counts can be encoded in 3 octets and 32 bit counts can be encoded in 4 octets. This already includes the type octet, which means the actual overhead for the count is one octet less. In all cases, the encoded count is followed by the array members or mapping pairs.
++ Maximum size for strings, arrays and maps is therefore approximately 4 billion octets, members and pairs, respectively. While this *is* limited, it is still rather generous compared to many other other binary message encodings. Also, practical message sizes will rarely ever reach that limit.
++ There are a few reserved values which allow the encoding to be extended in the furture.
+
+XML:
++ Human readable.
++ Uses HTML-like syntax which most developers are familiar with.
++ Allows indentation to indicate the structure of the document.
++ Comments which are not part of the data are also allowed.
++ Can optionally make use of and/or include a document type definition (DTD) which defines the syntax of the document in terms of allowed elements, element attributes and how the elements can be structured.
++ When a DTD ist used, default values for omitted element attributes can also be defined and can be omitted from the document.
++ Clear rules regarding the encoding and character sets of documents.
++ Processing directives allow to pass metadata and commands to specific document processors.
++ A transformation language XSLT exists which allows XML documents to be re-structured into a different form. This makes it easy to transform XML files laid out for one specific application into XML files laid out for a completely different application.
++ XML Formatting Objects even allow to transform XML files into nearly arbitrary pure-text formats, such as CSV-like files and similar.
+- Although easy to understand in simple cases, a fully-featured XML-document including a DTD, processing directives and annotations is much harder to understand.
+- Even though XML itself is not an overly complex standard, in practice XML documents frequently incorporate features from additional standard like XML namespaces, XSLT, XML FO etc. which must then also be understood by the reader. Actually, the overall documentation for all those standards is quite extensive.
+- Quite space-inefficient. While it is nice that whitespaces for indentation are allowed to emphasize the structure of the documents, this bloats the documents at the same time. Another problem is that the element tags have to be repeated for each data record; over and over again. Also, a closing tag is required in addition to each opening tag, leading to even more repetition of tag names.
+- Different incompatible character sets cannot be used in different parts of the same XML document. In most cases it is possible to convert each such section to UNICODE instead, but in some cases there might not be a lossless 1:1 mapping between UNICODE and a specific character set.
+- For the same reason, XML documents cannot contain arbitrary binary data.
+- But even textual contents frequently require extensive quoting in order to not clash with the overall XML syntax. Although there are so-called CDATA-section to alleviate this, even CDATA-sections require quoting if it may contain a CDATA-section end marker as literal text.
+- Not really prepared for binary contents. Although binary 8-bit data bytes can be interpreted as Latin1-characters and can therefore be represented as UNICODE code points, the beforementioned quoting requirements apply here too.
+- Requires a complicated parser, at least if the implementation strives to be fully standard-compliant. Complicated parsers easily lead to implementation errors, which are frequently the source for all sorts of security problems.
+- Parsing XML messages requires considerably more work than parsing simple binary formats such as MessagePack.
+- In order to overcome the bandwidth waste by XML-based protocols, such protocols often compress the message on transit. This leads to even more processing overhead for the compression and decompression.
+
+XDR:
++ The encoded binary data is simple to parse and understand. In essence, XDR encodes data structures in the same way any generic big-endian 32-bit microprocessor would present the same data-structures in-memory.
++ XDR is less prone to implementation errors die to its low ecoder/decoder complexity. This means less code and statistically less software bugs which could be used by attackers as exploits. Also, the message data is much harder to corrupt maliciously in a way to make the decoder crash on purpose.
++ XDR includes pad bytes where necessary to align the starting offsets of components at "natural" 32 bit boundaries. This might allow direct in-place manipulation of the serialized data structure within memory buffers and therefore speed up processing.
+- The inclusion of alignment pad bytes increases the storage requirements for the serialized data.
++ XDR encoding does not involve potentially costly or complicated operations like variable bit-shifts, multiplication, division or bit-masking. Except for a single layer of byte-swapping which will be necessary only on little-endian hardware architectures, all primitive data types can be directly used in the same way they are "encoded".
+- XDR does not use variable-size encodings for integers. All integers despite of their native size are always stored as 32 bit big-endian integers. The only exceptions are character arrays which are byte-packed (yet the whole array will still be padded to a multiple of 4 bytes within the message for alignment purposes). While this is trivially to encode or decode, it is not very space-efficient. So XDR is not a particularly useful format for long-term archiving, although the simplicity of the format may make it useful event there for rather small amounts of data.
++ While XDR is rather space-inefficient for long-term archiving, it is very well suited for data exchange representations with short life span. For instance, XDR is well suited for marshalling RPC data between different processes on the same machine. It may also be suitable for marshalling RPC data over a high-speed network with little or no congestion, where the encoding/decoding speed is more important than the amount of data transmitted.
+- XDR does not care about versioning. Senders and receivers of XDR data must agree on a particular version of the protocol, and this version will be hardcoded unless both the sending and the receiving applications will be recompiled with a different protocol description file. In order to support backwards compatibility, multiple protocols must be supported in parallel sender/receiver modules, and selecting the correct module needs to be done by the application rather than by XDR itself.
++ All primitive native "C" data types are supported.
+- The supported primitive C data types are only wrappers which transparently convert the data item to/from a 32- or 64-bit integer. No other word sizes are internally supported, except for BLOBs and character arrays which are byte-packed. But even the internally byte-packed structures are padded to a multiple of 32 bit at their ends.
+- There is no direct support integers larger than 64 bits. Larger integers need to be split into 32- oder 64-bit integers by the sender before serializing them, and be reassembled by the receiver after deserialization.
++ Besides 32- and 64-bit integers, XDR recursively supports arrays of fixed or variable size, enumeration constants, booleans, discriminated unions, structs, BLOBs of fixed or variable size, character strings, and void (zero-byte quantity). Void elements are useful within within descriminated unions to descibe "no contents" for some discriminate values.
++ Single-, double- and quadruple-precision IEEE-754 floating point values are supported (at least for the latest specification version of XDR).
++ XDR has been standardized in an RFC. In particular, RFC 1014 defines the format since 1987, while RFC 1832 added support for quadruple floating point precision as of 1995.
+- Array and string lengths are limited to a maximum of (2 ** 32) - 1 elements.
++ XDR is easy to use. There are a simple "C"-API - no need for C++ - using conventional structs and callbacks for doing all the work. It really seems to be as easy as it can possibly be.
++ Although the XDR API can be used alone by manually setting up description structured and call-backs, normally most of those things are automatically generated by a protocol-compiler based on a text description of protocol messages.
++ The source language for the protocol compiler also supports constants, enumerations and typedefs to avoid repetition in the definition of complex protocols.
++ The protocol specification language also supports optional data elements. Those are just syntactic sugar which is internally transformed into a union descriminated by a boolean where the "true" arm contains the data item and the "false" arm contains a "void".
++ Because XDR allows to uses structs, unions and arrays to be built recursively from other constructed types, optional data elements allow the serialization of variable-sized trees, lists and the like.
++ NFS and SUN-RPC are based on XDR, so XDR is available on all platforms where NFS is available.
++ Other than most sophisticated new protocols, XDR is old and mature. Although not particularly fancy, it just works.
++ The simplicity of XDR encoding makes it easy to examine messages by just looking of their hex dumps, provided the protocol description is available too.
+- XDR-messages are not self-describing. Without the protocol text description or the header files created from it by the protocol compiler, there is no way to interpret the contents of a message (except for human-readable strings if they happen to be part of a message). It is also not enough to have the protocol description of some version of the protocol - it is necessary to have a description of the exact protocol version that was used to create the message. However, XDR-messages can be made self-describing if required by defining a descriminated union for all supported data types first, and then store everything as instances of this union only.
++ Despite of their nearly-native encoding of most protocol items, the protocol is still platform-neutral and highly portable.
++ XDR is the basis of SUN-RPC, and therefore the required infrastructure of system services and network layers to send and receive network-based RPCs already exists. On the other hand, XDR can also be used completely independent of SUN-RPC for just mashalling messages, and using any means of transport to actually transfer them.
++ XDR operates on the representation layer (OSI layer 6) and does not try to add security features to the created messages. Encryption or message authentication are left to lower (sub-) layers. This also means there is no overhead in situations where those features are not required, and the application is not restricted in its choice of security mechanisms. Nevertheless, Kerberos-based security as required for NFSv4 is usually already available out of the box. (Unfortunately, most Kerberos implementations only provide embarrassingly limited choices for cryptographic algorithms and key sizes.)
+
+SDXF:
++ Can be used to represent structured data similarly as XML, but as a binary format with several predefined native datatypes.
++ Defined in RFC 3072.
+- As a binary format, it cannot be edited in a text editor. However, there exists a related text-based format named "SDEF" which can be converted to/from SDXF for the purpose of inspecting or editing a binary SDXF message. Unfortunately, SDEF restricts some choices (for instance, compression must be selected globally and not per chunk), and therefore the transformation may not be lossless.
++ SDXF is partially self-describing (everything except for identifier names). Unfortunately, this also means the format is very space-inefficient. There es an overhead of at 2 to 6 bytes for every native or constructed data element within the message.
++ The following basic data types are available: Structure, Bit string, Numeric, Character and Float.
+- Numeric values are are always stored as 2's complement integers and there is no support for unsigned values. Therefore, unsigned values must always be stored with a MSB of zero, which can lead to the forced inclusion of a leading zero octet.
++ SDXF is portable and platform neutral. Big-endian byte ordering is used for integer serialization.
++ It is possible to disable the integer serialization from/into big-endian format, and serialize them as BLOBs instead. This makes sense when exchanging messages with processes on the same machine rather than with different machines of unknown byte-ordering over the network.
++ Not only big-endian and little-endian platforms are supported, but arbitrary endianness due to the use of mapping tables for translation between local byte order and network byte order.
+- Encoded messages are restricted to about 16 MB in size.
+- The number of user-defined data types present in a protocol cannot exceed 65,535.
++ Character-encoding for strings is well-defined: Two string types for Latin-1 and UTF-8 are available.
+- The RFC does not mention UCS-4 characters encoded as UTF-8 but only UCS-2 characters. It remains unclear whether UCS-4 characters are allowed to be used in a conforming application. From a technical point of view, there is no reason against it.
+- Two compression algorithms are defined (7-bit run-length and zlib DEFLATE) which can be applied selectively on chunks. I cannot see a reason why this needs to be incorporated into the representation encoding itself. It also incurs one bit of overhead, although it is part of a flag byte which is required anyway. On the other hand, specifying specific compression algorithms allows compressed data to be exchanged between all senders and receivers without a need for additional protocol layers. However, the specification allows for additional public (IANA registered) and private compression schemes to be added at any time, so not event that can be guaranteed.
+- Chunks can be selectively encrypted, but no algorithms are predefined at all. Algorithms identifiers may be registered with IANA or defined for private purposes. Essentially, just like compression, encryption is a rather useless feature of the serialization format which would be better implemented at a lower level.
++ Arrays can be implemented by creating a data type for a single array element and then just emitting a sequence of multiple instances of this type.
++ There is an optimization for heterogenous arrays where all elements have the same data type and length. For such cases, a special array construction type is available which specifies data type and length only once for the whole array.
++ There is an optimization for chunk data palyloads smaller than 3 octets - in this case "short chunks" can be used which store the payload directly inside the chunk header instead of the chunk payload length (which is then assumed to be zero).
+- The smallest size for encoding an individual integer (not an array element) is 6 Bytes which uses the "short"-form and encodes the actual value in 3 octets. Longer integers must use the full form, which means at least 10 octets (6 octets header and 4 payload value octets).
++ Integer arrays of the same native type will be implemented rather efficient by only storing a common overhead for the whole array, and zero overhead within the array elements themselves (at least not for signed integers).
+– On the other hand, as all integer array elements use the same size, so ver y small values use the same amount of storage as very large values. This scheme is efficient for random values, but rather inefficient compared to other serialization formats if small values are much more common than large values.
+- The specification does not seem to consider byte order issues within the floating-point representation. It also seems only IEEE-754 double-precision floats are supported. It can be assumed that the native in-memory IEEE-754 "double" format of x86 platform are the representation format of floats.
+- The specification is unnecessarily specific in terms of implementation choices where it even tries to specify struct contents used for implementation.
+- The interface for the encryption callback is defined only very vaguely and leaves many things open to interpretation. It also seems to completely lack support for an internal state and key schedule, although there is a password pointer which could be mis-used to implement such things.
+- The specification seems incomplete regarding several corner cases. The data structures are mostly defined in terms of methods, but the intended order of method invocations is not always clear. Overall, it does not seem to be a very good specification.
+
+CBOR:
+= Binary JSON alternative.
+= Message encoding format of the FIDO2 "WebAuthn" standard (including "Passkeys")
++ Faster to parse.
++ Simpler parser, fewer chances for bugs in the implementation.
++ Rather space efficient.
++ Can represent basically the same data structures like JSON.
++ Supports more data types than JSON using "tagged" predefined types.
++ Integer values can be stored in 4 different sizes (8, 16, 32, 64 bit). In addition, bignums are supported for storing arbitrary-size integers.
++ Floating-Point values can stored in 3 different sizes (16, 32, 64 bit). They use IEEE-754 formats. In addition, bigfloats are supported for storing arbitrary-precision binary or decimal floating point numbers.
++ Decimal fractional values may be stored exactly, but rather space-inefficient due to a tagged (decimal exponent, mantissa)-encoding. The mantissa can either be a simple integer or a bignum.
++ There is also support for date/time and UTF-8 strings.
++ Support for special values "true", "false", "null" and "undefined".
++ Lists, dictionaries and strings can be stored in either definitive-length or indefinitive-length formats. Indefinite-length strings are stored as a terminated sequence of adjacent definitive-length string segments.
++ The entries of lists and keys/values of dictionaries do not need to have the same type/structure.
++ Separate types for unsigned and always-negative integers allow simpler representation.
++ Support for optional self-containing encoding which can be recognized by a header.
++ More regular structure than MessagePack, although otherwise similar in nature.
++ Self-describing. Does not need an additional scheme definition or a protocol compiler for operation.
+- Although the parser is simpler, there are more cases to consider (i.e. simple integer vs. bignum vs. floating-point).
+- In programming environments without support for decimal fractional types, deserialized decimal values need to be converted into regular binary floating-point values. This does not only lose all the precision that was saved by chosing a decimal format in the first place but it is also quite expensive/slow.
+- More sophisticated data types require tagging which incurs storage overhead.
+- Serializes as big endian, needs byte reversal on little-endian platforms.
+- Many possible representations which encode the same data.
+- There are optional rules to establish a distinguished encoding (like DER), but they seem complicated.
+- Many checks necessary to detect all violations of well-formedness.
+- not human readable
+- longer documentation to read before implementation
+
+FlatBuffers:
++ No deserialization necessary to access only a subset of the data
++ Zero-Copy design - values can be directly accessed (i.e. from a memory-mapped file) once they have been located
++ Strongly Typed - type errors will already be detected at compile time
++ No additional look-up data structures required in-memory (at least for C++)
++ Direct Access to specified structure/array elements
++ Inplace-Updates (at least for numbers)
+- Requires protocol definition files. It is not a self-describing format.
+- Integers stored using fixed instread of variable size - massive storage overhead
+- The full-size storage of integers also encourages usage of non-portable integer types such as int16_t (rather than int_least16_t) to be used within flatbuffer objects.
+- Written in C++ and only supports some other OOP-languages directly. There is no native C support in the main project.
+- Even though C support does exist, it is only an additional layer on top of the underlying C++ library. Also, only C99 and newer is supported. There is no ANSI-C support.
+- The C support is a separate project and thus a second-class citizen. It provides a different schema compiler. The code examples for using it make heavy use of Macros (for namespace evaluation), probably enforced by the schema compiler's output.
+- The C API does not provide the full reflection capabilities exposed via the C++ API.
++ Version compatibility is ensured by using "tables" as the primary high-level data type, which can only add new fields at the end of a table but not removed outdated ones. Those can be redeclared as "deprecated", though, which will disable creating accessor functions for them.
++ In addition to the table-field autoversioning approach, it is also possible to specify explicit numeric field tags directly in the same way as in ProtocolBuffers. This can avoid undetected version conflicts which are possible when distributed version control is used with autoversioning approach.
++ All table fields have a default value. If no explicit default values are declared, fallback-declarations (0 or null) are used.
+- Native data types contradict ISO-C definitions. For instance "long" is used for signed 64 bit integers, even though the C standard (not even newer revisions of it) never defined this.
+- Flatbuffers requires native integer sizes for 8, 16, 32 and 64 bit by the platform. Especially 16-bit integers can be expected to not be supported by every hardware platform natively.
+- File identifiers (optional) for stored FlatBuffer contents as files are only 4 bytes long. This is not enough for global uniqueness. On the other hand, it is certainly enough to distinguish various top-level message types used within the same project.
++ Instead of relying on file identifiers for detecting flatbuffer storage types, arbitrary custom file headers can be declared. However, they require additional storage space in comparison to the built-in file identifiers.
++ It is also possible to specify a filename extension for a particular protocol definition.
++ Support vor RPCs in the scheme declaration. Functions receiving and returning FlatBuffers as arguments can be declared, and the schema compiler will create helper code for implementing them.
+- Because data is accessed directly, one needs to carefully plan alignment and use IDL attributes to declare it unless the default alignment mechanisms are sufficient.
+- FlatBuffers do not support inheritance and unions must be used instead. However, unions always incur storage overhead for the discrimination tag.
++ Data sharing is possible. The same substructure can be referenced from multiple locations within the same FlatBuffer object. This can be used to avoid storing repeated values multiple times.
+- Although FlatBuffer data is accessed directly, this is only supported in a read-only fashion by default. Only very few (such as C++) language bindings currently support in-place updates. And even then, a different and more complicated API is required for this.
+- "mutated" FlatBuffers (the result of in-place updating) are generally less space-efficient than freshly serialized ones. Mutating is therefore only recommended for large data structures where repeated serialization would be expensive.
++ The schema compiler can be mis-used to convert JSON data into a FlatBuffers file. The FlatBuffers API can then be used to access the JSON data, without any explicit JSON support from the language/platform itself.
+
+FlexBuffers:
++ FlexBuffers is a schema-less subset of FlatBuffers.
++ FlexBuffers is self-describing and does not require per-case protocol definitions.
+- Because of the additional type information, it can be expected to be less space efficient in the general case.
++ However since FlexBuffers can choose the most space efficient representation type for values, it is in fact actually more storage efficient then FlatBuffers in many cases.
