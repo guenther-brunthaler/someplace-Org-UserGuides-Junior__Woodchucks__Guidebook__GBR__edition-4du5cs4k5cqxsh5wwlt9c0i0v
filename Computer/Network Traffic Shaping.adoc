@@ -1,0 +1,76 @@
+Linux IP Networking Traffic Shaping
+===================================
+v2025.326
+
+
+Fair scheduling
+---------------
+
+If you notice starvation of Internet traffic in other applications because one application is hogging all your Internet bandwith, traffic shaping might help.
+
+In order to do so, connect a scheduler for a packet queuing discipline to your Internet connection:
+
+----
+$ tc qdisc add dev eth0 root fq
+----
+
+This assumes "eth0" is the network interface connected to the Internet. Otherwise, replace it by the name of your actual interface.
+
+
+Bandwidth limit
+---------------
+
+----
+$ tc qdisc add dev eth0 root tbf rate 100kbit latency 100ms burst 1540
+----
+
+or:
+
+----
+$ tc qdisc add dev eth0 root tbf rate 70kbit latency 100ms burst 1540
+----
+
+Remove the limit via:
+
+----
+$ tc qdisc del dev eth0 root
+----
+
+Show status of current queueing-discipline:
+
+----
+$ tc qdisc show
+----
+
+Remove the bandwith limitation later: Assuming the interface with the applied limitation is "tap105i1", then one of the following commands
+
+----
+$ tc qdisc del dev tap105i1 root
+$ tc qdisc del dev tap105i1 ingress
+----
+
+should do the job. I am not sure which of both commands actually did it. Update this text eventually after finding out.
+
+
+Wondershaper
+------------
+
+Supposedly, the "wondershaper" system service combined with the "tc" utility will result in a better traffic contron solution.
+
+----
+sudo apt-get install wondershaper
+
+IFACE="eth0"
+
+# Download rate in Kbps
+DSPEED="50000"
+
+# Upload rate in Kbps
+USPEED="10000"
+
+Start:
+/usr/local/bin/wondershaper -a $IFACE -d $DSPEED -u $USPEED
+
+Stop:
+/usr/local/bin/wondershaper -c -a $IFACE
+----
