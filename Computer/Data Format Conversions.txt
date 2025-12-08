@@ -106,6 +106,7 @@
  .cp1047.txt: Plain text encoded using the Latin-1 (ISO-8859-1) character set for EBCDIC hosts.
  .creole.txt: "Creole" text markup source file. Creole is apparently some text-based markup language.
  .csv: Comma separated value. This can only represent records with a fixed ordering of columns, and the first line may optionally represent the column names instead of actual data. Column values containing commas or newline characters must be quoted using double quotes. Literal double quotes within quoted text need to be escaped by doubling them. There are variants of this format using other characters than a comma for separating the column values, or may use other quoting/escaping rules. The most prominent variants use horizontal tabulation characters or semicolons as separators.
+ .dif: A feature-poor storage format for calculation spreadsheets. Can only store numbers and always uses expontential form for this purpose. Cannot store formulas. A pretty useless format.
  .djvu: A document format for efficiently storing scanned paper images. If is a direct competitor to PDF in this area. It uses page content segmentation in order to separate text from images. Text is compressed with a variant of the JB2 algorithm, a predecessor of JBIG2. Graphics are compressed using a variante of the IW44 algorithm, a wavelet-based algorithm similar to the JPEG-successor JPEG-2000 (which failed due to patent issues). Both algorithms are lossy and similar looking characters (such as "6" and "8") may be replaced by others if a page was scanned with too low resolution. JB2 compression works by identifying repeated rectangular blocks, such as groups of related characters, and replacing them by references to a single copy. It is possible to associate such groups with UTF-8 text via OCR-processing, which allows searching the document and copy/paste text extraction. The djvu file format is patent encumbered, but has been granted royalty-free use in OpenSource applications.
  .docbook.sgml: A source file using the SGML markup language, using the "docbook" document type. This is a widely used SGML format for representing books, articles and other documentation. Docbook SGML is a very powerful and versatile format, and many document processing systems have interfaces for importing or exporting docbook SGML.
  .docbook.xml: This is the XML variant of .docbook.sgml. It can be used for the same purposes, but modern applications generally prefer XML over SGML because more software is available for processing XML files.
@@ -242,6 +243,7 @@
  .strict.markdown.txt: Original unextended Markdown.
  .svg: Scalable Vector Graphics files
  .svm: StarView/OpenOffice.org metafile
+ .sylk: A feature-reduced minimalistic storage format for calculation spreadsheets, originally for the "Multiplan" program. Uses a straightforward text format and can store numbers, text and formulas in spreadsheed cells. However, there is no support for multiple sheets, named ranges, colors and other fancy formatting. If those features are not required, SYLK is the best format for storing spread sheets, because a wide range of spreadsheet applications support the format, and, being text-based, the stored files can efficiently be version-controlled. One problem with the format is the fact that it uses absolute cell references rather than relative ones. Even though this has no consequences once the spreadsheet is loaded, it makes version control deltas larger than necessary.
  .t2t.txt: A in input source file in the native markup language of the txt2tags tool.
  .tcp: Pseudo-superformat representing a subformat data stream delivered via the TCP networking protocol.
  .tei: TEI Simple
@@ -363,6 +365,7 @@
 .creole.txt -> .pandoc.hs: pandoc
 .csv -> .pandoc.hs: pandoc
 .dict.tcp -> .local: curl
+.dif <-> .sylk: gnumeric
 .docbook.sgml -> .dvi: docbook2dvi
 .docbook.sgml -> .dvi: jw
 .docbook.sgml -> .html: docbook2html

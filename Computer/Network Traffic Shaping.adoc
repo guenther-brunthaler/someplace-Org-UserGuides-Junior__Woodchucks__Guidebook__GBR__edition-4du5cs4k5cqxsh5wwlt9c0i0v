@@ -1,6 +1,6 @@
 Linux IP Networking Traffic Shaping
 ===================================
-v2025.326
+v2025.338
 
 
 Fair scheduling
@@ -15,6 +15,12 @@ $ tc qdisc add dev eth0 root fq
 ----
 
 This assumes "eth0" is the network interface connected to the Internet. Otherwise, replace it by the name of your actual interface.
+
+In order to remove the added discipline later:
+
+----
+$ tc qdisc del dev eth0 root
+----
 
 
 Bandwidth limit

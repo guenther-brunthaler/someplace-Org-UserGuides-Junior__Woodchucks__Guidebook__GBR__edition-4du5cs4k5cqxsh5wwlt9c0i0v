@@ -44,3 +44,47 @@ Here is how to convert the visual selection into upper case in ViM:
 Without any address specification, the 'Escape' command just executes the external command with the same standard file descriptors as the editor was invoked. The edited text will not be affected.
 
 As of 2024-02, the BusyBox implementation of `vi` only supports the last variant.
+
+
+Recommended Configuration
+-------------------------
+
+ViM
+~~~
+
+When using "ViM" instead of the original "vi", a recommended default configuration for it can be created with the following command:
+
+----
+$ f=$HOME/.vimrc && test -s "$f" || cat << 'EOF' > "$f"
+set modelines=0
+set nocompatible
+set breakindent
+set columns=72
+set linebreak
+set nojoinspaces
+set number
+set numberwidth=1
+imap <silent> <Down> <C-o>gj
+imap <silent> <Up> <C-o>gk
+nmap <silent> <Down> gj
+nmap <silent> <Up> gk
+EOF
+----
+
+
+VI
+~~
+
+When using the original "vi"" instead of the improved "ViM", a recommended default configuration for it can be created with the following command:
+
+----
+$ f=$HOME/.virc && test -s "$f" || cat << 'EOF' > "$f"
+set modelines=0
+set breakindent
+set columns=72
+set linebreak
+set nojoinspaces
+set number
+set numberwidth=1
+EOF
+----

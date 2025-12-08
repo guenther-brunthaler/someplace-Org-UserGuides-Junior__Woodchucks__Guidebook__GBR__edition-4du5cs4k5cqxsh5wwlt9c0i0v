@@ -1,0 +1,100 @@
+UEFI
+====
+v2025.342
+
+
+ESP Partition Type
+------------------
+
+In order to make your system bootable via UEFI, you need to create an "EFI System Partition" on your boot device, referred to as "ESP" from here on.
+
+The ESP can use both an GUID Partition Table ("GPT"") or an MBR Partition Table ("MBR PT"").
+
+Only the partition type matters.
+
+* In case of a GPT, neither the name nor the partition UUID matters (only the partition type UUID, which must be C12A7328-F81F-11D2-BA4B-00A0C93EC93B).
+
+* In case of an MBR PT, the type code must be "EF" (hexadecimal 0xef).
+
+
+ESP Partition Size
+------------------
+
+The maximum usually recommended size is 550 MiB. But this is only requrired for some very old and buggy UEFI implementations.
+
+Modern ESPs should never need more than 500 MiB, the recommended size is 300 MiB, but normally 200 MiB is completely sufficient.
+
+If only a single operating system needs to be booted, the ESP can be much smaller than that.
+
+In case of Linux and GRUB, the ESP only required 12 MiB of space. Therefore, 50 or 100 MiB should be more than enough in this case. But for multiboot-scenarios (Windows etc.), a larger ESP might be necessary.
+
+
+EFI NVRAM Variables
+-------------------
+
+UEFI does not store the boot device or which bootloader to use anywhere on the ESP. Instead, it stores this information in the computer's NVRAM.
+
+In order to install an EFI bootloader such as GRUB, access to the EFI NVRAM variables is required.
+
+This access is provided by the UEFI BIOS, and it only does so if the currently running operating system has also been booted via UEFI.
+
+You can check whether this is the case by
+
+----
+$ test -d /sys/firmware/efi && echo Booted via UEFI || echo Booted via BIOS
+----
+
+If the system has not been booted via UEFI, you need to boot it again in order to be able to continue installing an UEFI bootloader such as GRUB2 oder extlinux.
+
+For instance, boot some Live USB system which already supports booting via UEFI.
+
+Next ensure `/sys/firmware/efi/efivars` has been mounted. Otherwise mount it yourself:
+
+----
+$ mount -t efivarfs none /sys/firmware/efi/efivars
+----
+
+
+ESP Filesystem
+--------------
+
+Now you need to format the ESP either as FAT16 or FAT32.
+
+FAT16 should suffice, as the ESP will rarely very large.
+
+----
+$ mkfs.vfat -n ESP -F16 /dev/disk/by-partlabel/myhost-ESP
+----
+
+After that, it needs to be mounted in order for (at least) the first stage of some bootloader to be installed there.
+
+Traditionally, the ESP is mounted as /boot/efi:
+
+----
+$ mkdir -m0 -p /boot/efi
+$ mount -t vfat /dev/disk/by-partlabel/myhost-ESP /boot/efi
+----
+
+
+Installing the bootloader
+-------------------------
+
+On Debian-based systems,
+
+----
+$ apt-get install grub-efi-amd64
+...
+$ dpkg-reconfigure grub-efi-amd64
+----
+
+should normally do the job.
+
+However, I am not sure which ESP is used if multiple ones are found on different devices (or even on the same device).
+
+Therefore, it might be a better idea to explicitly state where the mounted ESP directory is located:
+
+----
+$ grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
+----
+
+Don't forget to update your initramfs after successful installation, just in case some EFI tools should be copied there conditionally.
