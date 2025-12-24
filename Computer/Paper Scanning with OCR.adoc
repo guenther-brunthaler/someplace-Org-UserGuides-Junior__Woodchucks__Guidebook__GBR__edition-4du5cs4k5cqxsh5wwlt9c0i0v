@@ -1,12 +1,22 @@
 Paper Scanning with OCR
 =======================
-v2023.116
+v2025.352
 
 General Procedure:
 
-* Run `scan-and-autonumber` script to scan papers and save as `*.tif` files
+* Run `scan-and-autonumber` script to scan papers and save as `*.png` files
 
 * Noise reduction with edge protection
++
+--
+----
+$ mkdir -p bilat8 orig && for f in *.png; do convert "$f" -bilateral-blur 8 -type TrueColor -colorspace sRGB -depth 8 -quality 6 bilat8/"$f" && mv -i -- "$f" orig/; done
+----
+
+Use `-bilateral-blur 12` for even better quality, but only on selected files because it is incredibly slow.
+
+Or use `-kuwahara 1` for much faster but mediocre noise reduction.
+--
 
 * Use `scantailor` for postprocessing (multipage separation, rotation, cropping, dust removal) and save as FAX Group 4 compressed B/W files
 
@@ -68,6 +78,6 @@ $ ocrmypdf -l deu --output-type pdf --sidecar ocr.txt -O 1 "$f" "${f%.pdf}"-loss
 
 `pdfarranger` destroys the embedded LibreOffice document in case of LO-generated 'hybrid'-PDFs. It also generally destroys any attachments of edited PDF files when they are saved. So make sure to make backups of any such attachment before processing the files with `pdfarranger`.
 
-Use `pdfattach` and `pdfdetach` for saving/restoring/adding PDF-attachments. Note that file names must be encoded as LATIN-1 for `pdfattach` to correctly save the names of the attachments into the PDF files. Use `iconv` to convert filenames where needed and create symbolic-links encoded as LATIN-1 using the converted names.
+Use `pdfattach` and `pdfdetach` for saving/restoring/adding PDF-attachments. Note that file names must be encoded as UTF-8 (older versions required LATIN1 instead) for `pdfattach` to correctly save the names of the attachments into the PDF files.
 
 When moving pages across document boundaries with `pdfarranger`, note that only marked pages can be moved or copied. Selected pages are tinted with a lighter color and marked pages are tinted with a darker tint color, while the remaining pages are not tinted at all.

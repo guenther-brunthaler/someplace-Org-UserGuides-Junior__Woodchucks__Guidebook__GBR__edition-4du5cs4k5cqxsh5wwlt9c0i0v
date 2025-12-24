@@ -17,6 +17,8 @@ $ printf %s GAYD AG23 H4YT OOZQ HMYT EN3D | cksum
 4164992930 24
 $ printf %s GAYD AG23 H4YT OOZQ HMYT EN3D | base32 -d
 
+When using a keyboard with a German layout with an English keyboard translation table loaded, the "`|`" character can be entered by pressing [Shift]+[#].
+
 Here is a script which worked with the QEMU monitor for sending the sequence as key presses into a VM (with unix-domain socket for the monitor named "./monitor"):
 
 cat > qemu_vm_stop_blinking << '====='
