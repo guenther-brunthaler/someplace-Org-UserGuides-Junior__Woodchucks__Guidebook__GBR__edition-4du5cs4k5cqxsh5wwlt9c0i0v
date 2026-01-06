@@ -1,6 +1,25 @@
 SSH
 ===
-v2025.319
+v2026.6
+
+
+"no matching host key type"
+---------------------------
+
+If `ssh` issues an error message like the following when trying to connect
+
+....
+Unable to negotiate with 192.128.168.130 port 22: no matching host key type found. Their offer: rsa-sha2-512,rsa-sha2-256,ecdsa-sha2-nistp256,ssh-ed25519
+....
+
+You need to set the `HostKeyAlgorithms` option like this:
+
+----
+$ ssh -o HostKeyAlgorithms=rsa-sha2-512 root@192.128.168.130
+----
+
+Client Configuration
+--------------------
 
 My favourite `~/.ssh/config` default settings:
 

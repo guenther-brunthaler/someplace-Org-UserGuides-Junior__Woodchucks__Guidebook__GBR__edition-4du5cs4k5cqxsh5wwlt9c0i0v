@@ -1,7 +1,21 @@
-﻿SSH
+SSH
 ===
 Guenther Brunthaler
-v2025.14
+v2026.6
+
+
+Determining the algorithms actually used for connecting
+-------------------------------------------------------
+
+----
+$ ssh -v -o ControlPath=none root@127.0.0.1 true 2>& 1 | grep -i algorithm:
+debug1: kex: algorithm: sntrup761x25519-sha512@openssh.com
+debug1: kex: host key algorithm: rsa-sha2-512
+----
+
+* "`kex: algorithm`" shows the key exchange algorithm which ensures the long-term security of the session (safeguards against the "store and decrypt later"-approach). This algorithm should be quantum-safe. The algorithm shown in the example is.
+
+* "`kex: host key algorithm`" is the algorithm used to prevent Man-in-the-middle-Attacks. It does not need to be quantum safe as long as it cannot be cracked with existing quantum computers *already*. The algorithm only needs to be safe at the time when the session is being established. After that its future security is irrelevant.
 
 
 Deterministic moduli generation

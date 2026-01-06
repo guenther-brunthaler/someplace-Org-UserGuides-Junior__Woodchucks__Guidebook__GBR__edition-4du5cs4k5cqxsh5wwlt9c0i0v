@@ -463,7 +463,7 @@ error[E0554]: #[feature] may not be used on the stable release channel
  
 I conclude the problem of large executable sizes might be fixed using those attributes, but not in the current version of Rust.
 
-On the other hand, must existing Rust code uses at least some parts of the Rust runtime library. Unless everything is written anew from scratch, there is no easy way to get rid of the dependencies of the Rust standard runtime libraries.
+On the other hand, most existing Rust code uses at least some parts of the Rust runtime library. Unless everything is written anew from scratch, there is no easy way to get rid of the dependencies of the Rust standard runtime libraries.
 
 As of 2022, I discovered a "-C prefer-dynamic=yes" option of the Rust compiler which linked the executable against a dynamic version of the Rust runtime libraries. This had a huge effect on executable size, which was only about 17 kB compared to 9.5 MB without that option for a "hello world". After symbol stripping, the size went even down to 14 kB.
 

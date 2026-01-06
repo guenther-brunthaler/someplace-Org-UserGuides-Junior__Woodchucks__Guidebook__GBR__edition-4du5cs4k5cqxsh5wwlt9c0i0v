@@ -1,6 +1,6 @@
-﻿Source Package Building on Debian
+Source Package Building on Debian
 =================================
-v2025.9
+v2026.1
 
 
 Abstract
@@ -405,9 +405,16 @@ $ DEB_BUILD_OPTIONS='nostrip noopt debug' fakeroot dpkg-buildpackage -b -uc -us
 
 Available `$DEB_BUILD_OPTIONS` depend on individual `dh_`* helper executables which have separate `man` pages, but here are some of the most useful ones:
 
-* `nocheck`: Suppress running unit tests. This is especially useful if some unit test tries to access the Internet, but this has been blocked by a firewall. Then the build will fail without this option.
+* `nocheck`: Suppress running unit tests. This is especially useful if some unit test tries to access the Internet, but this has been blocked by a firewall. Then the build will fail without this option. This is the only commonly useful option, speeding up the build in some cases.
+
+* Find out the remaining `$DEB_BUILD_OPTIONS`:
++
+----
+$ grep -l DEB_BUILD_OPTIONS /usr/bin/dh_* #| xargsL list-files-and-contents | less
+----
 
 After the package has been build successfully, move back to the parent directory
+
 
 ----
 $ cd ..
