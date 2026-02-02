@@ -1,6 +1,6 @@
 SSH
 ===
-v2026.6
+v2026.22
 
 
 "no matching host key type"
@@ -17,6 +17,34 @@ You need to set the `HostKeyAlgorithms` option like this:
 ----
 $ ssh -o HostKeyAlgorithms=rsa-sha2-512 root@192.128.168.130
 ----
+
+In order to find out which algorithms your OpenSSH implementation supports, query a list of supported algorithms as follows:
+
+----
+$ ssh -Q HostKeyAlgorithms
+----
+
+Note that this argument is *not* documented for the -Q option. Instead, only some short names like "`kex`" are officially documented.
+
+Nevertheless, `ssh -Q` takes most SSH configuration setting names which refer to algorithm selection as arguments also, mapping them automatically into the matching short name.
+
+Here is an incomplete list of mappings from documented `-Q` arguments to SSH configuration setting names:
+
+[options="header,autowidth"]
+|====
+| -Q argument | SSH Config Setting
+| cipher      | Ciphers
+| mac         | MACs
+| kex         | KexAlgorithms
+| key-sig     | HostKeyAlgorithms
+| key-sig     | HostbasedAcceptedAlgorithms
+| key-sig     | PubkeyAcceptedAlgorithms
+| sig         | CASignatureAlgorithms
+| kex-gss     | GSSAPIKexAlgorithms
+|====
+
+Note that some `-Q` arguments apply to multiple configuration settings.
+
 
 Client Configuration
 --------------------
