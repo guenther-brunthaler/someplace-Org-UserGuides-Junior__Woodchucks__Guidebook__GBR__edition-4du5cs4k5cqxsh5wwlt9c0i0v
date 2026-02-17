@@ -1,6 +1,6 @@
-﻿BASE-N Encodings
+BASE-N Encodings
 ================
-v2024.108
+v2026.42
 
 
 RFC 3548
@@ -127,14 +127,22 @@ Three input octets are converted into two 13-bit integers first. Then each integ
 A useful variant might exclude the same 3 characters as 186-encoding does, but from the alphabet used by base-94 encoding:
 
 ----
-$ perl -e 'print join "", grep /[^.>+]/, grep /[[:graph:]]/, map chr, 0 .. 127'; echo
+$ perl -e 'print join "", grep /[^<&>]/, grep /[[:graph:]]/, map chr, 0 .. 127'; echo
 ----
+
+This would make the encoding "HTML friendly". Or
+
+----
+$ perl -e 'print join "", grep /[^-_>]/, grep /[[:graph:]]/, map chr, 0 .. 127'; echo
+----
+
+which makes it e-mail-friendly, because ">"-characters could be mistaken for quoting, "-" could be misinterpreted as a signature block, and "_" looks like a space in some font & rendering configurations.
 
 I recommend big-endian encoding, because this is the traditional network byte order and e-mails are supposed to be sent over a network.
 
 This is probably the best possible encoding for sending e-mails using plain ASCII as the transport encoding.
 
-An existing 3rd-party base-91 implementation written by Joachim Henke providing three utilites "`base91`", "`b91enc`" and "`b91dec`" omits the three characters 'dash' (`0x2d`), 'apostrophe' (`0x27`) and 'backslash' (`0x5c`) from the base-94 alphabet. It also maps ASCII code ranges to its alphabet in a different order: Upper case letters first, then lower case latters, then decimal digits, then the remaining characters.
+An existing 3rd-party base-91 https://sourceforge.net/projects/base91/files/basE91/0.6.0/base91-0.6.0.tar.gz/downloadx[implementation] written by Joachim Henke (which also seems to be the original designer of this encoding format) providing three utilites "`base91`", "`b91enc`" and "`b91dec`" omits the three characters 'dash' (`0x2d`), 'apostrophe' (`0x27`) and 'backslash' (`0x5c`) from the base-94 alphabet. It also maps ASCII code ranges to its alphabet in a different order: Upper case letters first, then lower case latters, then decimal digits, then the remaining characters. This makes the alphabet structure similar to most existing base-32 and base-64 implementations.
 
 
 Base-94

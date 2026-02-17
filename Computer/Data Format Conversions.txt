@@ -582,6 +582,7 @@
 .pdf -> .ppm: pdftoppm
 .pdf -> .ps: pdftocairo
 .pdf -> .ps: pdftops
+.pdf -> .svg: pdf2svg
 .pdf -> .svg: pdftocairo
 .pdf -> .tiff: pdftocairo
 .pdf -> .txt: pdftotext
