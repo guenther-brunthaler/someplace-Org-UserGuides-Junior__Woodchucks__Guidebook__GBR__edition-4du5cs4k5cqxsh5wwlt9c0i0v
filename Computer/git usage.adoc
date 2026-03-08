@@ -1,7 +1,7 @@
-﻿git Usage
+git Usage
 =========
 Günther Brunthaler
-v2025.17
+v2026.53
 
 
 Specify a revision by approximate date
@@ -317,6 +317,13 @@ After unbundling commit $c into a bare repository, you might want to change the 
 ----
 $ branch=master # An example for the name of the branch to be modified.
 $ git update-ref refs/heads/$branch $c
+----
+
+A typical example, similar to "`git pull`", but for `--bare` clones without any checked-out files:
+
+----
+$ git fetch origin
+$ git update-ref refs/heads/master FETCH_HEAD
 ----
 
 Note that $c should also start with "`/refs/`" for maximum unambiguousness.
