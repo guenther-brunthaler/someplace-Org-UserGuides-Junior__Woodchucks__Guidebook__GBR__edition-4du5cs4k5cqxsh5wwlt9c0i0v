@@ -1,4 +1,4 @@
-Operating Systems Strengths And Weaknesses
+﻿Operating Systems Strengths And Weaknesses
 
 * Plan 9 From Bell Labs
 [ http://news.ycombinator.com/item?id=447435 ]: Plan9 sucks, and is a waste of your time [...] One reason for that was the license [...] The user interface is worse than TWM. It's main editor basically requires that you constantly have one hand on the mouse and hunt and peck keys with the other hand, as if it was designed by one of those old computer illiterate people who can't type and clutch the mouse in a death grip the entire time they are in front of the computer [...] When I saw some poor dude post on the 9fans mailing list 18 months later or whatever wondering why Plan 9 wouldn't boot after a clean disk install, I knew it was dead and that all that time was wasted [...] Plan 9 admittedly sucks in many ways. It has limited hardware support, a weird user interface, and no active community [...]

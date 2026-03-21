@@ -1,4 +1,4 @@
-aaa_known_name1, known_name2, known_name3:
+﻿aaa_known_name1, known_name2, known_name3:
 protocol://url-specific
 Short Description.
 

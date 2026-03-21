@@ -1,4 +1,4 @@
-BASE-N Encodings
+﻿BASE-N Encodings
 ================
 v2026.42
 

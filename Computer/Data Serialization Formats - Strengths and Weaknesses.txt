@@ -1,4 +1,4 @@
-Data Representation Formats - Strengths and Weaknesses
+﻿Data Representation Formats - Strengths and Weaknesses
 ======================================================
 
 JSON:

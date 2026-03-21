@@ -1,4 +1,4 @@
-Power efficiency
+﻿Power efficiency
 ================
 
 Information taken from [ http://www.digikey.com/en/articles/techzone/2011/aug/comparing-low-power-wireless-technologies ].

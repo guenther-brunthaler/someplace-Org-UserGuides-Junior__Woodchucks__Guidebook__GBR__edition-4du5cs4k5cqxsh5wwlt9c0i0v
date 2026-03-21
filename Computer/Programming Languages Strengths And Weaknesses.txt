@@ -1,4 +1,4 @@
-Programming Languages Strengths And Weaknesses
+﻿Programming Languages Strengths And Weaknesses
 
 Quick Preview
 Some programming languages did not seem interesting enough for me to actually evaluate them. Or I did not yet find the time to do so. This section contains what I have grasped so far.
