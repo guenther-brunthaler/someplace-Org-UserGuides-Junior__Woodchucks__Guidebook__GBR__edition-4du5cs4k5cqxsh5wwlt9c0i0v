@@ -1,6 +1,6 @@
 ﻿Random Number Generators
 ========================
-v2025.204
+v2026.152
 
 
 Additive Random Number Generator
@@ -17,6 +17,8 @@ where
 * `rnd[0 .. 54]` are arbitrary seed integers, not all of them even
 
 The generated sequence will have a period of at least +2^55^ - 1+.
+
+This type of generator is also known as 'lagged Fibonacci style PRNG'.
 
 The lower-order bits are not very random. Either cut them off, or interpret them as the fractional digits of a floating point mantissa.
 
@@ -59,6 +61,67 @@ Although the mathematical theory behind the above Additive generators is still b
 * The larger constant is always odd and has 1 or 2 prime factors.
 
 * The sum of of the prime factor count for both constants does not exceed 6.
+
+
+SWC (Subtract-With-Carry) Lagged Fibonacci Generator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SWC is a lagged Fibonacci style pseudo-random number generator that extends a simple subtraction-based recurrence with an additional one-bit carry state. It is a weakly nonlinear extension of a classical lagged Fibonacci generator.
+
+The generator maintains an array state `x[]` of size `max(a, b)` and a single carry bit `c`. All operations are performed modulo `2 ^ w`, typically `w = 32` for 32-bit implementations.
+
+Initialization:
+
+----
+c = 0
+----
+
+Core recurrence:
+
+----
+x[n] = (x[n - a] - x[n - b] - c) mod 2 ^ w
+----
+
+Carry update rule:
+
+----
+if (x[n - a] - x[n - b] - c) < 0 then
+    c = 1
+else
+    c = 0
+----
+
+Output:
+
+----
+output = x[n]
+----
+
+The lag parameters `a` and `b` determine memory depth, mixing behavior, and statistical properties. SWC does not define a single canonical parameter set; instead, several empirically used regions exist.
+
+Common parameter pairs:
+
+. 1279 / 418
++
+* Medium-sized state
+* Good balance of speed and statistical quality
+* Suitable for lightweight or embedded usage
+
+. 2281 / 1252
++
+* Larger state window
+* Stronger long-range decorrelation than smaller pairs
+* Good general-purpose choice
+
+. 19937 / 117
++
+* Very large state size
+* Strong long-range structure
+* High memory footprint and slower initialization
+
+SWC benefits from sufficiently large and well-separated lag parameters. Small values of `a` and `b` tend to increase short-range correlations, while very large values may reduce practical mixing efficiency.
+
+Unlike purely linear lagged Fibonacci generators, SWC introduces a carry bit `c` which creates a weak nonlinear feedback path. This does not increase entropy, but redistributes existing state information more effectively over time.
 
 
 Linear congruential generator (LCG)

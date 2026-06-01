@@ -1,0 +1,62 @@
+RC4 + SWC Hybrid Stream Whitening Scheme
+========================================
+v2026.152
+
+This construction combines the ARCFOUR stream cipher (used here as a byte generator) with a Subtract-With-Carry (SWC) lagged Fibonacci generator used as a stateful whitening and scrambling layer. ARCFOUR is assumed to be already defined elsewhere and is treated as a black-box function.
+
+The SWC component is used purely as a stateful transformation layer and not as an independent entropy source.
+
+The SWC state consists of an array `x[]` of size `max(a, b)` and a carry bit `c`. All arithmetic is performed modulo `2 ^ w`, typically `w = 32` for 32-bit systems.
+
+Initialization:
+
+----
+initialize x[]
+c = 0
+----
+
+Recommended parameter pair:
+
+. 1279 / 418
++
+* Moderate state size
+* Good cache locality and low memory overhead
+* Sufficient mixing behavior for stream whitening use-case
+* Preferred over larger state variants in hybrid designs due to efficiency
+
+Core ARCFOUR-driven update loop:
+
+At each step:
+
+----
+r = ARCFOUR()
+
+i = r mod max(a, b)
+j = (r + x[i]) mod max(a, b)
+
+t = x[i] - x[j] - c
+x[i] = r
+----
+
+Carry update rule:
+
+----
+if t < 0 then
+    c = 1
+else
+    c = 0
+----
+
+Output generation:
+
+----
+output = (x[i] + r) mod 256
+----
+
+Design rationale:
+
+* ARCFOUR provides a fast byte stream with permutation-based diffusion, but exhibits known statistical biases in raw output.
+* SWC provides lagged memory and weak nonlinear feedback via the carry bit `c`.
+* The combination acts as a whitening layer that redistributes ARCFOUR bias over a dynamically evolving state.
+
+This construction does not increase entropy beyond the ARCFOUR seed, but improves statistical distribution by coupling ARCFOUR output into a lagged state machine with feedback.
