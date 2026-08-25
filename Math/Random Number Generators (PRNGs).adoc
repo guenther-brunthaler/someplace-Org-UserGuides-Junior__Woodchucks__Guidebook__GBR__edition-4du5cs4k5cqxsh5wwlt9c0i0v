@@ -1,6 +1,6 @@
 ﻿Random Number Generators
 ========================
-v2026.152
+v2026.157
 
 
 Additive Random Number Generator
@@ -66,40 +66,21 @@ Although the mathematical theory behind the above Additive generators is still b
 SWC (Subtract-With-Carry) Lagged Fibonacci Generator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SWC is a lagged Fibonacci style pseudo-random number generator that extends a simple subtraction-based recurrence with an additional one-bit carry state. It is a weakly nonlinear extension of a classical lagged Fibonacci generator.
+SWC, also known as SWB (Subtract-With-Borrow) is a lagged Fibonacci style pseudo-random number generator published 1991 by Marsaglia and Zaman. It is a weakly nonlinear extension of a classical lagged Fibonacci generator.
 
-The generator maintains an array state `x[]` of size `max(a, b)` and a single carry bit `c`. All operations are performed modulo `2 ^ w`, typically `w = 32` for 32-bit implementations.
-
-Initialization:
+The generator uses a larger lag `r` and a shorter lag `s`. It maintains an array state `x[]` of size `r` and a single carry bit `c`.
 
 ----
-c = 0
+t[n] = x[n - r] - x[n - s] - c[n - 1]
+x[n] = t[n] mod m
+c[n] = 1 if t[n] < 0, else 0
 ----
 
-Core recurrence:
+x[n] is the non-negative output value less than `m`. Referenced initial values for x[] and c[] must be initialized with seed numbers, although c[] is often initialized with 0.
 
-----
-x[n] = (x[n - a] - x[n - b] - c) mod 2 ^ w
-----
+The lag parameters `r` and `s` determine memory depth, mixing behavior, and statistical properties. SWC does not define a single canonical parameter set; instead, several empirically used regions exist.
 
-Carry update rule:
-
-----
-if (x[n - a] - x[n - b] - c) < 0 then
-    c = 1
-else
-    c = 0
-----
-
-Output:
-
-----
-output = x[n]
-----
-
-The lag parameters `a` and `b` determine memory depth, mixing behavior, and statistical properties. SWC does not define a single canonical parameter set; instead, several empirically used regions exist.
-
-Common parameter pairs:
+Common parameter pairs known to produce good sequences for `m = 2 ** w` with `w = 32` and `w = 64`:
 
 . 1279 / 418
 +
@@ -119,9 +100,9 @@ Common parameter pairs:
 * Strong long-range structure
 * High memory footprint and slower initialization
 
-SWC benefits from sufficiently large and well-separated lag parameters. Small values of `a` and `b` tend to increase short-range correlations, while very large values may reduce practical mixing efficiency.
+SWC benefits from sufficiently large and well-separated lag parameters. Small values of `r` and `s` tend to increase short-range correlations, while very large values may reduce practical mixing efficiency.
 
-Unlike purely linear lagged Fibonacci generators, SWC introduces a carry bit `c` which creates a weak nonlinear feedback path. This does not increase entropy, but redistributes existing state information more effectively over time.
+Unlike purely linear lagged Fibonacci generators, SWC introduces a carry bit `c` which creates a weak nonlinear feedback path. This redistributes existing state information more effectively over time.
 
 
 Linear congruential generator (LCG)
