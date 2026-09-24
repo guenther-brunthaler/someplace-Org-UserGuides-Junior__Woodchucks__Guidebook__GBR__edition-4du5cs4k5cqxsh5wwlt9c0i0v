@@ -1,6 +1,6 @@
 Sorting Algorithms
 ==================
-v2021.66
+v2026.266
 
 Radix Sort
 ----------
@@ -118,3 +118,19 @@ Gnomesort is normally a lot slower than Insertion sort, and most of the time eve
 Gnomesort needs less variables than most other algorithms and no stack. Only the current position needs to be tracked.
 
 Also, there is only a single situation where a comparison needs to be made, and a single situation where an exchange takes place. This means the code is compact, because there are very few branches to consider in the decision-making process.
+
+
+Shellsort
+---------
+
+Named for its developer, Donald L. Shell. It is an diminishing increment sort. It separates the sequence to be sorted into multiply interleaved sequences, sorting every such sequence with insertion sort.
+
+The sequences are selected by interleaving every element of the sequence with with the same number of elements which are not part of the sequence. Shell sort starts with a large interleave distance, so the sequence does not have many elements and sorts quickly. Then the distance is reduced, and a sequence with more elements results. This continues by some formula for reducing the interleave distance (e.g. halving) until finally the distance is 1, meaning all elements are part of the sequence.
+
+The trick of Shellsort is the fact that insertion sort if speeded up if many elements to be sortes are already in the correct order. The smaller the interleave steps become, the more frequently elements which have already been sorted into the correct partial order will become part of the current sequence, speeding up insertion sort.
+
+Knuth recommends the step widths (1, 3, 7, 15, 31, ...) for interleaving, which leads to a time effort of (N ** 1.5). This is quite better than Bubblesort, Selection Sort or (plain) Insertion Sort, but will not beat Quicksort, Mergesort or Heapsort for larger sequences.
+
+There are different step width sequences which can be used and which yield even better results. However, finding the "optimal" sequence for Shellsort is sort of a black art and many sequences are suggested by different authors.
+
+In the most sophisticated implementations, calculation of the sequence is so complicated that it is left out in the implementation. Instead, the implementation uses a pre-calculated table of available step widths.

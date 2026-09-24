@@ -8,3 +8,5 @@ H(x) = sum(-p[i] * log2(p[i]))
 H(x): Entropy of x[].
 x[i]: Set of all possible distinct values (e.g. allowed passwords)
 p[i]: relative probability of x[i]
+
+If all p[i] are the equally likely, then H(x) is log2(i), that is the number of bits required for storing any of the integers from 0 through i - 1.

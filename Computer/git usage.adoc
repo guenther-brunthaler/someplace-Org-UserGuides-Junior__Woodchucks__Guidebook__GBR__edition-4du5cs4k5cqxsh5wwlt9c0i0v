@@ -1,7 +1,88 @@
 ﻿git Usage
 =========
 Günther Brunthaler
-v2026.53
+v2026.266
+
+
+Create a shared/shallow/sparse/partial clone
+--------------------------------------------
+
+If you already have a repository on your local filesystem, mit want to check out a different repository, you can share the commit history with the existing repository be cloning it with
+
+----
+$ git clone -s $EXISTING_REPO_DIR $NEW_REPO_DIR
+----
+
+Commits made to the new repo will only be stored there. But all the older commits will be referenced directly from `$EXISTING_REPO_DIR`. If you ever move or rename the referenced repository, the one in `$NEW_REPO_DIR` will no longer function properly.
+
+In this case, edit the file `$NEW_REPO_DIR/.git/objects/info/alternates` where the path of the referenced `$EXISTING_REPO_DIR` repository is stored, and change the path to the new location of `$EXISTING_REPO_DIR`. This will fix the problems.
+
+
+Sometimes, you want to clone a gigantic repository, but are only interested in the newest commit:
+
+----
+$ git clone --depth=1 $REPO_URL
+----
+
+This will create a "shallow" repository witg truncated history, but use the same commit ID as the original for the latest commit. If you also to receive all the tags, add the next command:
+
+----
+$ git fetch --tags
+----
+
+But sometimes one wants to see the whole commit history with all its commit IDs and tags, but still not really clone the whole (gigantic) repository. Use this command:
+
+----
+$ git clone --no-checkout --filter=tree:0 --sparse $REPO_URL
+----
+
+This will copy the whole history and all branches and tags to your local machine, but not the actual file contents and neither the directory tree objects associated with it. (Actually, some parts of the directory trees will still be copied - but only the file names of the top-level directory.)
+
+This uses very little space on your local machine, but checking-out such commits may be problematic and not include subdirectories.
+
+If you want to remain in full control over checkouts, use this command instead:
+
+----
+$ git clone --no-checkout --filter=blob:none --sparse $REPO_URL
+----
+
+This will fetch the complete history, tags and directory tree information of all commits, but not the file contents themselves. The latter will be fetched "lazyily" on-demand whenever they are needed.
+
+Note that none of the above command actually created a check-out. If you want a check-out, either omit the "--no-checkout" or execute the following command after:
+
+----
+$ git checkout --force
+----
+
+This will contact the `$REPO_URL` server and fetch any still-missing BLOBs from there.
+
+Note that one can add the `-q` option to all the command above to make them work (more) silently. This can be useful when working over a SSH connection, where all diagnostic output would be transferred via the network back to the machine from where you initiated the SSH connection.
+
+Also note that the `--bare` Option does not work with the `--filter`-option - that is why one has to use `--no-checkout` rather than `--bare` for the intended effect.
+
+
+[[rebase_w_merges]]
+Edit the first commit of a branch
+---------------------------------
+
+----
+$ git rebase --rebase-merges --root -i
+----
+
+Your editor opens and displays instructions. You need to replace the "pick" with "edit" for the initial commit, then save the instruction text and edit the editor.
+
+The above command will change the Commit IDs, but keep all merges intact. If you want to "flatten" the history instead, see <<flatten_history,here>>.
+
+
+[[flatten_history]]
+"Flatten" the history of a branch
+---------------------------------
+
+----
+$ git rebase --root -i
+----
+
+This command rewrites history (assignes new commit IDs) and "flattens" the history: All merges will be integrated as if they were part of a linear history. If you do not want to do this, see <<rebase_w_merges,there>>.
 
 
 Specify a revision by approximate date
@@ -255,7 +336,7 @@ Sometimes after successfully building a package, its files shall be installed in
 The following command accomplishes that, assuming the 'Makefile' supports an 'install' target with a `DESTDIR=`-setting:
 
 ----
-echo make install DESTDIR="$PWD/stage/`basename -- "$PWD"`-`git describe --tags 2> /dev/null | sed 's/^v//'`"
+echo make install DESTDIR="$PWD/stage/`basename -- "$PWD"`-`git describe --tags --always 2> /dev/null | sed 's/^v//'`"
 ----
 
 However, this might fail if no tags have been assigned to the version history at all.
@@ -674,7 +755,7 @@ $ git fetch --tags -q --depth=1
 $ git fetch -qq --shallow-since=${tagname:?}
 ----
 
-This usually fetches all commits required to do a "`git describe --tags HEAD`" later. But it also fetches all commits that are referenced by all existing tags, which could be many. However, this still incurs less (or at worst about the same) data transfer traffic volume than cloning the whole repository.
+This usually fetches all commits required to do a "`git describe --tags --always HEAD`" later. But it also fetches all commits that are referenced by all existing tags, which could be many. However, this still incurs less (or at worst about the same) data transfer traffic volume than cloning the whole repository.
 
 
 Long-term archiving particular git commits
