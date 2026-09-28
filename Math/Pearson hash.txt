@@ -2,9 +2,9 @@ The Pearson hash function generates an 8-bit result as the CBC-MAC of the input 
 
 The cipher itself consists of a simple lookup into an s-box which has been initialized by a random permutation of the integers 0-255. A constant IV (usually 0) is used for the CBC-MAC.
 
-mac:= 0
+mac := 0
 while more_characters_are_available()
-   mac:= sbox[mac XOR get_next_character()]
+   mac := sbox[mac XOR get_next_character()]
 end
 
 Pearson's algorithm can be made to generate hashes of any desired length, by running as many modified instances of the hash function on the same input string as there are output bytes required.
