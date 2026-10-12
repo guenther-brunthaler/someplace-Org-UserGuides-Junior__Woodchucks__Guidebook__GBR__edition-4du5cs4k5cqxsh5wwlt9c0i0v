@@ -1,6 +1,6 @@
 Sorting Algorithms
 ==================
-v2026.270
+v2026.273
 
 Radix Sort
 ----------
@@ -105,7 +105,7 @@ Gnomesort
 
 Previously known as "Stupid Sort".
 
-1. Initially, a garden gnome stands before the first pot in a row of flower pots which shall be sorted by pot size. (Or somewhere where there are no pots at all, neither before the gnome or right of it, if the set of pots to be sorted is empty.)
+1. Initially, a garden gnome stands at (looking at it) the first pot in a row of flower pots which shall be sorted by pot size. (Or somewhere where there are no pots at all, neither before the gnome nor right of it, if the set of pots to be sorted is empty.)
 
 2. If there are no more pots to the right, the gnome's job is finished and all pots are sorted.
 
@@ -123,21 +123,23 @@ Also, there is only a single situation where a comparison needs to be made, and 
 Shellsort
 ---------
 
-Named for its developer, Donald L. Shell. It is an diminishing increment sort. It separates the sequence to be sorted into multiply interleaved sequences, sorting every such sequence with insertion sort.
+Named for its developer, Donald L. Shell. It is an diminishing increment sort. It separates the sequence to be sorted into multiple interleaved sequences, sorting every such sequence with insertion sort.
 
-The sequences are selected by interleaving every element of the sequence with with the same number of elements which are not part of the sequence. Shell sort starts with a large interleave distance, so the sequence does not have many elements and sorts quickly. Then the distance is reduced, and a sequence with more elements results. This continues by some formula for reducing the interleave distance (e.g. halving) until finally the distance is 1, meaning all elements are part of the sequence.
+The sequences are selected by interleaving every element of the sequence with with the same number of elements which are not part of the sequence. Shell sort starts with a large step width (interleave distance), so the sequence does not have many elements and sorts quickly. Then the step width is diminished, resulting in a sequence with more elements. This continues by some formula (or just using a predefined constant table) for reducing the step width until finally the step width is 1, meaning all elements are part of the sequence.
 
-The trick of Shellsort is the fact that insertion sort if speeded up if many elements to be sorted are already in the correct order. The smaller the interleave steps become, the more frequently elements which have already been sorted into the correct partial order will become part of the current sequence, speeding up insertion sort.
+The trick of Shellsort is the fact that insertion sort if speeded up if many elements to be sorted are already in the correct order. The smaller the step width becomes, the more frequently elements which have already been sorted into the correct partial order will become part of the current sequence, speeding up insertion sort.
 
-There are different step width sequences which can be used and which yield even better results. However, finding the "optimal" sequence for Shellsort is sort of a black art and many sequences are suggested by different authors.
+There are different step width sequences which can be used and which yield even better results. However, finding the "optimal" sequence for Shellsort is sort of a black art (an open mathmatical problem) and many sequences are suggested by different authors.
 
-The best approach may be to use the generally most recommended sequence A102549 from Ciura, which consists of the values
+The best approach may be to use the generally most recommended sequence A102549 from Ciura, which consists of the fixed set of values
 
 1, 4, 10, 23, 57, 132, 301, 701
 
 and dynamically switch to sequence A108870 from Tokuda starting with k = 8 for larger step values:
 
 ceiling((9 * (9 / 4) ^ k - 4) / 5)
+
+Shellsort starts with the smallest step width that will make the sequence consist of a low number of elements which is optimal for insertion sort.
 
 
 Combsort
