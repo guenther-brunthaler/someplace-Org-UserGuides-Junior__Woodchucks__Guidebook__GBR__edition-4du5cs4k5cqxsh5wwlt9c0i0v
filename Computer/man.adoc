@@ -1,0 +1,62 @@
+Displaying "man"-pages in a web browser
+=======================================
+v2026.307
+
+Although this is probably a build-time configuration issue, at least on Debian-derived Linux distributions, a "man" page can be shown in a Web browser via the `-H` option.
+
+For example, if
+
+----
+$ man 1p awk
+----
+
+shows the POSIX man page for `awk` in the text terminal, then
+
+----
+$ man -H 1p awk
+----
+
+will show it in the web-browser launched by the command "www-browser".
+
+If you don't like your system default for `www-browser`, you can write a replacement script and place it in some directory in `$PATH` which will be searched before the one where the system version of `www-browser` can be found.
+
+For instance, `NetSurf` is a slim browser which can display most `man` pages properly and starts a gazillion times faster than Firefox or Chromium:
+
+----
+$ cat "`command -v www-browser`"
+#! /bin/sh
+exec netsurf -- "$*" < /dev/null > /dev/null 2>& 1 &
+----
+
+Alternatively, put those commands into a script with an arbitrary name like `wwwman`, and then invoke
+
+----
+$ export BROWSER=wwwman
+$ man -H 1p awk
+----
+
+or specify it directly in the command:
+
+----
+$ man -Hwwwman 1p awk
+----
+
+or, equivalently,
+
+----
+$ man --html=wwwman 1p awk
+----
+
+Under Linux distributions not derived from Debian, a different command than `www-browser` might be invoked by default. Find out by displaying
+
+----
+$ man --help
+----
+
+which displays this information, contrary to
+
+----
+$ man man
+----
+
+which does not even mention it.

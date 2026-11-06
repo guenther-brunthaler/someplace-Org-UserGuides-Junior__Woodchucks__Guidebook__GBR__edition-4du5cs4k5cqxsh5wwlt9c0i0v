@@ -1,7 +1,7 @@
-﻿git Usage
+git Usage
 =========
 Günther Brunthaler
-v2026.266
+v2026.300
 
 
 Create a shared/shallow/sparse/partial clone
@@ -21,19 +21,19 @@ In this case, edit the file `$NEW_REPO_DIR/.git/objects/info/alternates` where t
 Sometimes, you want to clone a gigantic repository, but are only interested in the newest commit:
 
 ----
-$ git clone --depth=1 $REPO_URL
+$ git clone -q --depth=1 $REPO_URL
 ----
 
 This will create a "shallow" repository witg truncated history, but use the same commit ID as the original for the latest commit. If you also to receive all the tags, add the next command:
 
 ----
-$ git fetch --tags
+$ git fetch -q --tags
 ----
 
 But sometimes one wants to see the whole commit history with all its commit IDs and tags, but still not really clone the whole (gigantic) repository. Use this command:
 
 ----
-$ git clone --no-checkout --filter=tree:0 --sparse $REPO_URL
+$ git clone -q --no-checkout --filter=tree:0 --sparse $REPO_URL
 ----
 
 This will copy the whole history and all branches and tags to your local machine, but not the actual file contents and neither the directory tree objects associated with it. (Actually, some parts of the directory trees will still be copied - but only the file names of the top-level directory.)
@@ -43,7 +43,7 @@ This uses very little space on your local machine, but checking-out such commits
 If you want to remain in full control over checkouts, use this command instead:
 
 ----
-$ git clone --no-checkout --filter=blob:none --sparse $REPO_URL
+$ git clone -q --no-checkout --filter=blob:none --sparse $REPO_URL
 ----
 
 This will fetch the complete history, tags and directory tree information of all commits, but not the file contents themselves. The latter will be fetched "lazyily" on-demand whenever they are needed.
@@ -51,7 +51,7 @@ This will fetch the complete history, tags and directory tree information of all
 Note that none of the above command actually created a check-out. If you want a check-out, either omit the "--no-checkout" or execute the following command after:
 
 ----
-$ git checkout --force
+$ git checkout -q --force
 ----
 
 This will contact the `$REPO_URL` server and fetch any still-missing BLOBs from there.

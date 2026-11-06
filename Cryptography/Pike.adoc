@@ -1,8 +1,8 @@
 Pike
 ====
-2025.237
+2026.307
 
-The Pike stream cipher was invented by Ross Anderson to be a "leaner and meaner" version of FISH after he broke FISH in 1994. Its name is supposed to be a humorous allusion to the pike fish.
+The Pike stream cipher was invented by Ross Anderson to be a "leaner and meaner" version of FISH ("Fibonacci Shrinking Generator") after he broke FISH in 1994. Its name is supposed to be a humorous allusion to the pike fish.
 
 It is about 10% faster than FISH, yet believed to be much stronger. It potentially has a huge key length, and no attacks have been published as of 2004.
 
@@ -14,13 +14,13 @@ b[i] = mod(b[i - 57] + b[i - 7], 2 ^ 32)
 c[i] = mod(c[i - 58] + c[i - 19], 2 ^ 32)
 ....
 
-The carry bits of the additions are compared in order to form a control decision. (If the modulo operation returns a sum unchanged, its carry bit is 0. Otherwise it is 1.)
+The carry bits of the additions are compared in order to form a control decision for each generator. (If the modulo operation returns a sum unchanged, its carry bit is 0. Otherwise it is 1.)
 
 The decision is true if at least one of the other two generators has the same carry bit value as the generator in question. Otherwise it is false.
 
 This control decision has to be delayed for 8 cycles. Which means, the initial 8 cycles of the three generators have to be run unconditionally without producing output in order for the first control decision to "arrive". (An attacker knows that all generators are "on" in the initial 8 cycles, and could derive more information about the seed from any output than in later cycles.)
 
-From now on, the delayed earlier control decision of every generator will be applied: If it was true, then the generator is updated for the next cycle. Otherwise the generator keeps is current value for the next cycle.
+From now on, the delayed earlier control decision of every generator will be applied: If it was true, then the generator is updated during the current cycle. Otherwise the generator keeps is previous value for the current cycle.
 
 At the end of the current cycle, the next output of the algorithm is the 16 low-order bits of the XOR of the current values of all three generators.
 
@@ -52,4 +52,4 @@ The situation is worsened by the fact that no test vectors have been published, 
 
 But this might also mean that the cipher is in fact so strong that the NSA does not want it to be widely used, because they have no chance cracking it. Therefore, details about the cipher might have been intentionally published vaguely, disencouraging anyone from actually using it.
 
-The algorithm's paper has "appeared" on FSE3 in 1996 as part of publication LNCS 1039. However, I could it not find it in the list of published material of that conference.
+The paper proposing algorithm is Ross Anderson's "On Fibonacci keystream generators," published in the FSE 1994 proceedings, LNCS 1008, pages 346–352.
